@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/AlexBlackNn/authloyalty/broker"
-	test "github.com/AlexBlackNn/authloyalty/broker/test.v1"
+	"github.com/AlexBlackNn/authloyalty/pkg/broker"
+	test "github.com/AlexBlackNn/authloyalty/pkg/broker/test.v1"
 	"log"
 )
 

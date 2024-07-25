@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/AlexBlackNn/authloyalty/internal/domain/models"
-	"github.com/AlexBlackNn/authloyalty/storage"
+	"github.com/AlexBlackNn/authloyalty/pkg/storage"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 

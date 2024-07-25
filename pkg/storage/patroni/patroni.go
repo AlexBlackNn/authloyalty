@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"github.com/AlexBlackNn/authloyalty/internal/config"
 	"github.com/AlexBlackNn/authloyalty/internal/domain/models"
-	"github.com/AlexBlackNn/authloyalty/storage"
+	"github.com/AlexBlackNn/authloyalty/pkg/storage"
 	"github.com/XSAM/otelsql"
 	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"

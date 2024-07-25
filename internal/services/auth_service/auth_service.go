@@ -10,7 +10,7 @@ import (
 	"github.com/AlexBlackNn/authloyalty/internal/config"
 	"github.com/AlexBlackNn/authloyalty/internal/domain/models"
 	jwtlib "github.com/AlexBlackNn/authloyalty/internal/lib/jwt"
-	"github.com/AlexBlackNn/authloyalty/storage"
+	storage2 "github.com/AlexBlackNn/authloyalty/pkg/storage"
 	"github.com/golang-jwt/jwt/v5"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -24,19 +24,19 @@ import (
 type Auth struct {
 	log *slog.Logger
 	// data layer
-	userStorage storage.UserStorage
+	userStorage storage2.UserStorage
 	// data layer
-	tokenStorage storage.TokenStorage
+	tokenStorage storage2.TokenStorage
 	cfg          *config.Config
 }
 
 // New returns a new instance of Auth service
 func New(
 	log *slog.Logger,
-// data layer
-	userStorage storage.UserStorage,
-// data layer
-	tokenStorage storage.TokenStorage,
+	// data layer
+	userStorage storage2.UserStorage,
+	// data layer
+	tokenStorage storage2.TokenStorage,
 
 	cfg *config.Config,
 ) *Auth {
@@ -287,7 +287,7 @@ func (a *Auth) generateRefreshAccessToken(
 
 	ctx, user, err := a.userStorage.GetUser(ctx, value)
 	if err != nil {
-		if errors.Is(err, storage.ErrUserNotFound) {
+		if errors.Is(err, storage2.ErrUserNotFound) {
 			return ctx,
 				userWithTokens{
 					user:         nil,
