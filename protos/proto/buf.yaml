@@ -1,0 +1,5 @@
+version: v1beta1
+name: github.com/alexblacknn/rk-demo1
+build:
+  roots:
+    - sso

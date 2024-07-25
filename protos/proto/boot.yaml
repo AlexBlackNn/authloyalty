@@ -1,0 +1,7 @@
+grpc:
+  - name: greeter                   # Name of grpc entry
+    port: 8080                      # Port of grpc entry
+    enabled: true                   # Enable grpc entry
+    sw:
+      enabled: true                 # Enable swagger
+      jsonPath: "sso/gen"        # Provide swagger config file path
