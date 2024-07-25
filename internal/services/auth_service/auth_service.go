@@ -33,9 +33,9 @@ type Auth struct {
 // New returns a new instance of Auth service
 func New(
 	log *slog.Logger,
-	// data layer
+// data layer
 	userStorage storage.UserStorage,
-	// data layer
+// data layer
 	tokenStorage storage.TokenStorage,
 
 	cfg *config.Config,
@@ -162,6 +162,8 @@ func (a *Auth) Register(
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
 	log.Info("user registrated")
+	//TODO: add message to kafka
+
 	return id, nil
 }
 
