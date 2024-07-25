@@ -2,7 +2,7 @@ package storage
 
 import (
 	"context"
-	"sso/internal/domain/models"
+	"github.com/AlexBlackNn/authloyalty/internal/domain/models"
 	"time"
 )
 

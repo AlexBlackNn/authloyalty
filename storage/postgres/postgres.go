@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/AlexBlackNn/authloyalty/internal/domain/models"
+	"github.com/AlexBlackNn/authloyalty/storage"
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"sso/internal/domain/models"
-	"sso/storage"
 )
 
 type Storage struct {

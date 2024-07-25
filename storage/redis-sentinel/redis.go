@@ -3,12 +3,12 @@ package redis_sentinel
 import (
 	"context"
 	"fmt"
+	"github.com/AlexBlackNn/authloyalty/internal/config"
 	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/redis/go-redis/v9"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
-	"sso/internal/config"
 	"time"
 )
 

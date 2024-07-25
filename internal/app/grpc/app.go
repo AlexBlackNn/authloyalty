@@ -2,12 +2,12 @@ package grpcapp
 
 import (
 	"fmt"
+	"github.com/AlexBlackNn/authloyalty/internal/config"
+	authtransport "github.com/AlexBlackNn/authloyalty/internal/grpc_transport/auth"
+	authservice "github.com/AlexBlackNn/authloyalty/internal/services/auth_service"
 	"google.golang.org/grpc"
 	"log/slog"
 	"net"
-	"sso/internal/config"
-	authtransport "sso/internal/grpc_transport/auth"
-	authservice "sso/internal/services/auth_service"
 )
 
 type App struct {

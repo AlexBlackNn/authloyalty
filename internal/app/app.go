@@ -2,17 +2,17 @@ package app
 
 import (
 	"context"
+	grpcapp "github.com/AlexBlackNn/authloyalty/internal/app/grpc"
+	"github.com/AlexBlackNn/authloyalty/internal/config"
+	authtransport "github.com/AlexBlackNn/authloyalty/internal/grpc_transport/auth"
+	"github.com/AlexBlackNn/authloyalty/internal/services/auth_service"
+	authgen "github.com/AlexBlackNn/authloyalty/protos/proto/sso/gen"
+	patroni "github.com/AlexBlackNn/authloyalty/storage/patroni"
+	redis "github.com/AlexBlackNn/authloyalty/storage/redis-sentinel"
 	rkboot "github.com/rookie-ninja/rk-boot"
 	rkgrpc "github.com/rookie-ninja/rk-grpc/boot"
 	"google.golang.org/grpc"
 	"log/slog"
-	grpcapp "sso/internal/app/grpc"
-	"sso/internal/config"
-	authtransport "sso/internal/grpc_transport/auth"
-	"sso/internal/services/auth_service"
-	authgen "sso/protos/proto/sso/gen"
-	patroni "sso/storage/patroni"
-	redis "sso/storage/redis-sentinel"
 )
 
 type App struct {

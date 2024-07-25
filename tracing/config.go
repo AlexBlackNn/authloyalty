@@ -2,6 +2,7 @@ package tracing
 
 import (
 	"context"
+	"github.com/AlexBlackNn/authloyalty/internal/config"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/jaeger"
@@ -9,7 +10,6 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
-	"sso/internal/config"
 )
 
 // // Init configures an OpenTelemetry exporter and trace provider.

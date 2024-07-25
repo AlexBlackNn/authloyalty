@@ -7,6 +7,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/AlexBlackNn/authloyalty/internal/config"
+	"github.com/AlexBlackNn/authloyalty/internal/domain/models"
+	jwtlib "github.com/AlexBlackNn/authloyalty/internal/lib/jwt"
+	"github.com/AlexBlackNn/authloyalty/storage"
 	"github.com/golang-jwt/jwt/v5"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -14,10 +18,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/metadata"
 	"log/slog"
-	"sso/internal/config"
-	"sso/internal/domain/models"
-	jwtlib "sso/internal/lib/jwt"
-	"sso/storage"
 	"time"
 )
 

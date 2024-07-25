@@ -5,15 +5,15 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/AlexBlackNn/authloyalty/internal/config"
+	"github.com/AlexBlackNn/authloyalty/internal/domain/models"
+	"github.com/AlexBlackNn/authloyalty/storage"
 	"github.com/XSAM/otelsql"
 	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
-	"sso/internal/config"
-	"sso/internal/domain/models"
-	"sso/storage"
 )
 
 const ErrCodeUserAlreadyExists = "23505"

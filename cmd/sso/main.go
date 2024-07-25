@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/AlexBlackNn/authloyalty/app"
+	"github.com/AlexBlackNn/authloyalty/internal/app"
 	"github.com/AlexBlackNn/authloyalty/internal/config"
 	"log/slog"
 	"os"

@@ -7,6 +7,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/AlexBlackNn/authloyalty/internal/services/auth_service"
+	ssov1 "github.com/AlexBlackNn/authloyalty/protos/proto/sso/gen"
+	"github.com/AlexBlackNn/authloyalty/storage"
 	"github.com/prometheus/common/log"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -15,9 +18,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
-	"sso/internal/services/auth_service"
-	ssov1 "sso/protos/proto/sso/gen"
-	"sso/storage"
 )
 
 // serverAPI TRANSPORT layer
