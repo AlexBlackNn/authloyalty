@@ -38,6 +38,7 @@ type Config struct {
 	RedisSentinel  RedisSentinelConfig  `yaml:"redis_sentinel"`
 	StoragePatroni StoragePatroniConfig `yaml:"storage_patroni"`
 	JaegerUrl      string               `yaml:"jaeger_url"`
+	RateLimit      int                  `yaml:"rate_limit" `
 }
 
 func MustLoad() *Config {

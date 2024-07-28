@@ -73,6 +73,17 @@ const (
 
 var tracer = otel.Tracer("sso service")
 
+// HealthCheck returns service health check
+func (a *Auth) HealthCheck(ctx context.Context) error {
+	log := a.log.With(
+		slog.String("info", "SERVICE LAYER: metrics_service.HealthCheck"),
+	)
+	log.Info("starts getting health check")
+	defer log.Info("finish getting health check")
+	//return a.healthChecker.HealthCheck(ctx)
+	return nil
+}
+
 func (a *Auth) Login(
 	ctx context.Context,
 	email string,

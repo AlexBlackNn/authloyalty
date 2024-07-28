@@ -2,7 +2,7 @@ package app
 
 import (
 	"context"
-	grpcapp "github.com/AlexBlackNn/authloyalty/internal/app/grpc"
+	"github.com/AlexBlackNn/authloyalty/app/grpc"
 	"github.com/AlexBlackNn/authloyalty/internal/config"
 	authtransport "github.com/AlexBlackNn/authloyalty/internal/grpc_transport/auth"
 	"github.com/AlexBlackNn/authloyalty/internal/services/auth_service"

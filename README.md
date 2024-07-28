@@ -63,3 +63,5 @@ http://127.0.0.1:44044/sw/
 
 cd authloyalty/protos/proto/registration
 protoc --go_out=. registration.proto
+
+easyjson -all /home/alex/Dev/GolandYandex/authloyalty/internal/handlers/v1/sso_handlers_response.go 

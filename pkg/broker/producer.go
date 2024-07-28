@@ -8,10 +8,6 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-const (
-	nullOffset = -1
-)
-
 type Producer struct {
 	producer   *kafka.Producer
 	serializer serde.Serializer

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/AlexBlackNn/authloyalty/internal/app"
+	"github.com/AlexBlackNn/authloyalty/app"
 	"github.com/AlexBlackNn/authloyalty/internal/config"
 	"log/slog"
 	"os"
@@ -15,7 +15,6 @@ func main() {
 	log.Info("starting application", slog.String("env", cfg.Env))
 	// init app
 	app.New(log, cfg)
-
 }
 
 // our environments
