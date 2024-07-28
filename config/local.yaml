@@ -19,3 +19,4 @@ redis_sentinel:
   password: "123456"
 jaeger_url: "http://localhost:14268/api/traces"
 rate_limit: 10000
+address: ":8000"

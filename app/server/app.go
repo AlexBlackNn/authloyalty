@@ -9,6 +9,10 @@ import (
 	v1 "github.com/AlexBlackNn/authloyalty/internal/handlers/v1"
 	"github.com/AlexBlackNn/authloyalty/internal/logger"
 	authservice "github.com/AlexBlackNn/authloyalty/internal/services/auth_service"
+	"github.com/AlexBlackNn/authloyalty/pkg/broker"
+	patroni "github.com/AlexBlackNn/authloyalty/pkg/storage/patroni"
+	redis "github.com/AlexBlackNn/authloyalty/pkg/storage/redis-sentinel"
+	"google.golang.org/protobuf/proto"
 	"log/slog"
 	"net/http"
 	"time"
@@ -38,45 +42,65 @@ type HealthChecker interface {
 	) error
 }
 
+type Sender interface {
+	Send(msg proto.Message, topic string) error
+}
+
 // App service consists all entities needed to work.
 type App struct {
-	MetricsService *authservice.Auth
-	HandlersV1     v1.AuthHandlers
-	Cfg            *config.Config
-	Log            *slog.Logger
-	Srv            *http.Server
-	DataBase       MetricsStorage
-	HealthChecker  v1.HealthHandlers
+	Cfg           *config.Config
+	Log           *slog.Logger
+	Srv           *http.Server
+	UserStorage   UserStorage
+	TokenStorage  TokenStorage
+	authService   *authservice.Auth
+	HandlersV1    v1.AuthHandlers
+	HealthChecker v1.HealthHandlers
 }
 
 // New creates App collecting service layer, config, logger and predefined storage layer.
 func New() (*App, error) {
-	cfg, err := config.New()
+	cfg := config.New()
+	log := logger.New(cfg.Env)
+
+	storage, err := patroni.New(cfg)
 	if err != nil {
 		return nil, err
 	}
-	log := logger.New(cfg.Env)
-	return NewAppInitStorage(postgresStorage, postgresStorage, cfg, log)
 
+	kafkaURL := "localhost:9094"
+	schemaRegistryURL := "http://localhost:8081"
+
+	producer, err := broker.NewProducer(kafkaURL, schemaRegistryURL)
+	tokenCache := redis.New(cfg) // Use cfg from the closure
+	return NewAppInitStorage(cfg, log, storage, tokenCache, producer)
 }
 
-func NewAppInitStorage(ms MetricsStorage, hc HealthChecker, cfg *configserver.Config, log *slog.Logger) (*App, error) {
+func NewAppInitStorage(
+	cfg *config.Config,
+	log *slog.Logger,
+	userStorage UserStorage,
+	tokenStorage TokenStorage,
+	broker Sender,
+) (*App, error) {
 
-	metricsService := metricsservice.New(
-		log,
+	authService := authservice.New(
 		cfg,
-		ms,
-		hc,
+		log,
+		userStorage,
+		tokenStorage,
+		broker,
 	)
 
-	projectHandlersV1 := v1.New(log, metricsService)
-
+	projectHandlersV1 := v1.New(log, authService)
+	healthHandlersV1 := v1.NewHealth(log, authService)
 	srv := &http.Server{
-		Addr: fmt.Sprintf(cfg.ServerAddr),
+		Addr: fmt.Sprintf(cfg.Address),
 		Handler: router.NewChiRouter(
 			cfg,
 			log,
 			projectHandlersV1,
+			healthHandlersV1,
 		),
 		ReadTimeout:  time.Duration(10) * time.Second,
 		WriteTimeout: time.Duration(10) * time.Second,
@@ -84,12 +108,13 @@ func NewAppInitStorage(ms MetricsStorage, hc HealthChecker, cfg *configserver.Co
 	}
 
 	return &App{
-		MetricsService: metricsService,
-		HandlersV1:     projectHandlersV1,
-		Srv:            srv,
-		Cfg:            cfg,
-		Log:            log,
-		DataBase:       ms,
-		HealthChecker:  hc,
+		Cfg:           cfg,
+		Log:           log,
+		Srv:           srv,
+		UserStorage:   userStorage,
+		TokenStorage:  tokenStorage,
+		authService:   authService,
+		HandlersV1:    projectHandlersV1,
+		HealthChecker: healthHandlersV1,
 	}, nil
 }

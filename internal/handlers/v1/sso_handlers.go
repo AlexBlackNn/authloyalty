@@ -14,13 +14,12 @@ import (
 )
 
 type AuthHandlers struct {
-	log         *slog.Logger
-	authService *auth_service.Auth
-	auth        auth_service.AuthorizationInterface
+	log  *slog.Logger
+	auth *auth_service.Auth
 }
 
 func New(log *slog.Logger, authService *auth_service.Auth) AuthHandlers {
-	return AuthHandlers{log: log, authService: authService}
+	return AuthHandlers{log: log, auth: authService}
 }
 
 func (a *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
@@ -54,9 +53,13 @@ func (a *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeoutCause(r.Context(), 300*time.Millisecond, errors.New("updateMetric timeout"))
 	defer cancel()
 
+	fmt.Println("111111111111111111111111111", reqLogin, reqLogin.Email, reqLogin.Password)
+
 	accessToken, refreshToken, err := a.auth.Login(
 		ctx, reqLogin.Email, reqLogin.Password,
 	)
+	fmt.Println("222222222222222222222222222222", reqLogin, reqLogin.Email, reqLogin.Password)
+
 	if err != nil {
 		fmt.Println(err.Error())
 		if errors.Is(err, auth_service.ErrInvalidCredentials) {

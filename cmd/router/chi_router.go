@@ -16,6 +16,7 @@ func NewChiRouter(
 	cfg *config.Config,
 	log *slog.Logger,
 	authHandlerV1 handlersV1.AuthHandlers,
+	healthHandlerV1 handlersV1.HealthHandlers,
 ) *chi.Mux {
 	router := chi.NewRouter()
 	router.Use(middleware.RequestID)
@@ -32,9 +33,9 @@ func NewChiRouter(
 	router.Use(middleware.Recoverer)
 
 	router.Route("/auth", func(r chi.Router) {
-		r.Get("/ready", handlersV1)
-		r.Get("/healthz", handlersV1)
-		r.Post("/login", handlersV1)
+		r.Get("/ready", healthHandlerV1.ReadinessProbe)
+		r.Get("/healthz", healthHandlerV1.LivenessProbe)
+		r.Post("/login", authHandlerV1.Login)
 	})
 	return router
 }

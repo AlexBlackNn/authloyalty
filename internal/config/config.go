@@ -39,9 +39,10 @@ type Config struct {
 	StoragePatroni StoragePatroniConfig `yaml:"storage_patroni"`
 	JaegerUrl      string               `yaml:"jaeger_url"`
 	RateLimit      int                  `yaml:"rate_limit" `
+	Address        string               `yaml:"address"`
 }
 
-func MustLoad() *Config {
+func New() *Config {
 	configPath := fetchConfigPath()
 	if configPath == "" {
 		panic("config path is empty")

@@ -14,8 +14,8 @@ type HealthHandlers struct {
 	authservice *authservice.Auth
 }
 
-func NewHealth(log *slog.Logger, metricsService *authservice.Auth) HealthHandlers {
-	return HealthHandlers{log: log, authservice: metricsService}
+func NewHealth(log *slog.Logger, authservice *authservice.Auth) HealthHandlers {
+	return HealthHandlers{log: log, authservice: authservice}
 }
 
 func (m *HealthHandlers) ReadinessProbe(w http.ResponseWriter, r *http.Request) {

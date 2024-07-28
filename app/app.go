@@ -41,7 +41,7 @@ func New(
 	producer, err := broker.NewProducer(kafkaURL, schemaRegistryURL)
 
 	//init auth_service service (auth_service)
-	authService := auth_service.New(log, storage, tokenCache, producer, cfg)
+	authService := auth_service.New(cfg, log, storage, tokenCache, producer)
 
 	boot := rkboot.NewBoot()
 	// Get grpc entry with name
@@ -77,7 +77,7 @@ func registerGreeterFunc(log *slog.Logger, cfg *config.Config) func(server *grpc
 		schemaRegistryURL := "http://localhost:8081"
 
 		producer, err := broker.NewProducer(kafkaURL, schemaRegistryURL)
-		authService := auth_service.New(log, storage, tokenCache, producer, cfg) // Use log and cfg from the closure
+		authService := auth_service.New(cfg, log, storage, tokenCache, producer) // Use log and cfg from the closure
 		authtransport.Register(server, authService)                              // Register the service on the provided server
 	}
 }

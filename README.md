@@ -65,3 +65,8 @@ cd authloyalty/protos/proto/registration
 protoc --go_out=. registration.proto
 
 easyjson -all /home/alex/Dev/GolandYandex/authloyalty/internal/handlers/v1/sso_handlers_response.go 
+
+
+```bash
+curl --header "Content-Type: application/json" --request POST --data '{"email":"test@test","password":"test"}' http://localhost:8000/auth/login
+```

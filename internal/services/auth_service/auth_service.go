@@ -52,11 +52,11 @@ type Auth struct {
 
 // New returns a new instance of Auth service
 func New(
+	cfg *config.Config,
 	log *slog.Logger,
 	userStorage UserStorage,
 	tokenStorage TokenStorage,
 	producer Sender,
-	cfg *config.Config,
 ) *Auth {
 	return &Auth{
 		log:          log,
@@ -89,13 +89,14 @@ func (a *Auth) Login(
 	email string,
 	password string,
 ) (string, string, error) {
+	fmt.Println("11111111")
 	ctx, span := tracer.Start(ctx, "service layer: login",
 		trace.WithAttributes(attribute.String("handler", "login")))
 	defer span.End()
-
+	fmt.Println("222222")
 	md, _ := metadata.FromIncomingContext(ctx)
 	a.log.Info("time: %v, userId: %v", md.Get("timestamp"), md.Get("user-id"))
-
+	fmt.Println("333333")
 	ctx, usrWithTokens, err := a.generateRefreshAccessToken(ctx, email)
 	if err != nil {
 		a.log.Error("Generation token failed:", err)
@@ -103,7 +104,7 @@ func (a *Auth) Login(
 			"generation token failed: %w", err,
 		)
 	}
-
+	fmt.Println("44444444")
 	if err := bcrypt.CompareHashAndPassword(
 		usrWithTokens.user.PassHash, []byte(password),
 	); err != nil {
@@ -113,6 +114,7 @@ func (a *Auth) Login(
 		)
 	}
 
+	fmt.Println("5555555")
 	return usrWithTokens.accessToken, usrWithTokens.refreshToken, nil
 }
 
