@@ -1,0 +1,11 @@
+// to generate go files protoc --go_out=. registration.proto
+syntax = "proto3";
+
+option go_package = "./registration.v1";
+
+package Registration.v1;
+
+message RegistrationMessage {
+  string Email = 1;
+  string FullName = 2;
+}

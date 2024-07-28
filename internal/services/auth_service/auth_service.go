@@ -1,8 +1,5 @@
 package auth_service
 
-//SERVICE LAYER
-// Auth(service layer) encapsulates userStorage (data layer)
-
 import (
 	"context"
 	"errors"
@@ -11,39 +8,61 @@ import (
 	"github.com/AlexBlackNn/authloyalty/internal/domain/models"
 	jwtlib "github.com/AlexBlackNn/authloyalty/internal/lib/jwt"
 	storage2 "github.com/AlexBlackNn/authloyalty/pkg/storage"
+	registration_v1 "github.com/AlexBlackNn/authloyalty/protos/proto/registration/registration.v1"
 	"github.com/golang-jwt/jwt/v5"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/proto"
 	"log/slog"
 	"time"
 )
 
+type Sender interface {
+	Send(msg proto.Message, topic string) error
+}
+
+type UserStorage interface {
+	SaveUser(
+		ctx context.Context,
+		email string,
+		passHash []byte,
+	) (context.Context, int64, error)
+	GetUser(
+		ctx context.Context,
+		value any,
+	) (context.Context, models.User, error)
+}
+
+type TokenStorage interface {
+	SaveToken(ctx context.Context, token string, ttl time.Duration) (context.Context, error)
+	GetToken(ctx context.Context, token string) (context.Context, string, error)
+	CheckTokenExists(ctx context.Context, token string) (context.Context, int64, error)
+}
+
 type Auth struct {
-	log *slog.Logger
-	// data layer
-	userStorage storage2.UserStorage
-	// data layer
-	tokenStorage storage2.TokenStorage
+	log          *slog.Logger
+	userStorage  UserStorage
+	tokenStorage TokenStorage
+	producer     Sender
 	cfg          *config.Config
 }
 
 // New returns a new instance of Auth service
 func New(
 	log *slog.Logger,
-	// data layer
-	userStorage storage2.UserStorage,
-	// data layer
-	tokenStorage storage2.TokenStorage,
-
+	userStorage UserStorage,
+	tokenStorage TokenStorage,
+	producer Sender,
 	cfg *config.Config,
 ) *Auth {
 	return &Auth{
 		log:          log,
 		userStorage:  userStorage,
 		tokenStorage: tokenStorage,
+		producer:     producer,
 		cfg:          cfg,
 	}
 }
@@ -126,7 +145,6 @@ func (a *Auth) Refresh(
 		a.log.Error("failed to save token", err.Error())
 		return "", "", err
 	}
-	fmt.Println("888888888")
 	a.log.Info(" token saved to redis successfully")
 	return usrWithTokens.accessToken, usrWithTokens.refreshToken, nil
 }
@@ -162,8 +180,16 @@ func (a *Auth) Register(
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
 	log.Info("user registrated")
-	//TODO: add message to kafka
 
+	RegirationMsg := registration_v1.RegistrationMessage{
+		Email:    email,
+		FullName: "Alex Black",
+	}
+	err = a.producer.Send(&RegirationMsg, "registration")
+	if err != nil {
+		// no return here with err!!!, we do continue working (so-called soft degradation)
+		log.Error("Sending message to broker failed")
+	}
 	return id, nil
 }
 

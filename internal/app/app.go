@@ -6,6 +6,7 @@ import (
 	"github.com/AlexBlackNn/authloyalty/internal/config"
 	authtransport "github.com/AlexBlackNn/authloyalty/internal/grpc_transport/auth"
 	"github.com/AlexBlackNn/authloyalty/internal/services/auth_service"
+	"github.com/AlexBlackNn/authloyalty/pkg/broker"
 	patroni "github.com/AlexBlackNn/authloyalty/pkg/storage/patroni"
 	redis "github.com/AlexBlackNn/authloyalty/pkg/storage/redis-sentinel"
 	authgen "github.com/AlexBlackNn/authloyalty/protos/proto/sso/gen"
@@ -34,8 +35,13 @@ func New(
 	//init cache
 	tokenCache := redis.New(cfg)
 
+	kafkaURL := "localhost:9094"
+	schemaRegistryURL := "http://localhost:8081"
+
+	producer, err := broker.NewProducer(kafkaURL, schemaRegistryURL)
+
 	//init auth_service service (auth_service)
-	authService := auth_service.New(log, storage, tokenCache, cfg)
+	authService := auth_service.New(log, storage, tokenCache, producer, cfg)
 
 	boot := rkboot.NewBoot()
 	// Get grpc entry with name
@@ -65,8 +71,13 @@ func registerGreeterFunc(log *slog.Logger, cfg *config.Config) func(server *grpc
 			log.Error("Failed to create storage", "error", err) // Use log from the closure
 			panic(err)
 		}
-		tokenCache := redis.New(cfg)                                   // Use cfg from the closure
-		authService := auth_service.New(log, storage, tokenCache, cfg) // Use log and cfg from the closure
-		authtransport.Register(server, authService)                    // Register the service on the provided server
+		tokenCache := redis.New(cfg) // Use cfg from the closure
+
+		kafkaURL := "localhost:9094"
+		schemaRegistryURL := "http://localhost:8081"
+
+		producer, err := broker.NewProducer(kafkaURL, schemaRegistryURL)
+		authService := auth_service.New(log, storage, tokenCache, producer, cfg) // Use log and cfg from the closure
+		authtransport.Register(server, authService)                              // Register the service on the provided server
 	}
 }

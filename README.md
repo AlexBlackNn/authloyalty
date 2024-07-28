@@ -59,3 +59,7 @@ http://127.0.0.1:44044/sw/
 
 Можно для  проверки подключения по grpc к сервису использовать  Postman
 ![postman.png](docs%2Fpostman.png)
+
+
+cd authloyalty/protos/proto/registration
+protoc --go_out=. registration.proto
