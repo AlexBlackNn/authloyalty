@@ -1,6 +1,7 @@
 package broker
 
 import (
+	"fmt"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/confluentinc/confluent-kafka-go/schemaregistry"
 	"github.com/confluentinc/confluent-kafka-go/schemaregistry/serde"
@@ -27,6 +28,22 @@ func NewProducer(kafkaURL, srURL string) (*Producer, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Delivery report handler for produced messages
+	go func() {
+		for e := range p.Events() {
+			switch ev := e.(type) {
+			case *kafka.Message:
+				if ev.TopicPartition.Error != nil {
+					//TODO: need some how to inform that the message was not send, m.b. write in database?
+					fmt.Printf("Delivery failed: %v\n", ev.TopicPartition)
+				} else {
+					fmt.Printf("Delivered message to %v\n", ev.TopicPartition)
+				}
+			}
+		}
+	}()
+
 	return &Producer{
 		producer:   p,
 		serializer: s,
@@ -41,8 +58,6 @@ func (s *Producer) Stop() {
 
 // Send sends serialized message to kafka using schema registry
 func (p *Producer) Send(msg proto.Message, topic string) error {
-	kafkaChan := make(chan kafka.Event)
-	defer close(kafkaChan)
 	payload, err := p.serializer.Serialize(topic, msg)
 	if err != nil {
 		return err
@@ -50,14 +65,7 @@ func (p *Producer) Send(msg proto.Message, topic string) error {
 	if err = p.producer.Produce(&kafka.Message{
 		TopicPartition: kafka.TopicPartition{Topic: &topic},
 		Value:          payload,
-	}, kafkaChan); err != nil {
-		return err
-	}
-	e := <-kafkaChan
-	switch e.(type) {
-	case *kafka.Message:
-		return nil
-	case kafka.Error:
+	}, nil); err != nil {
 		return err
 	}
 	return nil

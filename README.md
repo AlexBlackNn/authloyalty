@@ -72,5 +72,5 @@ curl --header "Content-Type: application/json" --request POST --data '{"email":"
 ```
 
 ```bash
-curl --header "Content-Type: application/json" --request POST --data '{"email":"test2@test.com","password":"test"}' http://localhost:8000/auth/registration
+curl --header "Content-Type: application/json" --request POST --data '{"email":"test221@test.com","password":"test"}' http://localhost:8000/auth/registration
 ```
