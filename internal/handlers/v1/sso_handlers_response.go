@@ -14,6 +14,13 @@ type Login struct {
 	Password string `json:"password"`
 }
 
+type Register struct {
+	Email    string `json:"email" validate:"email"`
+	Password string `json:"password" validate:"required"`
+	Name     string `json:"name"`
+	Birthday string `json:"birthday"`
+}
+
 type Response struct {
 	Status string `json:"status"`
 	Error  string `json:"error,omitempty"`

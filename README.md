@@ -68,5 +68,9 @@ easyjson -all /home/alex/Dev/GolandYandex/authloyalty/internal/handlers/v1/sso_h
 
 
 ```bash
-curl --header "Content-Type: application/json" --request POST --data '{"email":"test@test","password":"test"}' http://localhost:8000/auth/login
+curl --header "Content-Type: application/json" --request POST --data '{"email":"test@test.com","password":"test"}' http://localhost:8000/auth/login
+```
+
+```bash
+curl --header "Content-Type: application/json" --request POST --data '{"email":"test2@test.com","password":"test"}' http://localhost:8000/auth/registration
 ```
