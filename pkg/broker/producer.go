@@ -7,6 +7,7 @@ import (
 	"github.com/confluentinc/confluent-kafka-go/schemaregistry/serde"
 	"github.com/confluentinc/confluent-kafka-go/schemaregistry/serde/protobuf"
 	"google.golang.org/protobuf/proto"
+	"time"
 )
 
 type Producer struct {
@@ -33,6 +34,7 @@ func NewProducer(kafkaURL, srURL string) (*Producer, error) {
 	go func() {
 		for e := range p.Events() {
 			switch ev := e.(type) {
+
 			case *kafka.Message:
 				// The message delivery report, indicating success or
 				// permanent failure after retries have been exhausted.
@@ -83,6 +85,13 @@ func (p *Producer) Send(msg proto.Message, topic string) error {
 		Value:          payload,
 		Headers:        []kafka.Header{{Key: "request-Id", Value: []byte("header values are binary")}},
 	}, nil); err != nil {
+		if err.(kafka.Error).Code() == kafka.ErrQueueFull {
+			// Producer queue is full, wait 1s for messages
+			// to be delivered then try again.
+			time.Sleep(time.Second)
+			return err
+		}
+		fmt.Printf("Failed to produce message: %v\n", err)
 		return err
 	}
 	return nil
