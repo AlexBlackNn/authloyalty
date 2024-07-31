@@ -1,4 +1,4 @@
-package server
+package serverhttp
 
 import (
 	"context"
@@ -7,7 +7,6 @@ import (
 	"github.com/AlexBlackNn/authloyalty/internal/config"
 	"github.com/AlexBlackNn/authloyalty/internal/domain/models"
 	v1 "github.com/AlexBlackNn/authloyalty/internal/handlers/v1"
-	"github.com/AlexBlackNn/authloyalty/internal/logger"
 	authservice "github.com/AlexBlackNn/authloyalty/internal/services/auth_service"
 	"github.com/AlexBlackNn/authloyalty/pkg/broker"
 	patroni "github.com/AlexBlackNn/authloyalty/pkg/storage/patroni"
@@ -59,17 +58,20 @@ type App struct {
 }
 
 // New creates App collecting service layer, config, logger and predefined storage layer.
-func New() (*App, error) {
-	cfg := config.New()
-	log := logger.New(cfg.Env)
-
+func New(cfg *config.Config, log *slog.Logger) (*App, error) {
+	// TODO: seems to need factory here
+	//storage, err := postgres.New(cfg.StoragePath) //uncomment for postgres
 	storage, err := patroni.New(cfg)
 	if err != nil {
 		return nil, err
 	}
 
+	tokenCache := redis.New(cfg)
+
 	producer, err := broker.NewProducer(cfg.Kafka.KafkaURL, cfg.Kafka.SchemaRegistryURL)
-	tokenCache := redis.New(cfg) // Use cfg from the closure
+	if err != nil {
+		return nil, err
+	}
 	return NewAppInitStorage(cfg, log, storage, tokenCache, producer)
 }
 

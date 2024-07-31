@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/AlexBlackNn/authloyalty/app"
-	"github.com/AlexBlackNn/authloyalty/app/server"
+	"github.com/AlexBlackNn/authloyalty/app/servergrpc"
+	"github.com/AlexBlackNn/authloyalty/app/serverhttp"
+	"github.com/AlexBlackNn/authloyalty/internal/config"
 	"github.com/AlexBlackNn/authloyalty/internal/logger"
 	"log/slog"
 	"os"
@@ -11,32 +12,42 @@ import (
 )
 
 func main() {
+	cfg := config.New()
+	log := logger.New(cfg.Env)
 
 	// http
-	application, err := server.New()
+	serverhttp, err := serverhttp.New(cfg, log)
 	if err != nil {
 		panic(err)
 	}
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
 
-	//application.Log.Info("starting application", slog.String("cfg", application.Cfg.String()))
 	go func() {
-		if err = application.Srv.ListenAndServe(); err != nil {
+		if err = serverhttp.Srv.ListenAndServe(); err != nil {
 			panic(err)
 		}
 	}()
-	application.Log.Info("http server started")
+	serverhttp.Log.Info("http server started")
+
+	// grpc
+	_, err = servergrpc.New(cfg, log)
+	if err != nil {
+		panic(err)
+	}
+
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
+
+	//go func() {
+	//	if err = servergrpc.Srv.ListenAndServe(); err != nil {
+	//		panic(err)
+	//	}
+	//}()
+	serverhttp.Log.Info("grpc server started")
 
 	// GRPC
 	// init logger
-	log := logger.New(application.Cfg.Env)
-	log.Info("starting application", slog.String("env", application.Cfg.Env))
-	// init app
-	app.New(log, application.Cfg)
-
 	signalType := <-stop
-	application.Log.Info(
+	serverhttp.Log.Info(
 		"application stopped",
 		slog.String("signalType",
 			signalType.String()),
