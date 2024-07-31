@@ -25,6 +25,11 @@ type StoragePatroniConfig struct {
 	Slave  string `yaml:"slave"`
 }
 
+type KafkaConfig struct {
+	KafkaURL          string `yaml:"kafkaUrl" env-required:"true"`
+	SchemaRegistryURL string `yaml:"schemaRegistryURL" env-required:"true"`
+}
+
 type Config struct {
 	// without this param will be used "local" as param value
 	Env             string        `yaml:"env" env-default:"local"`
@@ -37,6 +42,7 @@ type Config struct {
 	GRPC           GRPCConfig           `yaml:"grpc"`
 	RedisSentinel  RedisSentinelConfig  `yaml:"redis_sentinel"`
 	StoragePatroni StoragePatroniConfig `yaml:"storage_patroni"`
+	Kafka          KafkaConfig          `yaml:"kafka"`
 	JaegerUrl      string               `yaml:"jaeger_url"`
 	RateLimit      int                  `yaml:"rate_limit" `
 	Address        string               `yaml:"address"`

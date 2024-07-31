@@ -20,3 +20,6 @@ redis_sentinel:
 jaeger_url: "http://localhost:14268/api/traces"
 rate_limit: 10000
 address: ":8000"
+kafka:
+  kafkaUrl: "localhost:9094"
+  schemaRegistryURL: "http://localhost:8081"

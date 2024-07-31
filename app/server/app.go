@@ -68,10 +68,7 @@ func New() (*App, error) {
 		return nil, err
 	}
 
-	kafkaURL := "localhost:9094"
-	schemaRegistryURL := "http://localhost:8081"
-
-	producer, err := broker.NewProducer(kafkaURL, schemaRegistryURL)
+	producer, err := broker.NewProducer(cfg.Kafka.KafkaURL, cfg.Kafka.SchemaRegistryURL)
 	tokenCache := redis.New(cfg) // Use cfg from the closure
 	return NewAppInitStorage(cfg, log, storage, tokenCache, producer)
 }
