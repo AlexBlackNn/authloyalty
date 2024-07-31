@@ -2,10 +2,8 @@ package main
 
 import (
 	"context"
-	"github.com/AlexBlackNn/authloyalty/app/servergrpc"
-	"github.com/AlexBlackNn/authloyalty/app/serverhttp"
-	"github.com/AlexBlackNn/authloyalty/internal/config"
-	"github.com/AlexBlackNn/authloyalty/internal/logger"
+	"github.com/AlexBlackNn/authloyalty/app"
+	"github.com/prometheus/common/log"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -13,31 +11,23 @@ import (
 )
 
 func main() {
-	cfg := config.New()
-	log := logger.New(cfg.Env)
-
-	// http
-	serverHttp, err := serverhttp.New(cfg, log)
+	application, err := app.New()
 	if err != nil {
 		panic(err)
 	}
-
+	log.Info("http server starting")
 	go func() {
-		if err = serverHttp.Srv.ListenAndServe(); err != nil {
+		if err = application.ServerHttp.Srv.ListenAndServe(); err != nil {
 			panic(err)
 		}
 	}()
+	log.Info("http server started successfully")
 
-	log.Info("http server started")
+	log.Info("grpc server starting")
+	application.ServerGrpc.Srv.Bootstrap(context.Background())
+	log.Info("grpc server started successfully")
 
-	// grpc
-	serverGrpc, err := servergrpc.New(cfg, log)
-	if err != nil {
-		panic(err)
-	}
-	serverGrpc.Srv.Bootstrap(context.Background())
-	log.Info("grpc  server started")
-
+	// graceful shutdown
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
 
