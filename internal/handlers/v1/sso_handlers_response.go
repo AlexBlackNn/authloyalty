@@ -21,6 +21,10 @@ type Register struct {
 	Birthday string `json:"birthday"`
 }
 
+type Logout struct {
+	Token string `json:"token"`
+}
+
 type Response struct {
 	Status string `json:"status"`
 	Error  string `json:"error,omitempty"`

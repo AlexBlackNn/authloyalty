@@ -74,6 +74,49 @@ func (a *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 	responseOK(w, r)
 }
 
+func (a *AuthHandlers) Logout(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		responseError(w, r, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+
+	var reqLogout Logout
+	err := render.DecodeJSON(r.Body, &reqLogout)
+	if err != nil {
+		if errors.Is(err, io.EOF) {
+			// Post with empty body
+			responseError(w, r, http.StatusBadRequest, "empty request")
+			return
+		}
+		responseError(w, r, http.StatusBadRequest, "failed to decode request")
+		return
+	}
+	if err = validator.New().Struct(reqLogout); err != nil {
+		var validateErr validator.ValidationErrors
+		if errors.As(err, &validateErr) {
+			errorText := ValidationError(validateErr)
+			responseError(w, r, http.StatusBadRequest, errorText)
+			return
+		}
+		responseError(w, r, http.StatusUnprocessableEntity, "failed to validate request")
+		return
+	}
+
+	ctx, cancel := context.WithTimeoutCause(r.Context(), 300*time.Millisecond, errors.New("updateMetric timeout"))
+	defer cancel()
+
+	fmt.Println("111111111111111111111111111", reqLogout, reqLogout.Token)
+
+	success, err := a.auth.Logout(ctx, reqLogout.Token)
+	fmt.Println("222222222222222222222222222222", success, err)
+
+	if err != nil {
+		responseError(w, r, http.StatusInternalServerError, "internal server error")
+		return
+	}
+	responseOK(w, r)
+}
+
 func (a *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		responseError(w, r, http.StatusMethodNotAllowed, "method not allowed")

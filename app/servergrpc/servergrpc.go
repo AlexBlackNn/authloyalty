@@ -30,6 +30,9 @@ type UserStorage interface {
 	Stop() error
 }
 
+// TODO: add close as in UserStorage!!!
+
+// TokenStorage describe interface for storages saving revoked tokens
 type TokenStorage interface {
 	SaveToken(ctx context.Context, token string, ttl time.Duration) (context.Context, error)
 	GetToken(ctx context.Context, token string) (context.Context, string, error)
@@ -82,5 +85,6 @@ func (a *App) Stop() error {
 	if err != nil {
 		return err
 	}
+	// TODO: Close TokenStorage
 	return nil
 }

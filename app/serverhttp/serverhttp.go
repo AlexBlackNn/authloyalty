@@ -7,7 +7,7 @@ import (
 	"github.com/AlexBlackNn/authloyalty/cmd/router"
 	"github.com/AlexBlackNn/authloyalty/internal/config"
 	"github.com/AlexBlackNn/authloyalty/internal/domain/models"
-	v1 "github.com/AlexBlackNn/authloyalty/internal/handlers/v1"
+	handlers "github.com/AlexBlackNn/authloyalty/internal/handlers/v1"
 	authservice "github.com/AlexBlackNn/authloyalty/internal/services/auth_service"
 	"github.com/AlexBlackNn/authloyalty/pkg/broker"
 	patroni "github.com/AlexBlackNn/authloyalty/pkg/storage/patroni"
@@ -55,8 +55,8 @@ type App struct {
 	UserStorage   UserStorage
 	TokenStorage  TokenStorage
 	authService   *authservice.Auth
-	HandlersV1    v1.AuthHandlers
-	HealthChecker v1.HealthHandlers
+	HandlersV1    handlers.AuthHandlers
+	HealthChecker handlers.HealthHandlers
 }
 
 // New creates App collecting service layer, config, logger and predefined storage layer.
@@ -93,8 +93,8 @@ func NewAppInitStorage(
 		broker,
 	)
 
-	projectHandlersV1 := v1.New(log, authService)
-	healthHandlersV1 := v1.NewHealth(log, authService)
+	projectHandlersV1 := handlers.New(log, authService)
+	healthHandlersV1 := handlers.NewHealth(log, authService)
 	srv := &http.Server{
 		Addr: fmt.Sprintf(cfg.Address),
 		Handler: router.NewChiRouter(

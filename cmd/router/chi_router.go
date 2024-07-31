@@ -36,6 +36,7 @@ func NewChiRouter(
 		r.Get("/ready", healthHandlerV1.ReadinessProbe)
 		r.Get("/healthz", healthHandlerV1.LivenessProbe)
 		r.Post("/login", authHandlerV1.Login)
+		r.Post("/logout", authHandlerV1.Logout)
 		r.Post("/registration", authHandlerV1.Register)
 	})
 	return router
