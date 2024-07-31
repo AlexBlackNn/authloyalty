@@ -32,10 +32,18 @@ func main() {
 	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
 
 	signalType := <-stop
+
+	err = application.ServerHttp.Stop()
+	if err != nil {
+		log.Error("http server failed to stop", "err", err.Error(), "signal", signalType)
+	}
+	err = application.ServerGrpc.Stop()
+	if err != nil {
+		log.Error("grpc server failed to stop", "err", err.Error(), "signal", signalType)
+	}
 	log.Info(
 		"application stopped",
 		slog.String("signalType",
 			signalType.String()),
 	)
-
 }

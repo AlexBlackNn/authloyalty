@@ -1,7 +1,9 @@
 package servergrpc
 
 import (
+	"context"
 	"github.com/AlexBlackNn/authloyalty/internal/config"
+	"github.com/AlexBlackNn/authloyalty/internal/domain/models"
 	authtransport "github.com/AlexBlackNn/authloyalty/internal/grpc_transport/auth"
 	authservice "github.com/AlexBlackNn/authloyalty/internal/services/auth_service"
 	"github.com/AlexBlackNn/authloyalty/pkg/broker"
@@ -12,25 +14,50 @@ import (
 	rkgrpc "github.com/rookie-ninja/rk-grpc/boot"
 	"google.golang.org/grpc"
 	"log/slog"
+	"time"
 )
 
+type UserStorage interface {
+	SaveUser(
+		ctx context.Context,
+		email string,
+		passHash []byte,
+	) (context.Context, int64, error)
+	GetUser(
+		ctx context.Context,
+		value any,
+	) (context.Context, models.User, error)
+	Stop() error
+}
+
+type TokenStorage interface {
+	SaveToken(ctx context.Context, token string, ttl time.Duration) (context.Context, error)
+	GetToken(ctx context.Context, token string) (context.Context, string, error)
+	CheckTokenExists(ctx context.Context, token string) (context.Context, int64, error)
+}
+
 type App struct {
-	Srv *rkboot.Boot
+	Cfg          *config.Config
+	Log          *slog.Logger
+	Srv          *rkboot.Boot
+	UserStorage  UserStorage
+	TokenStorage TokenStorage
+	authService  *authservice.Auth
 }
 
 func New(cfg *config.Config, log *slog.Logger) (*App, error) {
 
-	storage, err := patroni.New(cfg) // Use cfg from the closure
+	userStorage, err := patroni.New(cfg) // Use cfg from the closure
 	if err != nil {
 		return nil, err
 	}
-	tokenCache := redis.New(cfg)
+	tokenStorage := redis.New(cfg)
 
 	producer, err := broker.NewProducer(cfg.Kafka.KafkaURL, cfg.Kafka.SchemaRegistryURL)
 	if err != nil {
 		return nil, err
 	}
-	authService := authservice.New(cfg, log, storage, tokenCache, producer)
+	authService := authservice.New(cfg, log, userStorage, tokenStorage, producer)
 
 	boot := rkboot.NewBoot()
 	// Get grpc entry with name
@@ -48,4 +75,12 @@ func registerAuthFunc(authService *authservice.Auth) func(server *grpc.Server) {
 	return func(server *grpc.Server) { // Use the provided server
 		authtransport.Register(server, authService)
 	}
+}
+
+func (a *App) Stop() error {
+	err := a.UserStorage.Stop()
+	if err != nil {
+		return err
+	}
+	return nil
 }

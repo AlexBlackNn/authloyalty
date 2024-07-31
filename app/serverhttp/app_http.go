@@ -2,6 +2,7 @@ package serverhttp
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/AlexBlackNn/authloyalty/cmd/router"
 	"github.com/AlexBlackNn/authloyalty/internal/config"
@@ -27,6 +28,7 @@ type UserStorage interface {
 		ctx context.Context,
 		value any,
 	) (context.Context, models.User, error)
+	Stop() error
 }
 
 type TokenStorage interface {
@@ -61,18 +63,18 @@ type App struct {
 func New(cfg *config.Config, log *slog.Logger) (*App, error) {
 	// TODO: seems to need factory here
 	//storage, err := postgres.New(cfg.StoragePath) //uncomment for postgres
-	storage, err := patroni.New(cfg)
+	userStorage, err := patroni.New(cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	tokenCache := redis.New(cfg)
+	tokenStorage := redis.New(cfg)
 
 	producer, err := broker.NewProducer(cfg.Kafka.KafkaURL, cfg.Kafka.SchemaRegistryURL)
 	if err != nil {
 		return nil, err
 	}
-	return NewAppInitStorage(cfg, log, storage, tokenCache, producer)
+	return NewAppInitStorage(cfg, log, userStorage, tokenStorage, producer)
 }
 
 func NewAppInitStorage(
@@ -116,4 +118,24 @@ func NewAppInitStorage(
 		HandlersV1:    projectHandlersV1,
 		HealthChecker: healthHandlersV1,
 	}, nil
+}
+
+// TODO: panic happens panic: http: Server closed if ctrl +C think why???
+
+func (a *App) Stop() error {
+	var errs error
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	// Shutdown the server and handle the timeout error immediately
+	if err := a.Srv.Shutdown(ctx); err != nil {
+		if !errors.Is(err, http.ErrServerClosed) {
+			errs = errors.Join(errs, err)
+		}
+	}
+	// Stop the user storage and join any errors to the `errs` variable
+	if err := a.UserStorage.Stop(); err != nil {
+		errs = errors.Join(errs, err)
+	}
+
+	return errs
 }
