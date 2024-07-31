@@ -1,7 +1,6 @@
 package servergrpc
 
 import (
-	"context"
 	"github.com/AlexBlackNn/authloyalty/internal/config"
 	authtransport "github.com/AlexBlackNn/authloyalty/internal/grpc_transport/auth"
 	authservice "github.com/AlexBlackNn/authloyalty/internal/services/auth_service"
@@ -16,6 +15,7 @@ import (
 )
 
 type App struct {
+	Srv *rkboot.Boot
 }
 
 func New(cfg *config.Config, log *slog.Logger) (*App, error) {
@@ -41,8 +41,7 @@ func New(cfg *config.Config, log *slog.Logger) (*App, error) {
 	// Register grpc-gateway registration function
 	grpcEntry.AddRegFuncGw(authgen.RegisterAuthHandlerFromEndpoint)
 	// Bootstrap
-	boot.Bootstrap(context.Background())
-	return &App{}, nil
+	return &App{Srv: boot}, nil
 }
 
 func registerAuthFunc(authService *authservice.Auth) func(server *grpc.Server) {
