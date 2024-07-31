@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/AlexBlackNn/authloyalty/app/servergrpc"
 	"github.com/AlexBlackNn/authloyalty/app/serverhttp"
 	"github.com/AlexBlackNn/authloyalty/internal/config"
@@ -33,21 +34,14 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
+	fmt.Println("11111111111111111111111111111111")
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
 
-	//go func() {
-	//	if err = servergrpc.Srv.ListenAndServe(); err != nil {
-	//		panic(err)
-	//	}
-	//}()
 	serverhttp.Log.Info("grpc server started")
 
-	// GRPC
-	// init logger
 	signalType := <-stop
-	serverhttp.Log.Info(
+	log.Info(
 		"application stopped",
 		slog.String("signalType",
 			signalType.String()),
