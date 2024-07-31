@@ -19,34 +19,34 @@ type App struct {
 }
 
 func New(cfg *config.Config, log *slog.Logger) (*App, error) {
+
+	storage, err := patroni.New(cfg) // Use cfg from the closure
+	if err != nil {
+		return nil, err
+	}
+	tokenCache := redis.New(cfg)
+
+	producer, err := broker.NewProducer(cfg.Kafka.KafkaURL, cfg.Kafka.SchemaRegistryURL)
+	if err != nil {
+		return nil, err
+	}
+	authService := authservice.New(cfg, log, storage, tokenCache, producer)
+
 	boot := rkboot.NewBoot()
 	// Get grpc entry with name
 	grpcEntry := boot.GetEntry("sso").(*rkgrpc.GrpcEntry)
 	// Register grpc registration function
-	registerAuth := registerGreeterFunc(log, cfg)
+	registerAuth := registerAuthFunc(authService)
 	grpcEntry.AddRegFuncGrpc(registerAuth)
 	// Register grpc-gateway registration function
 	grpcEntry.AddRegFuncGw(authgen.RegisterAuthHandlerFromEndpoint)
 	// Bootstrap
 	boot.Bootstrap(context.Background())
-	//grpcApp := NewAppInner(log, authService, cfg)
 	return &App{}, nil
 }
 
-func registerGreeterFunc(log *slog.Logger, cfg *config.Config) func(server *grpc.Server) {
+func registerAuthFunc(authService *authservice.Auth) func(server *grpc.Server) {
 	return func(server *grpc.Server) { // Use the provided server
-		storage, err := patroni.New(cfg) // Use cfg from the closure
-		if err != nil {
-			log.Error("Failed to create storage", "error", err) // Use log from the closure
-			panic(err)
-		}
-		tokenCache := redis.New(cfg) // Use cfg from the closure
-
-		kafkaURL := "localhost:9094"
-		schemaRegistryURL := "http://localhost:8081"
-
-		producer, err := broker.NewProducer(kafkaURL, schemaRegistryURL)
-		authService := authservice.New(cfg, log, storage, tokenCache, producer) // Use log and cfg from the closure
-		authtransport.Register(server, authService)                             // Register the service on the provided server
+		authtransport.Register(server, authService)
 	}
 }
