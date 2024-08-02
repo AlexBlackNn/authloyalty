@@ -16,44 +16,44 @@ type Producer struct {
 	serializer serde.Serializer
 }
 
+type KafkaResponse struct {
+	user_id int
+	err     error
+}
+
 // NewProducer returns kafka producer with schema registry
-func NewProducer(kafkaURL, srURL string) (*Producer, error) {
+func NewProducer(kafkaURL, srURL string) (*Producer, chan *KafkaResponse, error) {
 	p, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": kafkaURL})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	c, err := schemaregistry.NewClient(schemaregistry.NewConfig(srURL))
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	s, err := protobuf.NewSerializer(c, serde.ValueSerde, protobuf.NewSerializerConfig())
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
+
+	kafkaResponseChan := make(chan *KafkaResponse)
 
 	// Delivery report handler for produced messages
 	go func() {
 		for e := range p.Events() {
-			switch ev := e.(type) {
+			switch e := e.(type) {
 
 			case *kafka.Message:
 				// The message delivery report, indicating success or
 				// permanent failure after retries have been exhausted.
 				// Application level retries won't help since the client
 				// is already configured to do that.
-				m := ev
-				user_id, err := strconv.Atoi(string(m.Key))
+				user_id, err := strconv.Atoi(string(e.Key))
 				if err != nil {
-					fmt.Println(err)
+					kafkaResponseChan <- &KafkaResponse{user_id: user_id, err: err}
+					return
 				}
-				fmt.Println("1111111111111 user_id", user_id)
-
-				if m.TopicPartition.Error != nil {
-					fmt.Printf("Delivery failed: %v\n", m.TopicPartition.Error)
-				} else {
-					fmt.Printf("Delivered message to topic %s [%d] at offset %v\n",
-						*m.TopicPartition.Topic, m.TopicPartition.Partition, m.TopicPartition.Offset)
-				}
+				kafkaResponseChan <- &KafkaResponse{user_id: user_id, err: nil}
 			case kafka.Error:
 				// Generic client instance-level errors, such as
 				// broker connection failures, authentication issues, etc.
@@ -62,17 +62,19 @@ func NewProducer(kafkaURL, srURL string) (*Producer, error) {
 				// as the underlying client will automatically try to
 				// recover from any errors encountered, the application
 				// does not need to take action on them.
-				fmt.Printf("Error: %v\n", ev)
+
+				kafkaResponseChan <- &KafkaResponse{user_id: 0, err: err}
 			default:
-				fmt.Printf("Ignored event: %s\n", ev)
+				fmt.Printf("Ignored event: %s\n", e)
 			}
 		}
 	}()
 
 	return &Producer{
-		producer:   p,
-		serializer: s,
-	}, nil
+			producer:   p,
+			serializer: s,
+		}, kafkaResponseChan,
+		nil
 }
 
 // Stop stops serialization agent and kafka producer

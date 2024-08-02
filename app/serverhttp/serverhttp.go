@@ -70,7 +70,14 @@ func New(cfg *config.Config, log *slog.Logger) (*App, error) {
 
 	tokenStorage := redis.New(cfg)
 
-	producer, err := broker.NewProducer(cfg.Kafka.KafkaURL, cfg.Kafka.SchemaRegistryURL)
+	producer, kafkaResponseChan, err := broker.NewProducer(cfg.Kafka.KafkaURL, cfg.Kafka.SchemaRegistryURL)
+
+	go func() {
+		for kafkaResponse := range kafkaResponseChan {
+			fmt.Println(kafkaResponse)
+		}
+	}()
+
 	if err != nil {
 		return nil, err
 	}

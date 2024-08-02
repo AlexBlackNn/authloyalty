@@ -2,6 +2,7 @@ package servergrpc
 
 import (
 	"context"
+	"fmt"
 	"github.com/AlexBlackNn/authloyalty/internal/config"
 	"github.com/AlexBlackNn/authloyalty/internal/domain/models"
 	authtransport "github.com/AlexBlackNn/authloyalty/internal/grpc_transport/auth"
@@ -56,10 +57,15 @@ func New(cfg *config.Config, log *slog.Logger) (*App, error) {
 	}
 	tokenStorage := redis.New(cfg)
 
-	producer, err := broker.NewProducer(cfg.Kafka.KafkaURL, cfg.Kafka.SchemaRegistryURL)
+	producer, kafkaResponseChan, err := broker.NewProducer(cfg.Kafka.KafkaURL, cfg.Kafka.SchemaRegistryURL)
 	if err != nil {
 		return nil, err
 	}
+	go func() {
+		for kafkaResponse := range kafkaResponseChan {
+			fmt.Println(kafkaResponse)
+		}
+	}()
 	authService := authservice.New(cfg, log, userStorage, tokenStorage, producer)
 
 	boot := rkboot.NewBoot()
