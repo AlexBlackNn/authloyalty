@@ -74,7 +74,7 @@ func New(cfg *config.Config, log *slog.Logger) (*App, error) {
 
 	go func() {
 		for kafkaResponse := range kafkaResponseChan {
-			fmt.Println(kafkaResponse)
+			fmt.Println("http", kafkaResponse)
 		}
 	}()
 
