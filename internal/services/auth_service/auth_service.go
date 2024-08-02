@@ -17,11 +17,12 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
 	"log/slog"
+	"strconv"
 	"time"
 )
 
 type Sender interface {
-	Send(msg proto.Message, topic string) error
+	Send(msg proto.Message, topic string, key string) error
 }
 
 type UserStorage interface {
@@ -198,7 +199,7 @@ func (a *Auth) Register(
 		Email:    email,
 		FullName: "Alex Black",
 	}
-	err = a.producer.Send(&RegirationMsg, "registration")
+	err = a.producer.Send(&RegirationMsg, "registration", strconv.Itoa(int(id)))
 	if err != nil {
 		// no return here with err!!!, we do continue working (so-called soft degradation)
 		log.Error("Sending message to broker failed")

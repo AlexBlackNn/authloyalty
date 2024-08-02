@@ -44,7 +44,7 @@ type HealthChecker interface {
 }
 
 type Sender interface {
-	Send(msg proto.Message, topic string) error
+	Send(msg proto.Message, topic string, key string) error
 }
 
 // App service consists all entities needed to work.

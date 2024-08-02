@@ -7,6 +7,7 @@ import (
 	"github.com/confluentinc/confluent-kafka-go/schemaregistry/serde"
 	"github.com/confluentinc/confluent-kafka-go/schemaregistry/serde/protobuf"
 	"google.golang.org/protobuf/proto"
+	"strconv"
 	"time"
 )
 
@@ -41,6 +42,12 @@ func NewProducer(kafkaURL, srURL string) (*Producer, error) {
 				// Application level retries won't help since the client
 				// is already configured to do that.
 				m := ev
+				user_id, err := strconv.Atoi(string(m.Key))
+				if err != nil {
+					fmt.Println(err)
+				}
+				fmt.Println("1111111111111 user_id", user_id)
+
 				if m.TopicPartition.Error != nil {
 					fmt.Printf("Delivery failed: %v\n", m.TopicPartition.Error)
 				} else {
@@ -75,12 +82,13 @@ func (s *Producer) Stop() {
 }
 
 // Send sends serialized message to kafka using schema registry
-func (p *Producer) Send(msg proto.Message, topic string) error {
+func (p *Producer) Send(msg proto.Message, topic string, key string) error {
 	payload, err := p.serializer.Serialize(topic, msg)
 	if err != nil {
 		return err
 	}
 	if err = p.producer.Produce(&kafka.Message{
+		Key:            []byte(key),
 		TopicPartition: kafka.TopicPartition{Topic: &topic},
 		Value:          payload,
 		Headers:        []kafka.Header{{Key: "request-Id", Value: []byte("header values are binary")}},
