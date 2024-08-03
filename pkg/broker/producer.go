@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-type Producer struct {
+type Broker struct {
 	producer     *kafka.Producer
 	serializer   serde.Serializer
 	ResponseChan chan *BrokerResponse
@@ -23,7 +23,7 @@ type BrokerResponse struct {
 }
 
 // NewProducer returns kafka producer with schema registry
-func NewProducer(kafkaURL, srURL string) (*Producer, error) {
+func NewProducer(kafkaURL, srURL string) (*Broker, error) {
 	p, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": kafkaURL})
 	if err != nil {
 		return nil, err
@@ -71,7 +71,7 @@ func NewProducer(kafkaURL, srURL string) (*Producer, error) {
 		}
 	}()
 
-	return &Producer{
+	return &Broker{
 			producer:     p,
 			serializer:   s,
 			ResponseChan: kafkaResponseChan,
@@ -79,31 +79,31 @@ func NewProducer(kafkaURL, srURL string) (*Producer, error) {
 		nil
 }
 
-// Stop stops serialization agent and kafka producer
-func (s *Producer) Close() {
-	s.serializer.Close()
-	s.producer.Close()
+// Close closes serialization agent and kafka producer
+func (b *Broker) Close() {
+	b.serializer.Close()
+	b.producer.Close()
 }
 
-// Stop stops serialization agent and kafka producer
-func (s *Producer) GetResponseChan() chan *BrokerResponse {
-	return s.ResponseChan
+// GetResponseChan returns channel to get messages send status
+func (b *Broker) GetResponseChan() chan *BrokerResponse {
+	return b.ResponseChan
 }
 
 // Send sends serialized message to kafka using schema registry
-func (p *Producer) Send(msg proto.Message, topic string, key string) error {
-	payload, err := p.serializer.Serialize(topic, msg)
+func (b *Broker) Send(msg proto.Message, topic string, key string) error {
+	payload, err := b.serializer.Serialize(topic, msg)
 	if err != nil {
 		return err
 	}
-	if err = p.producer.Produce(&kafka.Message{
+	if err = b.producer.Produce(&kafka.Message{
 		Key:            []byte(key),
 		TopicPartition: kafka.TopicPartition{Topic: &topic},
 		Value:          payload,
 		Headers:        []kafka.Header{{Key: "request-Id", Value: []byte("header values are binary")}},
 	}, nil); err != nil {
 		if err.(kafka.Error).Code() == kafka.ErrQueueFull {
-			// Producer queue is full, wait 1s for messages
+			// Broker queue is full, wait 1s for messages
 			// to be delivered then try again.
 			time.Sleep(time.Second)
 			return err
