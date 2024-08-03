@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"fmt"
 	"github.com/AlexBlackNn/authloyalty/app/servergrpc"
 	"github.com/AlexBlackNn/authloyalty/app/serverhttp"
 	"github.com/AlexBlackNn/authloyalty/internal/config"
@@ -42,8 +41,9 @@ type HealthChecker interface {
 	) error
 }
 
-type Sender interface {
+type SendCloser interface {
 	Send(msg proto.Message, topic string, key string) error
+	Close() error
 }
 
 type App struct {
@@ -51,7 +51,7 @@ type App struct {
 	ServerGrpc         *servergrpc.App
 	ServerUserStorage  UserStorage
 	ServerTokenStorage TokenStorage
-	ServerProducer     Sender
+	ServerProducer     SendCloser
 }
 
 func (a *App) MustStart() {
@@ -73,6 +73,10 @@ func (a *App) Stop() error {
 	if err != nil {
 		return err
 	}
+	err = a.ServerProducer.Close()
+	if err != nil {
+		return err
+	}
 	//TODO: add other entities closure
 	return nil
 }
@@ -90,12 +94,6 @@ func New() (*App, error) {
 	tokenStorage := redis.New(cfg)
 
 	producer, err := broker.NewProducer(cfg.Kafka.KafkaURL, cfg.Kafka.SchemaRegistryURL)
-
-	go func() {
-		for kafkaResponse := range producer.ResponseChan {
-			fmt.Println("http", kafkaResponse)
-		}
-	}()
 
 	authService := authservice.New(
 		cfg,

@@ -14,10 +14,10 @@ import (
 type Producer struct {
 	producer     *kafka.Producer
 	serializer   serde.Serializer
-	ResponseChan chan *KafkaResponse
+	ResponseChan chan *BrokerResponse
 }
 
-type KafkaResponse struct {
+type BrokerResponse struct {
 	userId int
 	err    error
 }
@@ -37,7 +37,7 @@ func NewProducer(kafkaURL, srURL string) (*Producer, error) {
 		return nil, err
 	}
 
-	kafkaResponseChan := make(chan *KafkaResponse)
+	kafkaResponseChan := make(chan *BrokerResponse)
 
 	// Delivery report handler for produced messages
 	go func() {
@@ -51,10 +51,10 @@ func NewProducer(kafkaURL, srURL string) (*Producer, error) {
 				// is already configured to do that.
 				user_id, err := strconv.Atoi(string(e.Key))
 				if err != nil {
-					kafkaResponseChan <- &KafkaResponse{userId: user_id, err: err}
+					kafkaResponseChan <- &BrokerResponse{userId: user_id, err: err}
 					return
 				}
-				kafkaResponseChan <- &KafkaResponse{userId: user_id, err: nil}
+				kafkaResponseChan <- &BrokerResponse{userId: user_id, err: nil}
 			case kafka.Error:
 				// Generic client instance-level errors, such as
 				// broker connection failures, authentication issues, etc.
@@ -64,7 +64,7 @@ func NewProducer(kafkaURL, srURL string) (*Producer, error) {
 				// recover from any errors encountered, the application
 				// does not need to take action on them.
 
-				kafkaResponseChan <- &KafkaResponse{userId: 0, err: err}
+				kafkaResponseChan <- &BrokerResponse{userId: 0, err: err}
 			default:
 				fmt.Printf("Ignored event: %s\n", e)
 			}
@@ -80,9 +80,14 @@ func NewProducer(kafkaURL, srURL string) (*Producer, error) {
 }
 
 // Stop stops serialization agent and kafka producer
-func (s *Producer) Stop() {
+func (s *Producer) Close() {
 	s.serializer.Close()
 	s.producer.Close()
+}
+
+// Stop stops serialization agent and kafka producer
+func (s *Producer) GetResponseChan() chan *BrokerResponse {
+	return s.ResponseChan
 }
 
 // Send sends serialized message to kafka using schema registry

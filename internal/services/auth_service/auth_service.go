@@ -7,6 +7,7 @@ import (
 	"github.com/AlexBlackNn/authloyalty/internal/config"
 	"github.com/AlexBlackNn/authloyalty/internal/domain/models"
 	jwtlib "github.com/AlexBlackNn/authloyalty/internal/lib/jwt"
+	"github.com/AlexBlackNn/authloyalty/pkg/broker"
 	storage2 "github.com/AlexBlackNn/authloyalty/pkg/storage"
 	registration_v1 "github.com/AlexBlackNn/authloyalty/protos/proto/registration/registration.v1"
 	"github.com/golang-jwt/jwt/v5"
@@ -21,8 +22,9 @@ import (
 	"time"
 )
 
-type Sender interface {
+type GetResponseChanSender interface {
 	Send(msg proto.Message, topic string, key string) error
+	GetResponseChan() chan *broker.BrokerResponse
 }
 
 type UserStorage interface {
@@ -47,7 +49,7 @@ type Auth struct {
 	log          *slog.Logger
 	userStorage  UserStorage
 	tokenStorage TokenStorage
-	producer     Sender
+	producer     GetResponseChanSender
 	cfg          *config.Config
 }
 
@@ -57,8 +59,15 @@ func New(
 	log *slog.Logger,
 	userStorage UserStorage,
 	tokenStorage TokenStorage,
-	producer Sender,
+	producer GetResponseChanSender,
 ) *Auth {
+
+	go func() {
+		for kafkaResponse := range producer.GetResponseChan() {
+			fmt.Println("broker response", kafkaResponse)
+		}
+	}()
+
 	return &Auth{
 		log:          log,
 		userStorage:  userStorage,
