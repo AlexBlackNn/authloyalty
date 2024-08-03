@@ -60,18 +60,8 @@ type App struct {
 func New(
 	cfg *config.Config,
 	log *slog.Logger,
-	userStorage UserStorage,
-	tokenStorage TokenStorage,
-	producer Sender,
+	authService *authservice.Auth,
 ) (*App, error) {
-
-	authService := authservice.New(
-		cfg,
-		log,
-		userStorage,
-		tokenStorage,
-		producer,
-	)
 
 	projectHandlersV1 := handlers.New(log, authService)
 	healthHandlersV1 := handlers.NewHealth(log, authService)
@@ -89,14 +79,9 @@ func New(
 	}
 
 	return &App{
-		Cfg:           cfg,
-		Log:           log,
-		Srv:           srv,
-		UserStorage:   userStorage,
-		TokenStorage:  tokenStorage,
-		authService:   authService,
-		HandlersV1:    projectHandlersV1,
-		HealthChecker: healthHandlersV1,
+		Cfg: cfg,
+		Log: log,
+		Srv: srv,
 	}, nil
 }
 

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"github.com/AlexBlackNn/authloyalty/app"
 	"github.com/prometheus/common/log"
 	"log/slog"
@@ -15,35 +14,19 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	go func() {
-		log.Info("http server starting")
-		if err = application.ServerHttp.Srv.ListenAndServe(); err != nil {
-			panic(err)
-		}
-		log.Info("http server started successfully")
-	}()
-
-	log.Info("grpc server starting")
-	application.ServerGrpc.Srv.Bootstrap(context.Background())
-	log.Info("grpc server started successfully")
+	application.MustStart()
 
 	// graceful shutdown
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
-
 	signalType := <-stop
 
-	err = application.ServerHttp.Stop()
+	err = application.Stop()
 	if err != nil {
 		log.Error(
-			"http server failed to stop", "err", err.Error(), slog.String("signalType", signalType.String()),
+			"server failed to stop", "err", err.Error(), slog.String("signalType", signalType.String()),
 		)
-	}
-	err = application.ServerGrpc.Stop()
-	if err != nil {
-		log.Error(
-			"grpc server failed to stop", "err", err.Error(), slog.String("signalType", signalType.String()),
-		)
+		return
 	}
 	log.Info(
 		"application stopped", slog.String("signalType", signalType.String()),
