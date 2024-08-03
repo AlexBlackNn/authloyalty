@@ -27,10 +27,10 @@ func New() (*App, error) {
 
 	tokenStorage := redis.New(cfg)
 
-	producer, kafkaResponseChan, err := broker.NewProducer(cfg.Kafka.KafkaURL, cfg.Kafka.SchemaRegistryURL)
+	producer, err := broker.NewProducer(cfg.Kafka.KafkaURL, cfg.Kafka.SchemaRegistryURL)
 
 	go func() {
-		for kafkaResponse := range kafkaResponseChan {
+		for kafkaResponse := range producer.ResponseChan {
 			fmt.Println("http", kafkaResponse)
 		}
 	}()

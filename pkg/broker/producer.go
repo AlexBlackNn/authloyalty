@@ -12,28 +12,29 @@ import (
 )
 
 type Producer struct {
-	producer   *kafka.Producer
-	serializer serde.Serializer
+	producer     *kafka.Producer
+	serializer   serde.Serializer
+	ResponseChan chan *KafkaResponse
 }
 
 type KafkaResponse struct {
-	user_id int
-	err     error
+	userId int
+	err    error
 }
 
 // NewProducer returns kafka producer with schema registry
-func NewProducer(kafkaURL, srURL string) (*Producer, chan *KafkaResponse, error) {
+func NewProducer(kafkaURL, srURL string) (*Producer, error) {
 	p, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": kafkaURL})
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	c, err := schemaregistry.NewClient(schemaregistry.NewConfig(srURL))
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	s, err := protobuf.NewSerializer(c, serde.ValueSerde, protobuf.NewSerializerConfig())
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	kafkaResponseChan := make(chan *KafkaResponse)
@@ -50,10 +51,10 @@ func NewProducer(kafkaURL, srURL string) (*Producer, chan *KafkaResponse, error)
 				// is already configured to do that.
 				user_id, err := strconv.Atoi(string(e.Key))
 				if err != nil {
-					kafkaResponseChan <- &KafkaResponse{user_id: user_id, err: err}
+					kafkaResponseChan <- &KafkaResponse{userId: user_id, err: err}
 					return
 				}
-				kafkaResponseChan <- &KafkaResponse{user_id: user_id, err: nil}
+				kafkaResponseChan <- &KafkaResponse{userId: user_id, err: nil}
 			case kafka.Error:
 				// Generic client instance-level errors, such as
 				// broker connection failures, authentication issues, etc.
@@ -63,7 +64,7 @@ func NewProducer(kafkaURL, srURL string) (*Producer, chan *KafkaResponse, error)
 				// recover from any errors encountered, the application
 				// does not need to take action on them.
 
-				kafkaResponseChan <- &KafkaResponse{user_id: 0, err: err}
+				kafkaResponseChan <- &KafkaResponse{userId: 0, err: err}
 			default:
 				fmt.Printf("Ignored event: %s\n", e)
 			}
@@ -71,9 +72,10 @@ func NewProducer(kafkaURL, srURL string) (*Producer, chan *KafkaResponse, error)
 	}()
 
 	return &Producer{
-			producer:   p,
-			serializer: s,
-		}, kafkaResponseChan,
+			producer:     p,
+			serializer:   s,
+			ResponseChan: kafkaResponseChan,
+		},
 		nil
 }
 
