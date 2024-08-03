@@ -9,9 +9,6 @@ import (
 	"github.com/AlexBlackNn/authloyalty/internal/domain/models"
 	handlers "github.com/AlexBlackNn/authloyalty/internal/handlers/v1"
 	authservice "github.com/AlexBlackNn/authloyalty/internal/services/auth_service"
-	"github.com/AlexBlackNn/authloyalty/pkg/broker"
-	patroni "github.com/AlexBlackNn/authloyalty/pkg/storage/patroni"
-	redis "github.com/AlexBlackNn/authloyalty/pkg/storage/redis-sentinel"
 	"google.golang.org/protobuf/proto"
 	"log/slog"
 	"net/http"
@@ -60,36 +57,12 @@ type App struct {
 }
 
 // New creates App collecting service layer, config, logger and predefined storage layer.
-func New(cfg *config.Config, log *slog.Logger) (*App, error) {
-	// TODO: seems to need factory here
-	//storage, err := postgres.New(cfg.StoragePath) //uncomment for postgres
-	userStorage, err := patroni.New(cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	tokenStorage := redis.New(cfg)
-
-	producer, kafkaResponseChan, err := broker.NewProducer(cfg.Kafka.KafkaURL, cfg.Kafka.SchemaRegistryURL)
-
-	go func() {
-		for kafkaResponse := range kafkaResponseChan {
-			fmt.Println("http", kafkaResponse)
-		}
-	}()
-
-	if err != nil {
-		return nil, err
-	}
-	return NewAppInitStorage(cfg, log, userStorage, tokenStorage, producer)
-}
-
-func NewAppInitStorage(
+func New(
 	cfg *config.Config,
 	log *slog.Logger,
 	userStorage UserStorage,
 	tokenStorage TokenStorage,
-	broker Sender,
+	producer Sender,
 ) (*App, error) {
 
 	authService := authservice.New(
@@ -97,7 +70,7 @@ func NewAppInitStorage(
 		log,
 		userStorage,
 		tokenStorage,
-		broker,
+		producer,
 	)
 
 	projectHandlersV1 := handlers.New(log, authService)
