@@ -110,3 +110,20 @@ func (s *Storage) GetUser(ctx context.Context, value any) (context.Context, mode
 	}
 	return ctx, user, nil
 }
+
+// UpdateSendStatus updates message send status.
+func (s *Storage) UpdateSendStatus(ctx context.Context, uuid string) (context.Context, error) {
+	ctx, span := tracer.Start(ctx, "data layer Patroni: UpdateSendStatus",
+		trace.WithAttributes(attribute.String("handler", "UpdateSendStatus")))
+	defer span.End()
+
+	query := "UPDATE users SET message_status='successful' WHERE uuid = $1;"
+	_, err := s.dbWrite.ExecContext(ctx, query, uuid)
+	if err != nil {
+		return ctx, fmt.Errorf(
+			"DATA LAYER: storage.postgres.UpdateSendStatus: couldn't update message registration status deluvery  %w",
+			err,
+		)
+	}
+	return ctx, nil
+}

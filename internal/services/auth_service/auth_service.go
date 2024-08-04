@@ -36,6 +36,7 @@ type UserStorage interface {
 		ctx context.Context,
 		value any,
 	) (context.Context, models.User, error)
+	UpdateSendStatus(ctx context.Context, uuid string) (context.Context, error)
 }
 
 type TokenStorage interface {
@@ -61,11 +62,19 @@ func New(
 	producer GetResponseChanSender,
 ) *Auth {
 	brokerRespChan := producer.GetResponseChan()
+
 	go func() {
-		for kafkaResponse := range brokerRespChan {
-			fmt.Println("broker response", kafkaResponse)
+		for brokerResponse := range brokerRespChan {
+			fmt.Println("broker response", brokerResponse)
+			if brokerResponse.Err != nil {
+				fmt.Println("broker response error", brokerResponse.Err)
+			}
+			_, err := userStorage.UpdateSendStatus(context.Background(), brokerResponse.UserUUID)
+
+			if err != nil {
+				log.Error("failed to update message status", err.Error())
+			}
 		}
-		fmt.Println("broker response channel closed")
 	}()
 
 	return &Auth{

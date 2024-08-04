@@ -17,8 +17,8 @@ type Broker struct {
 }
 
 type Response struct {
-	userId string
-	err    error
+	UserUUID string
+	Err      error
 }
 
 // NewProducer returns kafka producer with schema registry
@@ -49,7 +49,7 @@ func NewProducer(kafkaURL, srURL string) (*Broker, error) {
 				// Application level retries won't help since the client
 				// is already configured to do that.
 				fmt.Println("1111111111111111111111111111", string(e.Key))
-				kafkaResponseChan <- &Response{userId: string(e.Key), err: nil}
+				kafkaResponseChan <- &Response{UserUUID: string(e.Key), Err: nil}
 			case kafka.Error:
 				// Generic client instance-level errors, such as
 				// broker connection failures, authentication issues, etc.
@@ -59,7 +59,7 @@ func NewProducer(kafkaURL, srURL string) (*Broker, error) {
 				// recover from any errors encountered, the application
 				// does not need to take action on them.
 
-				kafkaResponseChan <- &Response{userId: "", err: err}
+				kafkaResponseChan <- &Response{UserUUID: "", Err: err}
 			default:
 				fmt.Printf("Ignored event: %s\n", e)
 			}
