@@ -82,5 +82,22 @@ curl --header "Content-Type: application/json" --request POST --data '{"token":"
 // HOW TO ADD GRPC SWAGGER
 https://apidog.com/articles/how-to-add-swagger-ui-for-grpc/
 
+1. download buf bin from github
+2. rename to buf
+3. move to /usr/bin
+4. chmod +x buf
+5. buf generate 
+
+if Failure: plugin openapiv2: could not find protoc plugin for name openapiv2 - please make sure protoc-gen-openapiv2 is installed and present on your $PATH
+```bash
+go install \
+    github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway \
+    github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2 \
+    google.golang.org/protobuf/cmd/protoc-gen-go \
+    google.golang.org/grpc/cmd/protoc-gen-go-grpc
+```
+
 # redis sentinel
 https://redis.uptrace.dev/guide/go-redis-sentinel.html#redis-server-client
+
+

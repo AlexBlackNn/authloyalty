@@ -241,7 +241,6 @@
       "properties": {
         "userId": {
           "type": "string",
-          "format": "int64",
           "description": "User ID of the registered user."
         }
       }
