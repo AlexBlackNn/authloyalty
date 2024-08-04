@@ -7,18 +7,17 @@ import (
 	"github.com/confluentinc/confluent-kafka-go/schemaregistry/serde"
 	"github.com/confluentinc/confluent-kafka-go/schemaregistry/serde/protobuf"
 	"google.golang.org/protobuf/proto"
-	"strconv"
 	"time"
 )
 
 type Broker struct {
 	producer     *kafka.Producer
 	serializer   serde.Serializer
-	ResponseChan chan *BrokerResponse
+	ResponseChan chan *Response
 }
 
-type BrokerResponse struct {
-	userId int
+type Response struct {
+	userId string
 	err    error
 }
 
@@ -37,7 +36,7 @@ func NewProducer(kafkaURL, srURL string) (*Broker, error) {
 		return nil, err
 	}
 
-	kafkaResponseChan := make(chan *BrokerResponse)
+	kafkaResponseChan := make(chan *Response)
 
 	// Delivery report handler for produced messages
 	go func() {
@@ -49,12 +48,8 @@ func NewProducer(kafkaURL, srURL string) (*Broker, error) {
 				// permanent failure after retries have been exhausted.
 				// Application level retries won't help since the client
 				// is already configured to do that.
-				user_id, err := strconv.Atoi(string(e.Key))
-				if err != nil {
-					kafkaResponseChan <- &BrokerResponse{userId: user_id, err: err}
-					return
-				}
-				kafkaResponseChan <- &BrokerResponse{userId: user_id, err: nil}
+				fmt.Println("1111111111111111111111111111", string(e.Key))
+				kafkaResponseChan <- &Response{userId: string(e.Key), err: nil}
 			case kafka.Error:
 				// Generic client instance-level errors, such as
 				// broker connection failures, authentication issues, etc.
@@ -64,7 +59,7 @@ func NewProducer(kafkaURL, srURL string) (*Broker, error) {
 				// recover from any errors encountered, the application
 				// does not need to take action on them.
 
-				kafkaResponseChan <- &BrokerResponse{userId: 0, err: err}
+				kafkaResponseChan <- &Response{userId: "", err: err}
 			default:
 				fmt.Printf("Ignored event: %s\n", e)
 			}
@@ -86,7 +81,7 @@ func (b *Broker) Close() {
 }
 
 // GetResponseChan returns channel to get messages send status
-func (b *Broker) GetResponseChan() chan *BrokerResponse {
+func (b *Broker) GetResponseChan() chan *Response {
 	return b.ResponseChan
 }
 
@@ -108,7 +103,6 @@ func (b *Broker) Send(msg proto.Message, topic string, key string) error {
 			time.Sleep(time.Second)
 			return err
 		}
-		fmt.Printf("Failed to produce message: %v\n", err)
 		return err
 	}
 	return nil

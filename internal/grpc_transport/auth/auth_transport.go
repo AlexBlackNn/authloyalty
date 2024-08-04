@@ -34,7 +34,7 @@ func Register(gRPC *grpc.Server, auth auth_service.AuthorizationInterface) {
 }
 
 const (
-	emptyId = 0
+	emptyId = ""
 )
 
 //realisation of transport layer interface
@@ -158,7 +158,7 @@ func (s *serverAPI) IsAdmin(
 		return nil, err
 	}
 	// call IsAdmin from service layer
-	IsAdmin, err := s.auth.IsAdmin(ctx, int(req.GetUserId()))
+	IsAdmin, err := s.auth.IsAdmin(ctx, req.GetUserId())
 	if err != nil {
 		// TODO: add error processing depends on the type of error
 		return nil, status.Error(codes.Internal, "internal error")

@@ -79,3 +79,8 @@ curl --header "Content-Type: application/json" --request POST --data '{"email":"
 curl --header "Content-Type: application/json" --request POST --data '{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAdGVzdC5jb20iLCJleHAiOjE3MjI0MzIwODMsInRva2VuX3R5cGUiOiJhY2Nlc3MiLCJ1aWQiOjJ9.J6XilG2yEAM611yybY8LdvXs046yrx8bjCoWlwd5dtQ"}' http://localhost:8000/auth/logout
 ```
 
+// HOW TO ADD GRPC SWAGGER
+https://apidog.com/articles/how-to-add-swagger-ui-for-grpc/
+
+# redis sentinel
+https://redis.uptrace.dev/guide/go-redis-sentinel.html#redis-server-client

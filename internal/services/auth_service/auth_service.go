@@ -9,7 +9,7 @@ import (
 	jwtlib "github.com/AlexBlackNn/authloyalty/internal/lib/jwt"
 	"github.com/AlexBlackNn/authloyalty/pkg/broker"
 	storage2 "github.com/AlexBlackNn/authloyalty/pkg/storage"
-	registration_v1 "github.com/AlexBlackNn/authloyalty/protos/proto/registration/registration.v1"
+	"github.com/AlexBlackNn/authloyalty/protos/proto/registration/registration.v1"
 	"github.com/golang-jwt/jwt/v5"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -18,13 +18,12 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
 	"log/slog"
-	"strconv"
 	"time"
 )
 
 type GetResponseChanSender interface {
 	Send(msg proto.Message, topic string, key string) error
-	GetResponseChan() chan *broker.BrokerResponse
+	GetResponseChan() chan *broker.Response
 }
 
 type UserStorage interface {
@@ -32,7 +31,7 @@ type UserStorage interface {
 		ctx context.Context,
 		email string,
 		passHash []byte,
-	) (context.Context, int64, error)
+	) (context.Context, string, error)
 	GetUser(
 		ctx context.Context,
 		value any,
@@ -61,11 +60,12 @@ func New(
 	tokenStorage TokenStorage,
 	producer GetResponseChanSender,
 ) *Auth {
-
+	brokerRespChan := producer.GetResponseChan()
 	go func() {
-		for kafkaResponse := range producer.GetResponseChan() {
+		for kafkaResponse := range brokerRespChan {
 			fmt.Println("broker response", kafkaResponse)
 		}
+		fmt.Println("broker response channel closed")
 	}()
 
 	return &Auth{
@@ -176,7 +176,7 @@ func (a *Auth) Register(
 	ctx context.Context,
 	email string,
 	password string,
-) (int64, error) {
+) (string, error) {
 
 	const op = "SERVICE LAYER: auth_service.RegisterNewUser"
 
@@ -195,12 +195,12 @@ func (a *Auth) Register(
 	)
 	if err != nil {
 		log.Error("failed to generate password hash", err.Error())
-		return 0, fmt.Errorf("%s: %w", op, err)
+		return "", fmt.Errorf("%s: %w", op, err)
 	}
 	ctx, id, err := a.userStorage.SaveUser(ctx, email, passHash)
 	if err != nil {
 		log.Error("failed to save user", err.Error())
-		return 0, fmt.Errorf("%s: %w", op, err)
+		return "", fmt.Errorf("%s: %w", op, err)
 	}
 	log.Info("user registrated")
 
@@ -208,7 +208,7 @@ func (a *Auth) Register(
 		Email:    email,
 		FullName: "Alex Black",
 	}
-	err = a.producer.Send(&RegirationMsg, "registration", strconv.Itoa(int(id)))
+	err = a.producer.Send(&RegirationMsg, "registration", id)
 	if err != nil {
 		// no return here with err!!!, we do continue working (so-called soft degradation)
 		log.Error("Sending message to broker failed")
@@ -218,7 +218,7 @@ func (a *Auth) Register(
 
 func (a *Auth) IsAdmin(
 	ctx context.Context,
-	userID int,
+	userID string,
 ) (success bool, err error) {
 
 	const op = "SERVICE LAYER: auth_service.IsAdmin"

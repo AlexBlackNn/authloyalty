@@ -10,7 +10,6 @@ service_secret: "service very secret"
 grpc:
   port: 44044
   timeout: 10h
-redis_address: "localhost:6379" # in case of redis usage insted of redis_sentinel
 redis_sentinel:
   masterName: "mymaster"
   sentinelAddrs1: "localhost:26379"

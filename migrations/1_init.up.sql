@@ -1,15 +1,21 @@
+
+CREATE TYPE status AS ENUM ('inProgress', 'successful');
+
 CREATE TABLE IF NOT EXISTS users
 (
-    id serial,
-    email TEXT NOT NULL UNIQUE,
+    uuid uuid NOT NULL DEFAULT gen_random_uuid(),
+    email text NOT NULL UNIQUE,
     pass_hash bytea NOT NULL,
-    PRIMARY KEY (id, email)  -- Включаем все столбцы разделения в PRIMARY KEY
+    is_admin boolean NOT NULL DEFAULT FALSE,
+    created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    modified TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    message_status status DEFAULT 'inProgress',
+    PRIMARY KEY (uuid, email)
 ) PARTITION BY HASH (email);
 
-CREATE INDEX IF NOT EXISTS idx_email ON users (email);
 
 CREATE TABLE users_p1 PARTITION OF users
-FOR VALUES WITH (MODULUS 4, REMAINDER 0);
+    FOR VALUES WITH (MODULUS 4, REMAINDER 0);
 
 CREATE TABLE users_p2 PARTITION OF users
     FOR VALUES WITH (MODULUS 4, REMAINDER 1);
@@ -19,3 +25,4 @@ CREATE TABLE users_p3 PARTITION OF users
 
 CREATE TABLE users_p4 PARTITION OF users
     FOR VALUES WITH (MODULUS 4, REMAINDER 3);
+
