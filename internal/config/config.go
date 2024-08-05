@@ -30,6 +30,12 @@ type KafkaConfig struct {
 	SchemaRegistryURL string `yaml:"schemaRegistryURL" env-required:"true"`
 }
 
+type ServerTimeoutConfig struct {
+	ReadTimeout  int64 `yaml:"readTimeout" env-required:"true"`
+	WriteTimeout int64 `yaml:"writeTimeout" env-required:"true"`
+	IdleTimeout  int64 `yaml:"idleTimeout" env-required:"true"`
+}
+
 type Config struct {
 	// without this param will be used "local" as param value
 	Env             string        `yaml:"env" env-default:"local"`
@@ -39,6 +45,7 @@ type Config struct {
 	// without this param can't work
 	StoragePath    string               `yaml:"storage_path"`
 	ServiceSecret  string               `yaml:"service_secret" env-required:"true"`
+	ServerTimeout  ServerTimeoutConfig  `yaml:"server_timeout"`
 	GRPC           GRPCConfig           `yaml:"grpc"`
 	RedisSentinel  RedisSentinelConfig  `yaml:"redis_sentinel"`
 	StoragePatroni StoragePatroniConfig `yaml:"storage_patroni"`

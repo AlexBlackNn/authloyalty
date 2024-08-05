@@ -2,7 +2,7 @@ package servergrpc
 
 import (
 	"github.com/AlexBlackNn/authloyalty/internal/config"
-	authtransport "github.com/AlexBlackNn/authloyalty/internal/grpc_transport/auth"
+	handlersgrpc "github.com/AlexBlackNn/authloyalty/internal/handlersgrpc/auth"
 	authservice "github.com/AlexBlackNn/authloyalty/internal/services/auth_service"
 	authgen "github.com/AlexBlackNn/authloyalty/protos/proto/sso/gen"
 	rkboot "github.com/rookie-ninja/rk-boot"
@@ -11,6 +11,7 @@ import (
 	"log/slog"
 )
 
+// App service consists all entities needed to work.
 type App struct {
 	Cfg         *config.Config
 	Log         *slog.Logger
@@ -18,9 +19,8 @@ type App struct {
 	authService *authservice.Auth
 }
 
+// New creates App collecting grpc server and its handlers
 func New(
-	cfg *config.Config,
-	log *slog.Logger,
 	authService *authservice.Auth,
 ) (*App, error) {
 	boot := rkboot.NewBoot()
@@ -37,6 +37,6 @@ func New(
 
 func registerAuthFunc(authService *authservice.Auth) func(server *grpc.Server) {
 	return func(server *grpc.Server) { // Use the provided server
-		authtransport.Register(server, authService)
+		handlersgrpc.Register(server, authService)
 	}
 }

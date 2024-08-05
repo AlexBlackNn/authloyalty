@@ -21,7 +21,7 @@ type UserStorage interface {
 		ctx context.Context,
 		email string,
 		passHash []byte,
-	) (context.Context, int64, error)
+	) (context.Context, string, error)
 	GetUser(
 		ctx context.Context,
 		value any,
@@ -77,6 +77,12 @@ func (a *App) Stop() error {
 	if err != nil {
 		return err
 	}
+
+	err = a.ServerHttp.Srv.Close()
+	if err != nil {
+		return err
+	}
+
 	//TODO: add other entities closure
 	return nil
 }
@@ -110,7 +116,7 @@ func New() (*App, error) {
 	}
 
 	// grpc server
-	serverGrpc, err := servergrpc.New(cfg, log, authService)
+	serverGrpc, err := servergrpc.New(authService)
 	if err != nil {
 		return nil, err
 	}

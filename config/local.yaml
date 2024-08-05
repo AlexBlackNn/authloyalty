@@ -22,3 +22,7 @@ address: ":8000"
 kafka:
   kafkaUrl: "localhost:9094"
   schemaRegistryURL: "http://localhost:8081"
+server_timeout:
+  readTimeout: 10
+  writeTimeout: 10
+  idleTimeout: 10

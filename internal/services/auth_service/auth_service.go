@@ -65,14 +65,14 @@ func New(
 
 	go func() {
 		for brokerResponse := range brokerRespChan {
-			fmt.Println("broker response", brokerResponse)
+			log.Debug("broker response", "resp", brokerResponse)
 			if brokerResponse.Err != nil {
-				fmt.Println("broker response error", brokerResponse.Err)
+				log.Error("broker response", "err", brokerResponse.Err)
 			}
 			_, err := userStorage.UpdateSendStatus(context.Background(), brokerResponse.UserUUID)
 
 			if err != nil {
-				log.Error("failed to update message status", err.Error())
+				log.Error("failed to update message status", "err", err.Error())
 			}
 		}
 	}()
@@ -99,6 +99,7 @@ func (a *Auth) HealthCheck(ctx context.Context) error {
 	)
 	log.Info("starts getting health check")
 	defer log.Info("finish getting health check")
+	//TODO: add healthCheck
 	//return a.healthChecker.HealthCheck(ctx)
 	return nil
 }
@@ -108,32 +109,22 @@ func (a *Auth) Login(
 	email string,
 	password string,
 ) (string, string, error) {
-	fmt.Println("11111111")
 	ctx, span := tracer.Start(ctx, "service layer: login",
 		trace.WithAttributes(attribute.String("handler", "login")))
 	defer span.End()
-	fmt.Println("222222")
 	md, _ := metadata.FromIncomingContext(ctx)
 	a.log.Info("time: %v, userId: %v", md.Get("timestamp"), md.Get("user-id"))
-	fmt.Println("333333")
 	ctx, usrWithTokens, err := a.generateRefreshAccessToken(ctx, email)
 	if err != nil {
 		a.log.Error("Generation token failed:", err)
-		return "", "", fmt.Errorf(
-			"generation token failed: %w", err,
-		)
+		return "", "", fmt.Errorf("generation token failed: %w", err)
 	}
-	fmt.Println("44444444")
 	if err := bcrypt.CompareHashAndPassword(
 		usrWithTokens.user.PassHash, []byte(password),
 	); err != nil {
-		a.log.Info("invalid credentials")
-		return "", "", fmt.Errorf(
-			"invalid credentials: %w", ErrInvalidCredentials,
-		)
+		a.log.Warn("invalid credentials")
+		return "", "", fmt.Errorf("invalid credentials: %w", ErrInvalidCredentials)
 	}
-
-	fmt.Println("5555555")
 	return usrWithTokens.accessToken, usrWithTokens.refreshToken, nil
 }
 

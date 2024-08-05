@@ -24,11 +24,14 @@ func main() {
 	err = application.Stop()
 	if err != nil {
 		log.Error(
-			"server failed to stop", "err", err.Error(), slog.String("signalType", signalType.String()),
+			"server failed to stop",
+			"err", err.Error(),
+			slog.String("signalType", signalType.String()),
 		)
 		return
 	}
 	log.Info(
-		"application stopped", slog.String("signalType", signalType.String()),
+		"application stopped",
+		slog.String("signalType", signalType.String()),
 	)
 }
