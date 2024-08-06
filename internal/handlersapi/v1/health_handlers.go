@@ -18,6 +18,17 @@ func NewHealth(log *slog.Logger, authservice *authservice.Auth) HealthHandlers {
 	return HealthHandlers{log: log, authservice: authservice}
 }
 
+// @Summary ReadinessProbe
+// @Description ReadinessProbe
+// @Tags ReadinessProbe
+// @Accept json
+// @Produce json
+// @Param body body Request true "ReadinessProbe"
+// @Success 200 {object} Response
+// @Router /expression [get]
+// @Security BearerAuth
+//
+//go:generate go run github.com/swaggo/swag/cmd/swag init
 func (m *HealthHandlers) ReadinessProbe(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		responseError(w, r, http.StatusMethodNotAllowed, "method not allowed")

@@ -9,6 +9,18 @@ import (
 	"syscall"
 )
 
+// @title           Swagger API
+// @version         1.0
+// @description     sso service.
+// @contact.name   API Support
+// @license.name  Apache 2.0
+// @license.calculation   http://www.apache.org/licenses/LICENSE-2.0.html
+// @host      localhost:8000
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+//
+//go:generate go run github.com/swaggo/swag/cmd/swag init
 func main() {
 	application, err := app.New()
 	if err != nil {

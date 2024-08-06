@@ -1,13 +1,13 @@
 package router
 
 import (
-	"compress/gzip"
 	"github.com/AlexBlackNn/authloyalty/internal/config"
 	handlersV1 "github.com/AlexBlackNn/authloyalty/internal/handlersapi/v1"
 	customMiddleware "github.com/AlexBlackNn/authloyalty/internal/middleware"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/httprate"
+	httpSwagger "github.com/swaggo/http-swagger/v2"
 	"log/slog"
 	"time"
 )
@@ -27,8 +27,8 @@ func NewChiRouter(
 		httprate.WithKeyFuncs(httprate.KeyByIP, httprate.KeyByEndpoint),
 	))
 	router.Use(customMiddleware.Logger(log))
-	router.Use(customMiddleware.GzipDecompressor(log))
-	router.Use(customMiddleware.GzipCompressor(log, gzip.BestCompression))
+	//router.Use(customMiddleware.GzipDecompressor(log))
+	//router.Use(customMiddleware.GzipCompressor(log, gzip.BestCompression))
 
 	router.Use(middleware.Recoverer)
 
@@ -38,6 +38,9 @@ func NewChiRouter(
 		r.Post("/login", authHandlerV1.Login)
 		r.Post("/logout", authHandlerV1.Logout)
 		r.Post("/registration", authHandlerV1.Register)
+		r.Get("/swagger/*", httpSwagger.Handler(
+			httpSwagger.URL("http://localhost:8000/swagger/doc.json"),
+		))
 	})
 	return router
 }

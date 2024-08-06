@@ -100,4 +100,5 @@ go install \
 # redis sentinel
 https://redis.uptrace.dev/guide/go-redis-sentinel.html#redis-server-client
 
-
+# auth swagger
+http://localhost:8000/auth/swagger/index.html
