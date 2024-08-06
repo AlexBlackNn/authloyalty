@@ -1,6 +1,7 @@
 package router
 
 import (
+	_ "github.com/AlexBlackNn/authloyalty/cmd/sso/docs"
 	"github.com/AlexBlackNn/authloyalty/internal/config"
 	handlersV1 "github.com/AlexBlackNn/authloyalty/internal/handlersapi/v1"
 	customMiddleware "github.com/AlexBlackNn/authloyalty/internal/middleware"
@@ -38,6 +39,8 @@ func NewChiRouter(
 		r.Post("/login", authHandlerV1.Login)
 		r.Post("/logout", authHandlerV1.Logout)
 		r.Post("/registration", authHandlerV1.Register)
+	})
+	router.Route("/", func(r chi.Router) {
 		r.Get("/swagger/*", httpSwagger.Handler(
 			httpSwagger.URL("http://localhost:8000/swagger/doc.json"),
 		))

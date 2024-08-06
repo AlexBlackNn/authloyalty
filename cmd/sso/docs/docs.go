@@ -22,33 +22,14 @@ const docTemplate = `{
     "paths": {
         "/auth/ready": {
             "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Создает новое выражение на сервере",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "Определяет можно ли подавать трафик на сервис",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Calculations"
+                    "Health"
                 ],
-                "summary": "Создание нового выражения",
-                "parameters": [
-                    {
-                        "description": "Ready",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/v1.Request"
-                        }
-                    }
-                ],
+                "summary": "Проверка готовности приложения",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -61,17 +42,6 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "v1.Request": {
-            "type": "object",
-            "required": [
-                "expression"
-            ],
-            "properties": {
-                "expression": {
-                    "type": "string"
-                }
-            }
-        },
         "v1.Response": {
             "type": "object",
             "properties": {

@@ -22,15 +22,12 @@ type Request struct {
 	Expression string `json:"expression" validate:"required"`
 }
 
-// @Summary Создание нового выражения
-// @Description Создает новое выражение на сервере
-// @Tags Calculations
-// @Accept json
+// @Summary Проверка готовности приложения
+// @Description Определяет можно ли подавать трафик на сервис
+// @Tags Health
 // @Produce json
-// @Param body body Request true "Ready"
 // @Success 200 {object} Response
 // @Router /auth/ready [get]
-// @Security BearerAuth
 func (m *HealthHandlers) ReadinessProbe(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		responseError(w, r, http.StatusMethodNotAllowed, "method not allowed")

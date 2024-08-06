@@ -1,11 +1,4 @@
 definitions:
-  v1.Request:
-    properties:
-      expression:
-        type: string
-    required:
-    - expression
-    type: object
   v1.Response:
     properties:
       error:
@@ -25,16 +18,7 @@ info:
 paths:
   /auth/ready:
     get:
-      consumes:
-      - application/json
-      description: Создает новое выражение на сервере
-      parameters:
-      - description: Ready
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/v1.Request'
+      description: Определяет можно ли подавать трафик на сервис
       produces:
       - application/json
       responses:
@@ -42,11 +26,9 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/v1.Response'
-      security:
-      - BearerAuth: []
-      summary: Создание нового выражения
+      summary: Проверка готовности приложения
       tags:
-      - Calculations
+      - Health
 securityDefinitions:
   BearerAuth:
     in: header
