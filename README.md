@@ -103,8 +103,10 @@ https://redis.uptrace.dev/guide/go-redis-sentinel.html#redis-server-client
 # auth swagger
 http://localhost:8000/swagger/index.html
 
-
+```
 swag init -g ./cmd/sso/main.go -o ./cmd/sso/docs
+```
+
 if err when starts 
 
 Golang swaggo rendering error: "Failed to load API definition" and "Fetch error doc.json" [closed]

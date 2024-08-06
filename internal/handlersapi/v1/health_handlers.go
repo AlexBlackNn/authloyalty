@@ -46,6 +46,12 @@ func (m *HealthHandlers) ReadinessProbe(w http.ResponseWriter, r *http.Request) 
 	responseHealth(w, r, http.StatusOK, "ready")
 }
 
+// @Summary Проверка, что приложение живо
+// @Description Определяет, нужно ли перезагрузить сервис
+// @Tags Health
+// @Produce json
+// @Success 200 {object} Response
+// @Router /auth/healthz [get]
 func (m *HealthHandlers) LivenessProbe(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		responseError(w, r, http.StatusMethodNotAllowed, "method not allowed")

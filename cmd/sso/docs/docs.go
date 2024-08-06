@@ -20,6 +20,26 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/auth/healthz": {
+            "get": {
+                "description": "Определяет, нужно ли перезагрузить сервис",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Health"
+                ],
+                "summary": "Проверка, что приложение живо",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/ready": {
             "get": {
                 "description": "Определяет можно ли подавать трафик на сервис",

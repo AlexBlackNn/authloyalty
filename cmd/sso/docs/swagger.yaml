@@ -16,6 +16,19 @@ info:
   title: Swagger API
   version: "1.0"
 paths:
+  /auth/healthz:
+    get:
+      description: Определяет, нужно ли перезагрузить сервис
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/v1.Response'
+      summary: Проверка, что приложение живо
+      tags:
+      - Health
   /auth/ready:
     get:
       description: Определяет можно ли подавать трафик на сервис
