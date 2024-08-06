@@ -50,28 +50,28 @@ func (s *Storage) Stop() error {
 }
 
 // SaveUser saves user to db.
-func (s *Storage) SaveUser(ctx context.Context, email string, passHash []byte) (context.Context, int64, error) {
+func (s *Storage) SaveUser(ctx context.Context, email string, passHash []byte) (context.Context, string, error) {
 	ctx, span := tracer.Start(ctx, "data layer Patroni: SaveUser",
 		trace.WithAttributes(attribute.String("handler", "SaveUser")))
 	defer span.End()
 
-	var id int
-	query := "INSERT INTO users(email, pass_hash) VALUES($1, $2) RETURNING id"
+	var id string
+	query := "INSERT INTO users(email, pass_hash) VALUES($1, $2) RETURNING uuid"
 	err := s.dbWrite.QueryRowContext(ctx, query, email, passHash).Scan(&id)
 	// https://stackoverflow.com/questions/34963064/go-pq-and-postgres-appropriate-error-handling-for-constraints
 	if err, ok := err.(*pgconn.PgError); ok {
 		if err.Code == ErrCodeUserAlreadyExists {
-			return ctx, int64(0), storage.ErrUserExists
+			return ctx, "", storage.ErrUserExists
 		}
 	}
 	if err != nil {
-		return ctx, 0, fmt.Errorf(
+		return ctx, "", fmt.Errorf(
 			"DATA LAYER: storage.postgres.SaveUser: couldn't save user  %w",
 			err,
 		)
 	}
 
-	return ctx, int64(id), nil
+	return ctx, id, nil
 }
 
 func (s *Storage) GetUser(ctx context.Context, value any) (context.Context, models.User, error) {
@@ -82,10 +82,10 @@ func (s *Storage) GetUser(ctx context.Context, value any) (context.Context, mode
 	var row *sql.Row
 	switch sqlParam := value.(type) {
 	case int:
-		query := "SELECT id, email, pass_hash, is_admin FROM users WHERE (id = $1);"
+		query := "SELECT uuid, email, pass_hash, is_admin FROM users WHERE (uuid = $1);"
 		row = s.dbRead.QueryRowContext(ctx, query, sqlParam)
 	case string:
-		query := "SELECT id, email, pass_hash, is_admin FROM users WHERE (email = $1);"
+		query := "SELECT uuid, email, pass_hash, is_admin FROM users WHERE (email = $1);"
 		row = s.dbRead.QueryRowContext(ctx, query, sqlParam)
 	default:
 		return ctx, models.User{}, fmt.Errorf(
@@ -109,4 +109,21 @@ func (s *Storage) GetUser(ctx context.Context, value any) (context.Context, mode
 		)
 	}
 	return ctx, user, nil
+}
+
+// UpdateSendStatus updates message send status.
+func (s *Storage) UpdateSendStatus(ctx context.Context, uuid string) (context.Context, error) {
+	ctx, span := tracer.Start(ctx, "data layer Patroni: UpdateSendStatus",
+		trace.WithAttributes(attribute.String("handler", "UpdateSendStatus")))
+	defer span.End()
+
+	query := "UPDATE users SET message_status='successful' WHERE uuid = $1;"
+	_, err := s.dbWrite.ExecContext(ctx, query, uuid)
+	if err != nil {
+		return ctx, fmt.Errorf(
+			"DATA LAYER: storage.postgres.UpdateSendStatus: couldn't update message registration status deluvery  %w",
+			err,
+		)
+	}
+	return ctx, nil
 }

@@ -1,24 +1,28 @@
 package broker
 
 import (
+	"fmt"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/confluentinc/confluent-kafka-go/schemaregistry"
 	"github.com/confluentinc/confluent-kafka-go/schemaregistry/serde"
 	"github.com/confluentinc/confluent-kafka-go/schemaregistry/serde/protobuf"
 	"google.golang.org/protobuf/proto"
+	"time"
 )
 
-const (
-	nullOffset = -1
-)
+type Broker struct {
+	producer     *kafka.Producer
+	serializer   serde.Serializer
+	ResponseChan chan *Response
+}
 
-type Producer struct {
-	producer   *kafka.Producer
-	serializer serde.Serializer
+type Response struct {
+	UserUUID string
+	Err      error
 }
 
 // NewProducer returns kafka producer with schema registry
-func NewProducer(kafkaURL, srURL string) (*Producer, error) {
+func NewProducer(kafkaURL, srURL string) (*Broker, error) {
 	p, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": kafkaURL})
 	if err != nil {
 		return nil, err
@@ -31,37 +35,74 @@ func NewProducer(kafkaURL, srURL string) (*Producer, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Producer{
-		producer:   p,
-		serializer: s,
-	}, nil
+
+	kafkaResponseChan := make(chan *Response)
+
+	// Delivery report handler for produced messages
+	go func() {
+		for e := range p.Events() {
+			switch e := e.(type) {
+
+			case *kafka.Message:
+				// The message delivery report, indicating success or
+				// permanent failure after retries have been exhausted.
+				// Application level retries won't help since the client
+				// is already configured to do that.
+				fmt.Println("1111111111111111111111111111", string(e.Key))
+				kafkaResponseChan <- &Response{UserUUID: string(e.Key), Err: nil}
+			case kafka.Error:
+				// Generic client instance-level errors, such as
+				// broker connection failures, authentication issues, etc.
+				//
+				// These errors should generally be considered informational
+				// as the underlying client will automatically try to
+				// recover from any errors encountered, the application
+				// does not need to take action on them.
+
+				kafkaResponseChan <- &Response{UserUUID: "", Err: err}
+			default:
+				fmt.Printf("Ignored event: %s\n", e)
+			}
+		}
+	}()
+
+	return &Broker{
+			producer:     p,
+			serializer:   s,
+			ResponseChan: kafkaResponseChan,
+		},
+		nil
 }
 
-// Stop stops serialization agent and kafka producer
-func (s *Producer) Stop() {
-	s.serializer.Close()
-	s.producer.Close()
+// Close closes serialization agent and kafka producer
+func (b *Broker) Close() {
+	b.serializer.Close()
+	b.producer.Close()
+}
+
+// GetResponseChan returns channel to get messages send status
+func (b *Broker) GetResponseChan() chan *Response {
+	return b.ResponseChan
 }
 
 // Send sends serialized message to kafka using schema registry
-func (p *Producer) Send(msg proto.Message, topic string) error {
-	kafkaChan := make(chan kafka.Event)
-	defer close(kafkaChan)
-	payload, err := p.serializer.Serialize(topic, msg)
+func (b *Broker) Send(msg proto.Message, topic string, key string) error {
+	payload, err := b.serializer.Serialize(topic, msg)
 	if err != nil {
 		return err
 	}
-	if err = p.producer.Produce(&kafka.Message{
+	if err = b.producer.Produce(&kafka.Message{
+		Key:            []byte(key),
 		TopicPartition: kafka.TopicPartition{Topic: &topic},
 		Value:          payload,
-	}, kafkaChan); err != nil {
-		return err
-	}
-	e := <-kafkaChan
-	switch e.(type) {
-	case *kafka.Message:
-		return nil
-	case kafka.Error:
+		Headers:        []kafka.Header{{Key: "request-Id", Value: []byte("header values are binary")}},
+	}, nil); err != nil {
+		if err.(kafka.Error).Code() == kafka.ErrQueueFull {
+			// Broker queue is full, wait 1s for messages
+			// to be delivered then try again.
+			time.Sleep(time.Second)
+			return err
+		}
 		return err
 	}
 	return nil

@@ -10,7 +10,6 @@ service_secret: "service very secret"
 grpc:
   port: 44044
   timeout: 10h
-redis_address: "localhost:6379" # in case of redis usage insted of redis_sentinel
 redis_sentinel:
   masterName: "mymaster"
   sentinelAddrs1: "localhost:26379"
@@ -18,3 +17,12 @@ redis_sentinel:
   sentinelAddrs3: "localhost:26381"
   password: "123456"
 jaeger_url: "http://localhost:14268/api/traces"
+rate_limit: 10000
+address: ":8000"
+kafka:
+  kafkaUrl: "localhost:9094"
+  schemaRegistryURL: "http://localhost:8081"
+server_timeout:
+  readTimeout: 10
+  writeTimeout: 10
+  idleTimeout: 10

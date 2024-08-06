@@ -7,8 +7,9 @@ import (
 	"github.com/AlexBlackNn/authloyalty/internal/config"
 	"github.com/AlexBlackNn/authloyalty/internal/domain/models"
 	jwtlib "github.com/AlexBlackNn/authloyalty/internal/lib/jwt"
+	"github.com/AlexBlackNn/authloyalty/pkg/broker"
 	storage2 "github.com/AlexBlackNn/authloyalty/pkg/storage"
-	registration_v1 "github.com/AlexBlackNn/authloyalty/protos/proto/registration/registration.v1"
+	"github.com/AlexBlackNn/authloyalty/protos/proto/registration/registration.v1"
 	"github.com/golang-jwt/jwt/v5"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -20,8 +21,9 @@ import (
 	"time"
 )
 
-type Sender interface {
-	Send(msg proto.Message, topic string) error
+type GetResponseChanSender interface {
+	Send(msg proto.Message, topic string, key string) error
+	GetResponseChan() chan *broker.Response
 }
 
 type UserStorage interface {
@@ -29,11 +31,12 @@ type UserStorage interface {
 		ctx context.Context,
 		email string,
 		passHash []byte,
-	) (context.Context, int64, error)
+	) (context.Context, string, error)
 	GetUser(
 		ctx context.Context,
 		value any,
 	) (context.Context, models.User, error)
+	UpdateSendStatus(ctx context.Context, uuid string) (context.Context, error)
 }
 
 type TokenStorage interface {
@@ -46,18 +49,34 @@ type Auth struct {
 	log          *slog.Logger
 	userStorage  UserStorage
 	tokenStorage TokenStorage
-	producer     Sender
+	producer     GetResponseChanSender
 	cfg          *config.Config
 }
 
 // New returns a new instance of Auth service
 func New(
+	cfg *config.Config,
 	log *slog.Logger,
 	userStorage UserStorage,
 	tokenStorage TokenStorage,
-	producer Sender,
-	cfg *config.Config,
+	producer GetResponseChanSender,
 ) *Auth {
+	brokerRespChan := producer.GetResponseChan()
+
+	go func() {
+		for brokerResponse := range brokerRespChan {
+			log.Debug("broker response", "resp", brokerResponse)
+			if brokerResponse.Err != nil {
+				log.Error("broker response", "err", brokerResponse.Err)
+			}
+			_, err := userStorage.UpdateSendStatus(context.Background(), brokerResponse.UserUUID)
+
+			if err != nil {
+				log.Error("failed to update message status", "err", err.Error())
+			}
+		}
+	}()
+
 	return &Auth{
 		log:          log,
 		userStorage:  userStorage,
@@ -73,6 +92,18 @@ const (
 
 var tracer = otel.Tracer("sso service")
 
+// HealthCheck returns service health check
+func (a *Auth) HealthCheck(ctx context.Context) error {
+	log := a.log.With(
+		slog.String("info", "SERVICE LAYER: metrics_service.HealthCheck"),
+	)
+	log.Info("starts getting health check")
+	defer log.Info("finish getting health check")
+	//TODO: add healthCheck
+	//return a.healthChecker.HealthCheck(ctx)
+	return nil
+}
+
 func (a *Auth) Login(
 	ctx context.Context,
 	email string,
@@ -81,27 +112,19 @@ func (a *Auth) Login(
 	ctx, span := tracer.Start(ctx, "service layer: login",
 		trace.WithAttributes(attribute.String("handler", "login")))
 	defer span.End()
-
 	md, _ := metadata.FromIncomingContext(ctx)
 	a.log.Info("time: %v, userId: %v", md.Get("timestamp"), md.Get("user-id"))
-
 	ctx, usrWithTokens, err := a.generateRefreshAccessToken(ctx, email)
 	if err != nil {
 		a.log.Error("Generation token failed:", err)
-		return "", "", fmt.Errorf(
-			"generation token failed: %w", err,
-		)
+		return "", "", fmt.Errorf("generation token failed: %w", err)
 	}
-
 	if err := bcrypt.CompareHashAndPassword(
 		usrWithTokens.user.PassHash, []byte(password),
 	); err != nil {
-		a.log.Info("invalid credentials")
-		return "", "", fmt.Errorf(
-			"invalid credentials: %w", ErrInvalidCredentials,
-		)
+		a.log.Warn("invalid credentials")
+		return "", "", fmt.Errorf("invalid credentials: %w", ErrInvalidCredentials)
 	}
-
 	return usrWithTokens.accessToken, usrWithTokens.refreshToken, nil
 }
 
@@ -153,7 +176,7 @@ func (a *Auth) Register(
 	ctx context.Context,
 	email string,
 	password string,
-) (int64, error) {
+) (string, error) {
 
 	const op = "SERVICE LAYER: auth_service.RegisterNewUser"
 
@@ -172,12 +195,12 @@ func (a *Auth) Register(
 	)
 	if err != nil {
 		log.Error("failed to generate password hash", err.Error())
-		return 0, fmt.Errorf("%s: %w", op, err)
+		return "", fmt.Errorf("%s: %w", op, err)
 	}
 	ctx, id, err := a.userStorage.SaveUser(ctx, email, passHash)
 	if err != nil {
 		log.Error("failed to save user", err.Error())
-		return 0, fmt.Errorf("%s: %w", op, err)
+		return "", fmt.Errorf("%s: %w", op, err)
 	}
 	log.Info("user registrated")
 
@@ -185,7 +208,7 @@ func (a *Auth) Register(
 		Email:    email,
 		FullName: "Alex Black",
 	}
-	err = a.producer.Send(&RegirationMsg, "registration")
+	err = a.producer.Send(&RegirationMsg, "registration", id)
 	if err != nil {
 		// no return here with err!!!, we do continue working (so-called soft degradation)
 		log.Error("Sending message to broker failed")
@@ -195,7 +218,7 @@ func (a *Auth) Register(
 
 func (a *Auth) IsAdmin(
 	ctx context.Context,
-	userID int,
+	userID string,
 ) (success bool, err error) {
 
 	const op = "SERVICE LAYER: auth_service.IsAdmin"

@@ -63,3 +63,41 @@ http://127.0.0.1:44044/sw/
 
 cd authloyalty/protos/proto/registration
 protoc --go_out=. registration.proto
+
+easyjson -all /home/alex/Dev/GolandYandex/authloyalty/internal/handlers/v1/sso_handlers_response.go 
+
+
+```bash
+curl --header "Content-Type: application/json" --request POST --data '{"email":"test@test.com","password":"test"}' http://localhost:8000/auth/login
+```
+
+```bash
+curl --header "Content-Type: application/json" --request POST --data '{"email":"test@test.com","password":"test"}' http://localhost:8000/auth/registration
+```
+
+```bash
+curl --header "Content-Type: application/json" --request POST --data '{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAdGVzdC5jb20iLCJleHAiOjE3MjI0MzIwODMsInRva2VuX3R5cGUiOiJhY2Nlc3MiLCJ1aWQiOjJ9.J6XilG2yEAM611yybY8LdvXs046yrx8bjCoWlwd5dtQ"}' http://localhost:8000/auth/logout
+```
+
+// HOW TO ADD GRPC SWAGGER
+https://apidog.com/articles/how-to-add-swagger-ui-for-grpc/
+
+1. download buf bin from github
+2. rename to buf
+3. move to /usr/bin
+4. chmod +x buf
+5. buf generate 
+
+if Failure: plugin openapiv2: could not find protoc plugin for name openapiv2 - please make sure protoc-gen-openapiv2 is installed and present on your $PATH
+```bash
+go install \
+    github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway \
+    github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2 \
+    google.golang.org/protobuf/cmd/protoc-gen-go \
+    google.golang.org/grpc/cmd/protoc-gen-go-grpc
+```
+
+# redis sentinel
+https://redis.uptrace.dev/guide/go-redis-sentinel.html#redis-server-client
+
+

@@ -15,14 +15,14 @@ type AuthorizationInterface interface {
 		ctx context.Context,
 		email string,
 		password string,
-	) (userID int64, err error)
+	) (userID string, err error)
 	Logout(
 		ctx context.Context,
 		token string,
 	) (success bool, err error)
 	IsAdmin(
 		ctx context.Context,
-		userID int,
+		userID string,
 	) (success bool, err error)
 	Validate(
 		ctx context.Context,
