@@ -2,7 +2,7 @@ package serverhttp
 
 import (
 	"fmt"
-	"github.com/AlexBlackNn/authloyalty/cmd/router"
+	"github.com/AlexBlackNn/authloyalty/cmd/sso/router"
 	"github.com/AlexBlackNn/authloyalty/internal/config"
 	handlers "github.com/AlexBlackNn/authloyalty/internal/handlersapi/v1"
 	authservice "github.com/AlexBlackNn/authloyalty/internal/services/auth_service"

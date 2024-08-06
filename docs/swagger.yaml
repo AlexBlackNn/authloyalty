@@ -1,0 +1,55 @@
+definitions:
+  v1.Request:
+    properties:
+      expression:
+        type: string
+    required:
+    - expression
+    type: object
+  v1.Response:
+    properties:
+      error:
+        type: string
+      status:
+        type: string
+    type: object
+host: localhost:8000
+info:
+  contact:
+    name: API Support
+  description: sso service.
+  license:
+    name: Apache 2.0
+  title: Swagger API
+  version: "1.0"
+paths:
+  /auth/ready:
+    get:
+      consumes:
+      - application/json
+      description: Создает новое выражение на сервере
+      parameters:
+      - description: Ready
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/v1.Request'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/v1.Response'
+      security:
+      - BearerAuth: []
+      summary: Создание нового выражения
+      tags:
+      - Calculations
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
