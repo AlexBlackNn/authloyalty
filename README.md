@@ -114,3 +114,9 @@ Where the routers locate
 n most cases, the problem is that you forgot to import the generated docs as _ "<your-project-package>/docs" 
 in my case
 _ "github.com/AlexBlackNn/authloyalty/cmd/sso/docs"
+
+
+metrics
+https://stackoverflow.com/a/65609042
+https://github.com/prometheus/client_golang
+https://grafana.com/oss/prometheus/exporters/go-exporter/#metrics-usage
