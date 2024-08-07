@@ -47,12 +47,17 @@ type SendCloser interface {
 	Close()
 }
 
+type Shutdowner interface {
+	Shutdown(ctx context.Context) error
+}
+
 type App struct {
-	ServerHttp         *serverhttp.App
-	ServerGrpc         *servergrpc.App
-	ServerUserStorage  UserStorage
-	ServerTokenStorage TokenStorage
-	ServerProducer     SendCloser
+	ServerHttp          *serverhttp.App
+	ServerGrpc          *servergrpc.App
+	ServerUserStorage   UserStorage
+	ServerTokenStorage  TokenStorage
+	ServerProducer      SendCloser
+	ServerOpenTelemetry Shutdowner
 }
 
 func (a *App) startHttpServer() chan error {
@@ -90,6 +95,10 @@ func (a *App) Stop() error {
 		return err
 	}
 
+	err = a.ServerOpenTelemetry.Shutdown(context.Background())
+	if err != nil {
+		return err
+	}
 	//TODO: add other entities closure
 	return nil
 }
@@ -128,21 +137,18 @@ func New() (*App, error) {
 		return nil, err
 	}
 
-	_, err = tracing.Init("sso service", cfg)
+	tp, err := tracing.Init("sso service", cfg)
 	if err != nil {
 		log.Error(err.Error())
 		return nil, err
 	}
-	//defer func() {
-	//	if err = tp.Shutdown(context.Background()); err != nil {
-	//		log.Error("Error shutting down tracer provider: %v", err)
-	//	}
-	//}()
+
 	return &App{
-		ServerHttp:         serverHttp,
-		ServerGrpc:         serverGrpc,
-		ServerUserStorage:  userStorage,
-		ServerTokenStorage: tokenStorage,
-		ServerProducer:     producer,
+		ServerHttp:          serverHttp,
+		ServerGrpc:          serverGrpc,
+		ServerUserStorage:   userStorage,
+		ServerTokenStorage:  tokenStorage,
+		ServerProducer:      producer,
+		ServerOpenTelemetry: tp,
 	}, nil
 }
