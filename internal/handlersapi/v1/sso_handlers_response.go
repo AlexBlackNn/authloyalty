@@ -21,8 +21,12 @@ type Register struct {
 	Birthday string `json:"birthday"`
 }
 
+type Refresh struct {
+	Token string `json:"token" validate:"jwt"`
+}
+
 type Logout struct {
-	Token string `json:"token"`
+	Token string `json:"token" validate:"jwt"`
 }
 
 type Response struct {
