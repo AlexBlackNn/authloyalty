@@ -84,17 +84,20 @@ func (a *App) Start(ctx context.Context) error {
 }
 
 func (a *App) Stop() error {
+	log.Info("close user storage client")
 	err := a.ServerUserStorage.Stop()
 	if err != nil {
 		return err
 	}
+	log.Info("close information bus client")
 	a.ServerProducer.Close()
 
+	log.Info("close http server")
 	err = a.ServerHttp.Srv.Close()
 	if err != nil {
 		return err
 	}
-
+	log.Info("close open telemetry client")
 	err = a.ServerOpenTelemetry.Shutdown(context.Background())
 	if err != nil {
 		return err
