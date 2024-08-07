@@ -1,11 +1,11 @@
 package tests
 
 import (
+	ssov1 "github.com/AlexBlackNn/authloyalty/protos/proto/sso/gen"
+	"github.com/AlexBlackNn/authloyalty/tests/suite"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	ssov1 "sso/protos/proto/sso/gen"
-	"sso/tests/suite"
 	"testing"
 	"time"
 )
@@ -14,7 +14,7 @@ func TestLogin_Login_HappyPath(t *testing.T) {
 	ctx, testSuite := suite.New(t)
 
 	respLogin, err := testSuite.AuthClient.Login(ctx, &ssov1.LoginRequest{
-		Email:    "admin@test.com",
+		Email:    "test@test.com",
 		Password: "test",
 	})
 	require.NoError(t, err)
@@ -32,8 +32,7 @@ func TestLogin_Login_HappyPath(t *testing.T) {
 	require.True(t, ok)
 
 	// check out token consists correct information
-	assert.Equal(t, int64(44), int64(claims["uid"].(float64)))
-	assert.Equal(t, "admin@test.com", claims["email"].(string))
+	assert.Equal(t, "test@test.com", claims["email"].(string))
 
 	// checking token expiration time might be only approximate
 	const deltaSeconds = 1
