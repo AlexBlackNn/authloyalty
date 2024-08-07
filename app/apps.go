@@ -55,18 +55,27 @@ type App struct {
 	ServerProducer     SendCloser
 }
 
-func (a *App) MustStart() {
+func (a *App) startHttpServer() chan error {
+	errChan := make(chan error)
 	go func() {
-		log.Info("http server starting")
 		if err := a.ServerHttp.Srv.ListenAndServe(); err != nil {
-			panic(err)
+			errChan <- err
 		}
-		log.Info("http server started successfully")
 	}()
+	return errChan
+}
 
+func (a *App) Start(ctx context.Context) error {
 	log.Info("grpc server starting")
 	a.ServerGrpc.Srv.Bootstrap(context.Background())
-	log.Info("grpc server started successfully")
+	log.Info("http server starting")
+	errChan := a.startHttpServer()
+	select {
+	case <-ctx.Done():
+		return a.Stop()
+	case err := <-errChan:
+		return err
+	}
 }
 
 func (a *App) Stop() error {

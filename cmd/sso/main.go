@@ -1,10 +1,9 @@
 package main
 
 import (
+	"context"
 	"github.com/AlexBlackNn/authloyalty/app"
 	"github.com/prometheus/common/log"
-	"log/slog"
-	"os"
 	"os/signal"
 	"syscall"
 )
@@ -26,25 +25,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	application.MustStart()
-
-	// graceful shutdown
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
-	// signal.NotifyContext()...
-	signalType := <-stop
-
-	err = application.Stop()
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
+	defer cancel()
+	err = application.Start(ctx)
 	if err != nil {
-		log.Error(
-			"server failed to stop",
-			"err", err.Error(),
-			slog.String("signalType", signalType.String()),
-		)
-		return
+		log.Fatal(err)
 	}
-	log.Info(
-		"application stopped",
-		slog.String("signalType", signalType.String()),
-	)
 }
