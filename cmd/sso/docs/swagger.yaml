@@ -6,6 +6,24 @@ definitions:
       password:
         type: string
     type: object
+  v1.Logout:
+    properties:
+      token:
+        type: string
+    type: object
+  v1.Register:
+    properties:
+      birthday:
+        type: string
+      email:
+        type: string
+      name:
+        type: string
+      password:
+        type: string
+    required:
+    - password
+    type: object
   v1.Response:
     properties:
       access_token:
@@ -78,6 +96,45 @@ paths:
       summary: Login
       tags:
       - Auth
+  /auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: Logout from current session. Frontend needs to send access and
+        then refresh token
+      parameters:
+      - description: Logout request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/v1.Logout'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Logout successful
+          schema:
+            $ref: '#/definitions/v1.Response'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/v1.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/v1.Response'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/v1.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/v1.Response'
+      summary: Logout
+      tags:
+      - Auth
   /auth/ready:
     get:
       description: Определяет можно ли подавать трафик на сервис
@@ -91,6 +148,43 @@ paths:
       summary: Проверка готовности приложения
       tags:
       - Health
+  /auth/registration:
+    post:
+      consumes:
+      - application/json
+      description: User registration
+      parameters:
+      - description: Register request
+        in: body
+        name: body
+        schema:
+          $ref: '#/definitions/v1.Register'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Register successful
+          schema:
+            $ref: '#/definitions/v1.Response'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/v1.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/v1.Response'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/v1.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/v1.Response'
+      summary: Registration
+      tags:
+      - Auth
 securityDefinitions:
   BearerAuth:
     in: header

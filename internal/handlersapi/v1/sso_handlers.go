@@ -101,6 +101,18 @@ func (a *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
+// @Summary Logout
+// @Description Logout from current session. Frontend needs to send access and then refresh token
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param body body Logout true "Logout request"
+// @Success 200 {object} Response "Logout successful"
+// @Failure 400 {object} Response "Bad request"
+// @Failure 401 {object} Response "Unauthorized"
+// @Failure 404 {object} Response "User not found"
+// @Failure 500 {object} Response "Internal server error"
+// @Router /auth/logout [post]
 func (a *AuthHandlers) Logout(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		responseError(
@@ -150,6 +162,18 @@ func (a *AuthHandlers) Logout(w http.ResponseWriter, r *http.Request) {
 	responseOK(w, r)
 }
 
+// @Summary Registration
+// @Description User registration
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param body body Register Register "Register request"
+// @Success 200 {object} Response "Register successful"
+// @Failure 400 {object} Response "Bad request"
+// @Failure 401 {object} Response "Unauthorized"
+// @Failure 404 {object} Response "User not found"
+// @Failure 500 {object} Response "Internal server error"
+// @Router /auth/registration [post]
 func (a *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		responseError(w, r, http.StatusMethodNotAllowed, "method not allowed")
