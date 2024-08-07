@@ -44,9 +44,14 @@ func New(cfg *config.Config) (*Storage, error) {
 }
 
 func (s *Storage) Stop() error {
-	err1 := s.dbWrite.Close()
-	err2 := s.dbRead.Close()
-	return fmt.Errorf("%w, %w", err1, err2)
+	var err1, err2 error
+	if s.dbRead != nil {
+		err1 = s.dbWrite.Close()
+	}
+	if s.dbWrite != nil {
+		err2 = s.dbRead.Close()
+	}
+	return errors.Join(err1, err2)
 }
 
 // SaveUser saves user to db.

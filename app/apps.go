@@ -25,7 +25,7 @@ type UserStorage interface {
 	) (context.Context, string, error)
 	GetUser(
 		ctx context.Context,
-		value any,
+		email string,
 	) (context.Context, models.User, error)
 	Stop() error
 }
@@ -44,7 +44,7 @@ type HealthChecker interface {
 
 type SendCloser interface {
 	Send(msg proto.Message, topic string, key string) error
-	Close() error
+	Close()
 }
 
 type App struct {
@@ -83,10 +83,7 @@ func (a *App) Stop() error {
 	if err != nil {
 		return err
 	}
-	err = a.ServerProducer.Close()
-	if err != nil {
-		return err
-	}
+	a.ServerProducer.Close()
 
 	err = a.ServerHttp.Srv.Close()
 	if err != nil {
@@ -142,7 +139,10 @@ func New() (*App, error) {
 	//	}
 	//}()
 	return &App{
-		ServerHttp: serverHttp,
-		ServerGrpc: serverGrpc,
+		ServerHttp:         serverHttp,
+		ServerGrpc:         serverGrpc,
+		ServerUserStorage:  userStorage,
+		ServerTokenStorage: tokenStorage,
+		ServerProducer:     producer,
 	}, nil
 }
