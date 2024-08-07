@@ -74,25 +74,38 @@ func (s *Storage) SaveUser(ctx context.Context, email string, passHash []byte) (
 	return ctx, id, nil
 }
 
-func (s *Storage) GetUser(ctx context.Context, value any) (context.Context, models.User, error) {
+func (s *Storage) GetUser(ctx context.Context, uuid string) (context.Context, models.User, error) {
 	ctx, span := tracer.Start(ctx, "data layer Patroni: GetUser",
 		trace.WithAttributes(attribute.String("handler", "GetUser")))
 	defer span.End()
 
-	var row *sql.Row
-	switch sqlParam := value.(type) {
-	case int:
-		query := "SELECT uuid, email, pass_hash, is_admin FROM users WHERE (uuid = $1);"
-		row = s.dbRead.QueryRowContext(ctx, query, sqlParam)
-	case string:
-		query := "SELECT uuid, email, pass_hash, is_admin FROM users WHERE (email = $1);"
-		row = s.dbRead.QueryRowContext(ctx, query, sqlParam)
-	default:
+	query := "SELECT uuid, email, pass_hash, is_admin FROM users WHERE (uuid = $1);"
+	row := s.dbRead.QueryRowContext(ctx, query, uuid)
+
+	var user models.User
+	err := row.Scan(&user.ID, &user.Email, &user.PassHash, &user.IsAdmin)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ctx, models.User{}, fmt.Errorf(
+				"DATA LAYER: storage.postgres.GetUser: %w",
+				storage.ErrUserNotFound,
+			)
+		}
 		return ctx, models.User{}, fmt.Errorf(
 			"DATA LAYER: storage.postgres.GetUser: %w",
-			storage.ErrWrongParamType,
+			err,
 		)
 	}
+	return ctx, user, nil
+}
+
+func (s *Storage) GetUserByEmail(ctx context.Context, email string) (context.Context, models.User, error) {
+	ctx, span := tracer.Start(ctx, "data layer Patroni: GetUser",
+		trace.WithAttributes(attribute.String("handler", "GetUser")))
+	defer span.End()
+
+	query := "SELECT uuid, email, pass_hash, is_admin FROM users WHERE (email = $1);"
+	row := s.dbRead.QueryRowContext(ctx, query, email)
 
 	var user models.User
 	err := row.Scan(&user.ID, &user.Email, &user.PassHash, &user.IsAdmin)

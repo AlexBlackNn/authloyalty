@@ -11,6 +11,7 @@ import (
 	"github.com/AlexBlackNn/authloyalty/pkg/broker"
 	patroni "github.com/AlexBlackNn/authloyalty/pkg/storage/patroni"
 	redis "github.com/AlexBlackNn/authloyalty/pkg/storage/redissentinel"
+	"github.com/AlexBlackNn/authloyalty/tracing"
 	"github.com/prometheus/common/log"
 	"google.golang.org/protobuf/proto"
 	"time"
@@ -120,6 +121,17 @@ func New() (*App, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	_, err = tracing.Init("sso service", cfg)
+	if err != nil {
+		log.Error(err.Error())
+		return nil, err
+	}
+	//defer func() {
+	//	if err = tp.Shutdown(context.Background()); err != nil {
+	//		log.Error("Error shutting down tracer provider: %v", err)
+	//	}
+	//}()
 	return &App{
 		ServerHttp: serverHttp,
 		ServerGrpc: serverGrpc,

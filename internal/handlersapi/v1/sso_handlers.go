@@ -23,6 +23,8 @@ func New(log *slog.Logger, authService *auth_service.Auth) AuthHandlers {
 	return AuthHandlers{log: log, auth: authService}
 }
 
+//TODO: generics
+
 // @Summary Login
 // @Description Authenticates a user and returns access and refresh tokens.
 // @Tags Auth
@@ -249,6 +251,80 @@ func (a *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 		)
 		return
 	}
+	responseAccessRefresh(
+		w, r, http.StatusOK, "Ok", accessToken, refreshToken,
+	)
+}
+
+// @Summary Refresh
+// @Description
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param body body Refresh Refresh "Refresh request"
+// @Success 200 {object} Response "Refresh successful"
+// @Failure 400 {object} Response "Bad request"
+// @Failure 401 {object} Response "Unauthorized"
+// @Failure 404 {object} Response "User not found"
+// @Failure 500 {object} Response "Internal server error"
+// @Router /auth/refresh [post]
+func (a *AuthHandlers) Refresh(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		responseError(w, r, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+
+	var reqRefresh Refresh
+	err := render.DecodeJSON(r.Body, &reqRefresh)
+	if err != nil {
+		if errors.Is(err, io.EOF) {
+			// Post with empty body
+			responseError(
+				w, r, http.StatusBadRequest, "empty request",
+			)
+			return
+		}
+		responseError(
+			w, r, http.StatusBadRequest, "failed to decode request",
+		)
+		return
+	}
+	if err = validator.New().Struct(reqRefresh); err != nil {
+		var validateErr validator.ValidationErrors
+		if errors.As(err, &validateErr) {
+			errorText := ValidationError(validateErr)
+			responseError(
+				w, r, http.StatusBadRequest, errorText,
+			)
+			return
+		}
+		responseError(
+			w, r, http.StatusUnprocessableEntity, "failed to validate request",
+		)
+		return
+	}
+
+	ctx, cancel := context.WithTimeoutCause(
+		r.Context(), 300*time.Millisecond, errors.New("updateMetric timeout"),
+	)
+	defer cancel()
+
+	accessToken, refreshToken, err := a.auth.Refresh(ctx, reqRefresh.Token)
+
+	if err != nil {
+		fmt.Println(err.Error())
+		if errors.Is(err, storage.ErrUserExists) {
+			responseError(
+				w, r, http.StatusConflict, err.Error(),
+			)
+			return
+		}
+		responseError(
+			w, r, http.StatusInternalServerError, "internal server error",
+		)
+		return
+	}
+
 	responseAccessRefresh(
 		w, r, http.StatusOK, "Ok", accessToken, refreshToken,
 	)

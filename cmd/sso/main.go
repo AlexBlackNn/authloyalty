@@ -24,13 +24,14 @@ import (
 func main() {
 	application, err := app.New()
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	application.MustStart()
 
 	// graceful shutdown
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
+	// signal.NotifyContext()...
 	signalType := <-stop
 
 	err = application.Stop()

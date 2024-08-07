@@ -11,6 +11,11 @@ definitions:
       token:
         type: string
     type: object
+  v1.Refresh:
+    properties:
+      token:
+        type: string
+    type: object
   v1.Register:
     properties:
       birthday:
@@ -148,6 +153,42 @@ paths:
       summary: Проверка готовности приложения
       tags:
       - Health
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Refresh request
+        in: body
+        name: body
+        schema:
+          $ref: '#/definitions/v1.Refresh'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Refresh successful
+          schema:
+            $ref: '#/definitions/v1.Response'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/v1.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/v1.Response'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/v1.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/v1.Response'
+      summary: Refresh
+      tags:
+      - Auth
   /auth/registration:
     post:
       consumes:
