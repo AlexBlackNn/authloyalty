@@ -95,7 +95,6 @@ func (a *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 		)
 		return
 	}
-	fmt.Println(accessToken, refreshToken)
 	responseAccessRefresh(
 		w, r, http.StatusOK, "Ok", accessToken, refreshToken,
 	)
@@ -215,7 +214,7 @@ func (a *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 	)
 	defer cancel()
 
-	userID, err := a.auth.Register(
+	_, err = a.auth.Register(
 		ctx, reqRegister.Email, reqRegister.Password,
 	)
 
@@ -232,6 +231,25 @@ func (a *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 		)
 		return
 	}
-	fmt.Println(userID)
-	responseOK(w, r)
+
+	accessToken, refreshToken, err := a.auth.Login(
+		ctx, reqRegister.Email, reqRegister.Password,
+	)
+
+	if err != nil {
+		fmt.Println(err.Error())
+		if errors.Is(err, auth_service.ErrInvalidCredentials) {
+			responseError(
+				w, r, http.StatusNotFound, err.Error(),
+			)
+			return
+		}
+		responseError(
+			w, r, http.StatusInternalServerError, "internal server error",
+		)
+		return
+	}
+	responseAccessRefresh(
+		w, r, http.StatusOK, "Ok", accessToken, refreshToken,
+	)
 }
