@@ -34,9 +34,13 @@ type UserStorage interface {
 	) (context.Context, string, error)
 	GetUser(
 		ctx context.Context,
-		value any,
+		uuid string,
 	) (context.Context, models.User, error)
-	UpdateSendStatus(ctx context.Context, uuid string) (context.Context, error)
+	GetUserByEmail(
+		ctx context.Context,
+		email string,
+	) (context.Context, models.User, error)
+	UpdateSendStatus(ctx context.Context, uuid string, status string) (context.Context, error)
 }
 
 type TokenStorage interface {
@@ -67,10 +71,18 @@ func New(
 		for brokerResponse := range brokerRespChan {
 			log.Debug("broker response", "resp", brokerResponse)
 			if brokerResponse.Err != nil {
-				log.Error("broker response", "err", brokerResponse.Err)
+				if errors.Is(brokerResponse.Err, broker.KafkaError) {
+					log.Error("broker error", "err", brokerResponse.Err)
+					continue
+				}
+				log.Error("broker response error on message", "err", brokerResponse.Err)
+				_, err := userStorage.UpdateSendStatus(context.Background(), brokerResponse.UserUUID, "failed")
+				if err != nil {
+					log.Error("failed to update message status", "err", err.Error())
+				}
+				continue
 			}
-			_, err := userStorage.UpdateSendStatus(context.Background(), brokerResponse.UserUUID)
-
+			_, err := userStorage.UpdateSendStatus(context.Background(), brokerResponse.UserUUID, "successful")
 			if err != nil {
 				log.Error("failed to update message status", "err", err.Error())
 			}
@@ -112,8 +124,14 @@ func (a *Auth) Login(
 	ctx, span := tracer.Start(ctx, "service layer: login",
 		trace.WithAttributes(attribute.String("handler", "login")))
 	defer span.End()
+
 	md, _ := metadata.FromIncomingContext(ctx)
-	a.log.Info("time: %v, userId: %v", md.Get("timestamp"), md.Get("user-id"))
+	a.log.Info("span",
+		"time", md.Get("timestamp"),
+		"user-id", md.Get("user-id"),
+		"x-trace-id", md.Get("x-trace-id"),
+	)
+
 	ctx, usrWithTokens, err := a.generateRefreshAccessToken(ctx, email)
 	if err != nil {
 		a.log.Error("Generation token failed:", err)
@@ -149,17 +167,21 @@ func (a *Auth) Refresh(
 	}
 	ttl := time.Duration(claims["exp"].(float64)-float64(time.Now().Unix())) * time.Second
 	if err != nil {
-		log.Info("failed validate token: ", err.Error())
+		log.Info("failed validate token: ", "err", err.Error())
 		return "", "", err
 	}
 	log.Info("validate token successfully")
 	if claims["token_type"].(string) == "access" {
 		return "", "", ErrTokenWrongType
 	}
-	userID := int(claims["uid"].(float64))
-	ctx, usrWithTokens, err := a.generateRefreshAccessToken(ctx, userID)
+	email, ok := claims["email"].(string)
+	if !ok {
+		log.Error("token validation failed")
+		return "", "", fmt.Errorf("token validation failed")
+	}
+	ctx, usrWithTokens, err := a.generateRefreshAccessToken(ctx, email)
 	if err != nil {
-		a.log.Error("failed to generate tokens", err.Error())
+		a.log.Error("failed to generate tokens", "err", err.Error())
 		return "", "", err
 	}
 	a.log.Info("saving refresh token to redis")
@@ -331,10 +353,10 @@ type userWithTokens struct {
 
 func (a *Auth) generateRefreshAccessToken(
 	ctx context.Context,
-	value any,
+	email string,
 ) (context.Context, userWithTokens, error) {
 
-	ctx, user, err := a.userStorage.GetUser(ctx, value)
+	ctx, user, err := a.userStorage.GetUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, storage2.ErrUserNotFound) {
 			return ctx,

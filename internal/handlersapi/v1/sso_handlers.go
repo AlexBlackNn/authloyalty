@@ -23,9 +23,25 @@ func New(log *slog.Logger, authService *auth_service.Auth) AuthHandlers {
 	return AuthHandlers{log: log, auth: authService}
 }
 
+//TODO: generics
+
+// @Summary Login
+// @Description Authenticates a user and returns access and refresh tokens.
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param body body Login true "Login request"
+// @Success 200 {object} Response "Login successful"
+// @Failure 400 {object} Response "Bad request"
+// @Failure 401 {object} Response "Unauthorized"
+// @Failure 404 {object} Response "User not found"
+// @Failure 500 {object} Response "Internal server error"
+// @Router /auth/login [post]
 func (a *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		responseError(w, r, http.StatusMethodNotAllowed, "method not allowed")
+		responseError(
+			w, r, http.StatusMethodNotAllowed, "method not allowed",
+		)
 		return
 	}
 
@@ -34,49 +50,75 @@ func (a *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, io.EOF) {
 			// Post with empty body
-			responseError(w, r, http.StatusBadRequest, "empty request")
+			responseError(
+				w, r, http.StatusBadRequest, "empty request",
+			)
 			return
 		}
-		responseError(w, r, http.StatusBadRequest, "failed to decode request")
+		responseError(
+			w, r, http.StatusBadRequest, "failed to decode request",
+		)
 		return
 	}
 	if err = validator.New().Struct(reqLogin); err != nil {
 		var validateErr validator.ValidationErrors
 		if errors.As(err, &validateErr) {
 			errorText := ValidationError(validateErr)
-			responseError(w, r, http.StatusBadRequest, errorText)
+			responseError(
+				w, r, http.StatusBadRequest, errorText,
+			)
 			return
 		}
-		responseError(w, r, http.StatusUnprocessableEntity, "failed to validate request")
+		responseError(
+			w, r, http.StatusUnprocessableEntity, "failed to validate request",
+		)
 		return
 	}
 
-	ctx, cancel := context.WithTimeoutCause(r.Context(), 300*time.Millisecond, errors.New("updateMetric timeout"))
+	ctx, cancel := context.WithTimeoutCause(
+		r.Context(), 300*time.Millisecond, errors.New("updateMetric timeout"),
+	)
 	defer cancel()
-
-	fmt.Println("111111111111111111111111111", reqLogin, reqLogin.Email, reqLogin.Password)
 
 	accessToken, refreshToken, err := a.auth.Login(
 		ctx, reqLogin.Email, reqLogin.Password,
 	)
-	fmt.Println("222222222222222222222222222222", reqLogin, reqLogin.Email, reqLogin.Password)
 
 	if err != nil {
 		fmt.Println(err.Error())
 		if errors.Is(err, auth_service.ErrInvalidCredentials) {
-			responseError(w, r, http.StatusNotFound, err.Error())
+			responseError(
+				w, r, http.StatusNotFound, err.Error(),
+			)
 			return
 		}
-		responseError(w, r, http.StatusInternalServerError, "internal server error")
+		responseError(
+			w, r, http.StatusInternalServerError, "internal server error",
+		)
 		return
 	}
-	fmt.Println(accessToken, refreshToken)
-	responseOK(w, r)
+	responseAccessRefresh(
+		w, r, http.StatusOK, "Ok", accessToken, refreshToken,
+	)
 }
 
+// @Summary Logout
+// @Description Logout from current session. Frontend needs to send access and then refresh token
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param body body Logout true "Logout request"
+// @Success 200 {object} Response "Logout successful"
+// @Failure 400 {object} Response "Bad request"
+// @Failure 401 {object} Response "Unauthorized"
+// @Failure 404 {object} Response "User not found"
+// @Failure 500 {object} Response "Internal server error"
+// @Router /auth/logout [post]
 func (a *AuthHandlers) Logout(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		responseError(w, r, http.StatusMethodNotAllowed, "method not allowed")
+		responseError(
+			w, r, http.StatusMethodNotAllowed, "method not allowed",
+		)
 		return
 	}
 
@@ -95,28 +137,44 @@ func (a *AuthHandlers) Logout(w http.ResponseWriter, r *http.Request) {
 		var validateErr validator.ValidationErrors
 		if errors.As(err, &validateErr) {
 			errorText := ValidationError(validateErr)
-			responseError(w, r, http.StatusBadRequest, errorText)
+			responseError(
+				w, r, http.StatusBadRequest, errorText,
+			)
 			return
 		}
-		responseError(w, r, http.StatusUnprocessableEntity, "failed to validate request")
+		responseError(
+			w, r, http.StatusUnprocessableEntity, "failed to validate request",
+		)
 		return
 	}
 
-	ctx, cancel := context.WithTimeoutCause(r.Context(), 300*time.Millisecond, errors.New("updateMetric timeout"))
+	ctx, cancel := context.WithTimeoutCause(
+		r.Context(), 300*time.Millisecond, errors.New("updateMetric timeout"),
+	)
 	defer cancel()
 
-	fmt.Println("111111111111111111111111111", reqLogout, reqLogout.Token)
-
-	success, err := a.auth.Logout(ctx, reqLogout.Token)
-	fmt.Println("222222222222222222222222222222", success, err)
-
+	_, err = a.auth.Logout(ctx, reqLogout.Token)
 	if err != nil {
-		responseError(w, r, http.StatusInternalServerError, "internal server error")
+		responseError(
+			w, r, http.StatusInternalServerError, "internal server error",
+		)
 		return
 	}
 	responseOK(w, r)
 }
 
+// @Summary Registration
+// @Description User registration
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param body body Register Register "Register request"
+// @Success 200 {object} Response "Register successful"
+// @Failure 400 {object} Response "Bad request"
+// @Failure 401 {object} Response "Unauthorized"
+// @Failure 404 {object} Response "User not found"
+// @Failure 500 {object} Response "Internal server error"
+// @Router /auth/registration [post]
 func (a *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		responseError(w, r, http.StatusMethodNotAllowed, "method not allowed")
@@ -128,41 +186,146 @@ func (a *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, io.EOF) {
 			// Post with empty body
-			responseError(w, r, http.StatusBadRequest, "empty request")
+			responseError(
+				w, r, http.StatusBadRequest, "empty request",
+			)
 			return
 		}
-		responseError(w, r, http.StatusBadRequest, "failed to decode request")
+		responseError(
+			w, r, http.StatusBadRequest, "failed to decode request",
+		)
 		return
 	}
 	if err = validator.New().Struct(reqRegister); err != nil {
 		var validateErr validator.ValidationErrors
 		if errors.As(err, &validateErr) {
 			errorText := ValidationError(validateErr)
-			responseError(w, r, http.StatusBadRequest, errorText)
+			responseError(
+				w, r, http.StatusBadRequest, errorText,
+			)
 			return
 		}
-		responseError(w, r, http.StatusUnprocessableEntity, "failed to validate request")
+		responseError(
+			w, r, http.StatusUnprocessableEntity, "failed to validate request",
+		)
 		return
 	}
 
-	ctx, cancel := context.WithTimeoutCause(r.Context(), 300*time.Millisecond, errors.New("updateMetric timeout"))
+	ctx, cancel := context.WithTimeoutCause(
+		r.Context(), 300*time.Millisecond, errors.New("updateMetric timeout"),
+	)
 	defer cancel()
 
-	fmt.Println("111111111111111111111111111", reqRegister, reqRegister.Email, reqRegister.Password)
-
-	userID, err := a.auth.Register(
+	_, err = a.auth.Register(
 		ctx, reqRegister.Email, reqRegister.Password,
 	)
 
 	if err != nil {
 		fmt.Println(err.Error())
 		if errors.Is(err, storage.ErrUserExists) {
-			responseError(w, r, http.StatusConflict, err.Error())
+			responseError(
+				w, r, http.StatusConflict, err.Error(),
+			)
 			return
 		}
-		responseError(w, r, http.StatusInternalServerError, "internal server error")
+		responseError(
+			w, r, http.StatusInternalServerError, "internal server error",
+		)
 		return
 	}
-	fmt.Println(userID)
-	responseOK(w, r)
+
+	accessToken, refreshToken, err := a.auth.Login(
+		ctx, reqRegister.Email, reqRegister.Password,
+	)
+
+	if err != nil {
+		fmt.Println(err.Error())
+		if errors.Is(err, auth_service.ErrInvalidCredentials) {
+			responseError(
+				w, r, http.StatusNotFound, err.Error(),
+			)
+			return
+		}
+		responseError(
+			w, r, http.StatusInternalServerError, "internal server error",
+		)
+		return
+	}
+	responseAccessRefresh(
+		w, r, http.StatusOK, "Ok", accessToken, refreshToken,
+	)
+}
+
+// @Summary Refresh
+// @Description
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param body body Refresh Refresh "Refresh request"
+// @Success 200 {object} Response "Refresh successful"
+// @Failure 400 {object} Response "Bad request"
+// @Failure 401 {object} Response "Unauthorized"
+// @Failure 404 {object} Response "User not found"
+// @Failure 500 {object} Response "Internal server error"
+// @Router /auth/refresh [post]
+func (a *AuthHandlers) Refresh(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		responseError(w, r, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+
+	var reqRefresh Refresh
+	err := render.DecodeJSON(r.Body, &reqRefresh)
+	if err != nil {
+		if errors.Is(err, io.EOF) {
+			// Post with empty body
+			responseError(
+				w, r, http.StatusBadRequest, "empty request",
+			)
+			return
+		}
+		responseError(
+			w, r, http.StatusBadRequest, "failed to decode request",
+		)
+		return
+	}
+	if err = validator.New().Struct(reqRefresh); err != nil {
+		var validateErr validator.ValidationErrors
+		if errors.As(err, &validateErr) {
+			errorText := ValidationError(validateErr)
+			responseError(
+				w, r, http.StatusBadRequest, errorText,
+			)
+			return
+		}
+		responseError(
+			w, r, http.StatusUnprocessableEntity, "failed to validate request",
+		)
+		return
+	}
+
+	ctx, cancel := context.WithTimeoutCause(
+		r.Context(), 300*time.Millisecond, errors.New("updateMetric timeout"),
+	)
+	defer cancel()
+
+	accessToken, refreshToken, err := a.auth.Refresh(ctx, reqRefresh.Token)
+
+	if err != nil {
+		fmt.Println(err.Error())
+		if errors.Is(err, storage.ErrUserExists) {
+			responseError(
+				w, r, http.StatusConflict, err.Error(),
+			)
+			return
+		}
+		responseError(
+			w, r, http.StatusInternalServerError, "internal server error",
+		)
+		return
+	}
+
+	responseAccessRefresh(
+		w, r, http.StatusOK, "Ok", accessToken, refreshToken,
+	)
 }

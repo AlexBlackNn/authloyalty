@@ -2,12 +2,12 @@ package tests
 
 import (
 	"fmt"
+	ssov1 "github.com/AlexBlackNn/authloyalty/protos/proto/sso/gen"
+	"github.com/AlexBlackNn/authloyalty/tests/suite"
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	ssov1 "sso/protos/proto/sso/gen"
-	"sso/tests/suite"
 	"testing"
 	"time"
 )

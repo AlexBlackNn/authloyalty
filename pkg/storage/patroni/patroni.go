@@ -44,9 +44,14 @@ func New(cfg *config.Config) (*Storage, error) {
 }
 
 func (s *Storage) Stop() error {
-	err1 := s.dbWrite.Close()
-	err2 := s.dbRead.Close()
-	return fmt.Errorf("%w, %w", err1, err2)
+	var err1, err2 error
+	if s.dbRead != nil {
+		err1 = s.dbWrite.Close()
+	}
+	if s.dbWrite != nil {
+		err2 = s.dbRead.Close()
+	}
+	return errors.Join(err1, err2)
 }
 
 // SaveUser saves user to db.
@@ -74,25 +79,38 @@ func (s *Storage) SaveUser(ctx context.Context, email string, passHash []byte) (
 	return ctx, id, nil
 }
 
-func (s *Storage) GetUser(ctx context.Context, value any) (context.Context, models.User, error) {
+func (s *Storage) GetUser(ctx context.Context, uuid string) (context.Context, models.User, error) {
 	ctx, span := tracer.Start(ctx, "data layer Patroni: GetUser",
 		trace.WithAttributes(attribute.String("handler", "GetUser")))
 	defer span.End()
 
-	var row *sql.Row
-	switch sqlParam := value.(type) {
-	case int:
-		query := "SELECT uuid, email, pass_hash, is_admin FROM users WHERE (uuid = $1);"
-		row = s.dbRead.QueryRowContext(ctx, query, sqlParam)
-	case string:
-		query := "SELECT uuid, email, pass_hash, is_admin FROM users WHERE (email = $1);"
-		row = s.dbRead.QueryRowContext(ctx, query, sqlParam)
-	default:
+	query := "SELECT uuid, email, pass_hash, is_admin FROM users WHERE (uuid = $1);"
+	row := s.dbRead.QueryRowContext(ctx, query, uuid)
+
+	var user models.User
+	err := row.Scan(&user.ID, &user.Email, &user.PassHash, &user.IsAdmin)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ctx, models.User{}, fmt.Errorf(
+				"DATA LAYER: storage.postgres.GetUser: %w",
+				storage.ErrUserNotFound,
+			)
+		}
 		return ctx, models.User{}, fmt.Errorf(
 			"DATA LAYER: storage.postgres.GetUser: %w",
-			storage.ErrWrongParamType,
+			err,
 		)
 	}
+	return ctx, user, nil
+}
+
+func (s *Storage) GetUserByEmail(ctx context.Context, email string) (context.Context, models.User, error) {
+	ctx, span := tracer.Start(ctx, "data layer Patroni: GetUser",
+		trace.WithAttributes(attribute.String("handler", "GetUser")))
+	defer span.End()
+
+	query := "SELECT uuid, email, pass_hash, is_admin FROM users WHERE (email = $1);"
+	row := s.dbRead.QueryRowContext(ctx, query, email)
 
 	var user models.User
 	err := row.Scan(&user.ID, &user.Email, &user.PassHash, &user.IsAdmin)
@@ -112,13 +130,13 @@ func (s *Storage) GetUser(ctx context.Context, value any) (context.Context, mode
 }
 
 // UpdateSendStatus updates message send status.
-func (s *Storage) UpdateSendStatus(ctx context.Context, uuid string) (context.Context, error) {
+func (s *Storage) UpdateSendStatus(ctx context.Context, uuid string, status string) (context.Context, error) {
 	ctx, span := tracer.Start(ctx, "data layer Patroni: UpdateSendStatus",
 		trace.WithAttributes(attribute.String("handler", "UpdateSendStatus")))
 	defer span.End()
 
-	query := "UPDATE users SET message_status='successful' WHERE uuid = $1;"
-	_, err := s.dbWrite.ExecContext(ctx, query, uuid)
+	query := "UPDATE users SET message_status=$2 WHERE uuid = $1;"
+	_, err := s.dbWrite.ExecContext(ctx, query, uuid, status)
 	if err != nil {
 		return ctx, fmt.Errorf(
 			"DATA LAYER: storage.postgres.UpdateSendStatus: couldn't update message registration status deluvery  %w",
