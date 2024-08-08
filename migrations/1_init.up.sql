@@ -1,5 +1,5 @@
 
-CREATE TYPE status AS ENUM ('inProgress', 'successful');
+CREATE TYPE status AS ENUM ('inProgress', 'successful', 'failed');
 
 CREATE TABLE IF NOT EXISTS users
 (

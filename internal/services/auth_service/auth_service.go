@@ -40,7 +40,7 @@ type UserStorage interface {
 		ctx context.Context,
 		email string,
 	) (context.Context, models.User, error)
-	UpdateSendStatus(ctx context.Context, uuid string) (context.Context, error)
+	UpdateSendStatus(ctx context.Context, uuid string, status string) (context.Context, error)
 }
 
 type TokenStorage interface {
@@ -71,10 +71,18 @@ func New(
 		for brokerResponse := range brokerRespChan {
 			log.Debug("broker response", "resp", brokerResponse)
 			if brokerResponse.Err != nil {
-				log.Error("broker response", "err", brokerResponse.Err)
+				if errors.Is(brokerResponse.Err, broker.KafkaError) {
+					log.Error("broker error", "err", brokerResponse.Err)
+					continue
+				}
+				log.Error("broker response error on message", "err", brokerResponse.Err)
+				_, err := userStorage.UpdateSendStatus(context.Background(), brokerResponse.UserUUID, "failed")
+				if err != nil {
+					log.Error("failed to update message status", "err", err.Error())
+				}
+				continue
 			}
-			_, err := userStorage.UpdateSendStatus(context.Background(), brokerResponse.UserUUID)
-
+			_, err := userStorage.UpdateSendStatus(context.Background(), brokerResponse.UserUUID, "successful")
 			if err != nil {
 				log.Error("failed to update message status", "err", err.Error())
 			}

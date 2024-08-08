@@ -1,6 +1,7 @@
 package broker
 
 import (
+	"errors"
 	"fmt"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/confluentinc/confluent-kafka-go/schemaregistry"
@@ -20,6 +21,8 @@ type Response struct {
 	UserUUID string
 	Err      error
 }
+
+var KafkaError = errors.New("kafka broker failed")
 
 // NewProducer returns kafka producer with schema registry
 func NewProducer(kafkaURL, srURL string) (*Broker, error) {
@@ -42,14 +45,23 @@ func NewProducer(kafkaURL, srURL string) (*Broker, error) {
 	go func() {
 		for e := range p.Events() {
 			switch e := e.(type) {
-
+			// https://github.com/confluentinc/confluent-kafka-go/blob/master/examples/producer_example/producer_example.go
 			case *kafka.Message:
 				// The message delivery report, indicating success or
 				// permanent failure after retries have been exhausted.
 				// Application level retries won't help since the client
 				// is already configured to do that.
-				fmt.Println("1111111111111111111111111111", string(e.Key))
-				kafkaResponseChan <- &Response{UserUUID: string(e.Key), Err: nil}
+				if e.TopicPartition.Error != nil {
+					kafkaResponseChan <- &Response{
+						UserUUID: string(e.Key),
+						Err:      e.TopicPartition.Error,
+					}
+					continue
+				}
+				kafkaResponseChan <- &Response{
+					UserUUID: string(e.Key),
+					Err:      nil,
+				}
 			case kafka.Error:
 				// Generic client instance-level errors, such as
 				// broker connection failures, authentication issues, etc.
@@ -58,10 +70,10 @@ func NewProducer(kafkaURL, srURL string) (*Broker, error) {
 				// as the underlying client will automatically try to
 				// recover from any errors encountered, the application
 				// does not need to take action on them.
-
-				kafkaResponseChan <- &Response{UserUUID: "", Err: err}
-			default:
-				fmt.Printf("Ignored event: %s\n", e)
+				kafkaResponseChan <- &Response{
+					UserUUID: "",
+					Err:      fmt.Errorf("kafka general error %w - %v", KafkaError, e),
+				}
 			}
 		}
 	}()
