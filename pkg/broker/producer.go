@@ -22,6 +22,7 @@ type Response struct {
 	Err      error
 }
 
+var FlushBrokerTimeMs = 100
 var KafkaError = errors.New("kafka broker failed")
 
 // NewProducer returns kafka producer with schema registry
@@ -89,6 +90,14 @@ func NewProducer(kafkaURL, srURL string) (*Broker, error) {
 // Close closes serialization agent and kafka producer
 func (b *Broker) Close() {
 	b.serializer.Close()
+	//https://docs.confluent.io/platform/current/clients/confluent-kafka-go/index.html#hdr-Producer
+	//* When done producing messages it's necessary  to make sure all messages are
+	//indeed delivered to the broker (or failed),
+	//because this is an asynchronous client so some messages may be
+	//lingering in internal channels or transmission queues.
+	//Call the convenience function `.Flush()` will block code until all
+	//message deliveries are done or the provided timeout elapses.
+	b.producer.Flush(FlushBrokerTimeMs)
 	b.producer.Close()
 }
 
