@@ -36,6 +36,13 @@ type ServerTimeoutConfig struct {
 	IdleTimeout  int64 `yaml:"idleTimeout" env-required:"true"`
 }
 
+type ServerHandlersTimeoutsCongig struct {
+	LoginTimeoutMs    int64 `yaml:"loginTimeoutMs" env-required:"true"`
+	LogoutTimeoutMs   int64 `yaml:"logoutTimeoutMs" env-required:"true"`
+	RegisterTimeoutMs int64 `yaml:"registerTimeoutMs" env-required:"true"`
+	RefreshTimeoutMs  int64 `yaml:"refreshTimeoutMs" env-required:"true"`
+}
+
 type Config struct {
 	// without this param will be used "local" as param value
 	Env             string        `yaml:"env" env-default:"local"`
@@ -43,16 +50,17 @@ type Config struct {
 	RefreshTokenTtl time.Duration `yaml:"refresh_token_ttl"  env-required:"true"`
 	RedisAddress    string        `yaml:"redis_address"`
 	// without this param can't work
-	StoragePath    string               `yaml:"storage_path"`
-	ServiceSecret  string               `yaml:"service_secret" env-required:"true"`
-	ServerTimeout  ServerTimeoutConfig  `yaml:"server_timeout"`
-	GRPC           GRPCConfig           `yaml:"grpc"`
-	RedisSentinel  RedisSentinelConfig  `yaml:"redis_sentinel"`
-	StoragePatroni StoragePatroniConfig `yaml:"storage_patroni"`
-	Kafka          KafkaConfig          `yaml:"kafka"`
-	JaegerUrl      string               `yaml:"jaeger_url"`
-	RateLimit      int                  `yaml:"rate_limit" `
-	Address        string               `yaml:"address"`
+	StoragePath            string                       `yaml:"storage_path"`
+	ServiceSecret          string                       `yaml:"service_secret" env-required:"true"`
+	ServerTimeout          ServerTimeoutConfig          `yaml:"server_timeout"`
+	ServerHandlersTimeouts ServerHandlersTimeoutsCongig `yaml:"server_handlers_timeouts"`
+	GRPC                   GRPCConfig                   `yaml:"grpc"`
+	RedisSentinel          RedisSentinelConfig          `yaml:"redis_sentinel"`
+	StoragePatroni         StoragePatroniConfig         `yaml:"storage_patroni"`
+	Kafka                  KafkaConfig                  `yaml:"kafka"`
+	JaegerUrl              string                       `yaml:"jaeger_url"`
+	RateLimit              int                          `yaml:"rate_limit" `
+	Address                string                       `yaml:"address"`
 }
 
 func New() *Config {

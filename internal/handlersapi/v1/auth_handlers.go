@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/AlexBlackNn/authloyalty/internal/config"
 	"github.com/AlexBlackNn/authloyalty/internal/services/authservice"
 	"github.com/AlexBlackNn/authloyalty/pkg/storage"
 	"github.com/go-playground/validator/v10"
@@ -16,10 +17,11 @@ import (
 type AuthHandlers struct {
 	log  *slog.Logger
 	auth *authservice.Auth
+	cfg  *config.Config
 }
 
-func New(log *slog.Logger, authService *authservice.Auth) AuthHandlers {
-	return AuthHandlers{log: log, auth: authService}
+func New(log *slog.Logger, cfg *config.Config, authService *authservice.Auth) AuthHandlers {
+	return AuthHandlers{log: log, cfg: cfg, auth: authService}
 }
 
 // EasyJSONUnmarshaler provides ability easyjson lib to work with generic type.
@@ -43,16 +45,10 @@ func ValidateRequest[T EasyJSONUnmarshaler](w http.ResponseWriter, r *http.Reque
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		responseError(w, r, http.StatusBadRequest, "failed to read body")
+		return reqData, errors.New("failed to read body")
 	}
 	err = reqData.UnmarshalJSON(body)
 	if err != nil {
-		if errors.Is(err, io.EOF) {
-			// Post with empty body
-			responseError(
-				w, r, http.StatusBadRequest, "empty request",
-			)
-			return reqData, errors.New("empty request")
-		}
 		responseError(
 			w, r, http.StatusBadRequest, "failed to decode request",
 		)
@@ -72,7 +68,7 @@ func ValidateRequest[T EasyJSONUnmarshaler](w http.ResponseWriter, r *http.Reque
 		)
 		return reqData, errors.New("unprocessable entity")
 	}
-	return reqData, err
+	return reqData, nil
 }
 
 // @Summary Login
@@ -95,7 +91,9 @@ func (a *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx, cancel := context.WithTimeoutCause(
-		r.Context(), 300*time.Millisecond, errors.New("updateMetric timeout"),
+		r.Context(),
+		time.Duration(a.cfg.ServerHandlersTimeouts.LoginTimeoutMs)*time.Millisecond,
+		errors.New("updateMetric timeout"),
 	)
 	defer cancel()
 
@@ -137,7 +135,9 @@ func (a *AuthHandlers) Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx, cancel := context.WithTimeoutCause(
-		r.Context(), 300*time.Millisecond, errors.New("updateMetric timeout"),
+		r.Context(),
+		time.Duration(a.cfg.ServerHandlersTimeouts.LogoutTimeoutMs)*time.Millisecond,
+		errors.New("updateMetric timeout"),
 	)
 	defer cancel()
 
@@ -170,7 +170,9 @@ func (a *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx, cancel := context.WithTimeoutCause(
-		r.Context(), 300*time.Millisecond, errors.New("updateMetric timeout"),
+		r.Context(),
+		time.Duration(a.cfg.ServerHandlersTimeouts.RegisterTimeoutMs)*time.Millisecond,
+		errors.New("updateMetric timeout"),
 	)
 	defer cancel()
 
@@ -233,7 +235,9 @@ func (a *AuthHandlers) Refresh(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx, cancel := context.WithTimeoutCause(
-		r.Context(), 300*time.Millisecond, errors.New("updateMetric timeout"),
+		r.Context(),
+		time.Duration(a.cfg.ServerHandlersTimeouts.RefreshTimeoutMs)*time.Millisecond,
+		errors.New("updateMetric timeout"),
 	)
 	defer cancel()
 

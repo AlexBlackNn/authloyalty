@@ -28,7 +28,7 @@ func New(
 	authService *authservice.Auth,
 ) (*App, error) {
 
-	projectHandlersV1 := handlers.New(log, authService)
+	projectHandlersV1 := handlers.New(log, cfg, authService)
 	healthHandlersV1 := handlers.NewHealth(log, authService)
 	srv := &http.Server{
 		Addr: fmt.Sprintf(cfg.Address),
