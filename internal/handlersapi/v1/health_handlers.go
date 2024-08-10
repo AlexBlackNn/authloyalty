@@ -3,7 +3,7 @@ package v1
 import (
 	"context"
 	"errors"
-	authservice "github.com/AlexBlackNn/authloyalty/internal/services/auth_service"
+	"github.com/AlexBlackNn/authloyalty/internal/services/authservice"
 	"log/slog"
 	"net/http"
 	"time"

@@ -5,7 +5,7 @@ import (
 	"github.com/AlexBlackNn/authloyalty/cmd/sso/router"
 	"github.com/AlexBlackNn/authloyalty/internal/config"
 	handlers "github.com/AlexBlackNn/authloyalty/internal/handlersapi/v1"
-	authservice "github.com/AlexBlackNn/authloyalty/internal/services/auth_service"
+	"github.com/AlexBlackNn/authloyalty/internal/services/authservice"
 	"log/slog"
 	"net/http"
 	"time"

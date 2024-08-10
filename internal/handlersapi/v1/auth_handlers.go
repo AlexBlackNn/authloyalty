@@ -23,7 +23,7 @@ func New(log *slog.Logger, authService *authservice.Auth) AuthHandlers {
 	return AuthHandlers{log: log, auth: authService}
 }
 
-func ProcessRequest[T Login | Logout | Refresh | Register](w http.ResponseWriter, r *http.Request) (T, error) {
+func ValidateRequest[T Login | Logout | Refresh | Register](w http.ResponseWriter, r *http.Request) (T, error) {
 	var reqData T
 
 	if r.Method != http.MethodPost {
@@ -64,11 +64,6 @@ func ProcessRequest[T Login | Logout | Refresh | Register](w http.ResponseWriter
 	return reqData, err
 }
 
-type EmailPassworder interface {
-	GetEmail() string
-	GetPassword() string
-}
-
 // @Summary Login
 // @Description Authenticates a user and returns access and refresh tokens.
 // @Tags Auth
@@ -83,7 +78,7 @@ type EmailPassworder interface {
 // @Router /auth/login [post]
 func (a *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 
-	reqData, err := ProcessRequest[Login](w, r)
+	reqData, err := ValidateRequest[Login](w, r)
 	if err != nil {
 		return
 	}
@@ -94,7 +89,7 @@ func (a *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	accessToken, refreshToken, err := a.auth.Login(
-		ctx, reqData.GetEmail(), reqData.GetPassword(),
+		ctx, reqData.Email, reqData.Password,
 	)
 	if err != nil {
 		if errors.Is(err, authservice.ErrInvalidCredentials) {
@@ -126,7 +121,7 @@ func (a *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} Response "Internal server error"
 // @Router /auth/logout [post]
 func (a *AuthHandlers) Logout(w http.ResponseWriter, r *http.Request) {
-	reqData, err := ProcessRequest[Logout](w, r)
+	reqData, err := ValidateRequest[Logout](w, r)
 	if err != nil {
 		return
 	}
@@ -158,7 +153,7 @@ func (a *AuthHandlers) Logout(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} Response "Internal server error"
 // @Router /auth/registration [post]
 func (a *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
-	reqData, err := ProcessRequest[Register](w, r)
+	reqData, err := ValidateRequest[Register](w, r)
 	if err != nil {
 		return
 	}
@@ -221,7 +216,7 @@ func (a *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} Response "Internal server error"
 // @Router /auth/refresh [post]
 func (a *AuthHandlers) Refresh(w http.ResponseWriter, r *http.Request) {
-	reqData, err := ProcessRequest[Refresh](w, r)
+	reqData, err := ValidateRequest[Refresh](w, r)
 	if err != nil {
 		return
 	}
