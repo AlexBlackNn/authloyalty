@@ -22,12 +22,16 @@ func New(log *slog.Logger, authService *authservice.Auth) AuthHandlers {
 	return AuthHandlers{log: log, auth: authService}
 }
 
-// EasyJSONUnmarshaler provides ability easyjson lib to work with generic type
-// in case of using "err := render.DecodeJSON(r.Body, &reqData)" it can be deleted
+// EasyJSONUnmarshaler provides ability easyjson lib to work with generic type.
+// In case of using "err := render.DecodeJSON(r.Body, &reqData)" it can be deleted.
 type EasyJSONUnmarshaler interface {
 	UnmarshalJSON(data []byte) error
 }
 
+// ValidateRequest validates post body. In case of using "err := render.DecodeJSON(r.Body, &reqData)"
+// can be written as ValidateRequest[T Login | Logout | Refresh | Register](...). In case of using easyjson Login,
+// Logout, Refresh, Register have  UnmarshalJSON method after code generation. EasyJSONUnmarshaler must be use here to
+// work with easyjson.
 func ValidateRequest[T EasyJSONUnmarshaler](w http.ResponseWriter, r *http.Request, reqData T) (T, error) {
 	if r.Method != http.MethodPost {
 		responseError(
