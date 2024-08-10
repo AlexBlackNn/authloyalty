@@ -178,3 +178,5 @@ https://grafana.com/oss/prometheus/exporters/go-exporter/#metrics-usage
 
 // otel instrumentation
 https://github.com/open-telemetry/opentelemetry-go-contrib/tree/main/instrumentation#new-instrumentation
+https://github.com/open-telemetry/opentelemetry-go-contrib/blob/main/instrumentation/github.com/gin-gonic/gin/otelgin/example/server.go
+https://github.com/confluentinc/confluent-kafka-go/issues/712 
