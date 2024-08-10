@@ -8,7 +8,7 @@ import (
 	"github.com/AlexBlackNn/authloyalty/internal/domain/models"
 	jwtlib "github.com/AlexBlackNn/authloyalty/internal/lib/jwt"
 	"github.com/AlexBlackNn/authloyalty/pkg/broker"
-	storage2 "github.com/AlexBlackNn/authloyalty/pkg/storage"
+	"github.com/AlexBlackNn/authloyalty/pkg/storage"
 	"github.com/AlexBlackNn/authloyalty/protos/proto/registration/registration.v1"
 	"github.com/golang-jwt/jwt/v5"
 	"go.opentelemetry.io/otel"
@@ -163,14 +163,10 @@ func (a *Auth) Refresh(
 	log.Info("starting validate token")
 	ctx, claims, err := a.validateToken(ctx, token)
 	if err != nil {
-		return "", "", ErrTokenRevoked
+		log.Error("token validation failed")
+		return "", "", fmt.Errorf("refresh: token validation failed: %w", err)
 	}
 	ttl := time.Duration(claims["exp"].(float64)-float64(time.Now().Unix())) * time.Second
-	if err != nil {
-		log.Info("failed validate token: ", "err", err.Error())
-		return "", "", err
-	}
-	log.Info("validate token successfully")
 	if claims["token_type"].(string) == "access" {
 		return "", "", ErrTokenWrongType
 	}
@@ -179,6 +175,7 @@ func (a *Auth) Refresh(
 		log.Error("token validation failed")
 		return "", "", fmt.Errorf("token validation failed")
 	}
+	log.Info("validate token successfully")
 	ctx, usrWithTokens, err := a.generateRefreshAccessToken(ctx, email)
 	if err != nil {
 		a.log.Error("failed to generate tokens", "err", err.Error())
@@ -358,7 +355,7 @@ func (a *Auth) generateRefreshAccessToken(
 
 	ctx, user, err := a.userStorage.GetUserByEmail(ctx, email)
 	if err != nil {
-		if errors.Is(err, storage2.ErrUserNotFound) {
+		if errors.Is(err, storage.ErrUserNotFound) {
 			return ctx,
 				userWithTokens{
 					user:         nil,
