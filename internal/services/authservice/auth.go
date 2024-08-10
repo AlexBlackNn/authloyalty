@@ -134,7 +134,7 @@ func (a *Auth) Login(
 
 	ctx, usrWithTokens, err := a.generateRefreshAccessToken(ctx, email)
 	if err != nil {
-		a.log.Error("Generation token failed:", err)
+		a.log.Error("Generation token failed:", "err", err)
 		return "", "", fmt.Errorf("generation token failed: %w", err)
 	}
 	if err := bcrypt.CompareHashAndPassword(
@@ -184,7 +184,7 @@ func (a *Auth) Refresh(
 	a.log.Info("saving refresh token to redis")
 	ctx, err = a.tokenStorage.SaveToken(ctx, token, ttl)
 	if err != nil {
-		a.log.Error("failed to save token", err.Error())
+		a.log.Error("failed to save token", "err", err.Error())
 		return "", "", err
 	}
 	a.log.Info(" token saved to redis successfully")
@@ -213,12 +213,12 @@ func (a *Auth) Register(
 		[]byte(password), bcrypt.DefaultCost,
 	)
 	if err != nil {
-		log.Error("failed to generate password hash", err.Error())
+		log.Error("failed to generate password hash", "err", err.Error())
 		return "", fmt.Errorf("%s: %w", op, err)
 	}
 	ctx, id, err := a.userStorage.SaveUser(ctx, email, passHash)
 	if err != nil {
-		log.Error("failed to save user", err.Error())
+		log.Error("failed to save user", "err", err.Error())
 		return "", fmt.Errorf("%s: %w", op, err)
 	}
 	log.Info("user registrated")
@@ -250,7 +250,7 @@ func (a *Auth) IsAdmin(
 	log.Info("getting user from database")
 	ctx, user, err := a.userStorage.GetUser(ctx, userID)
 	if err != nil {
-		log.Error("failed to extract user", err.Error())
+		log.Error("failed to extract user", "err", err.Error())
 		return false, fmt.Errorf("%s: %w", op, err)
 	}
 	log.Info("user from database extracted")
@@ -271,7 +271,7 @@ func (a *Auth) Logout(
 	log.Info("starting validate token")
 	ctx, claims, err := a.validateToken(ctx, token)
 	if err != nil {
-		log.Info("failed validate token: ", err.Error())
+		log.Error("failed validate token: ", "err", err.Error())
 		return false, err
 	}
 	ttl := time.Duration(claims["exp"].(float64)-float64(time.Now().Unix())) * time.Second
@@ -281,7 +281,7 @@ func (a *Auth) Logout(
 
 	ctx, err = a.tokenStorage.SaveToken(ctx, token, ttl)
 	if err != nil {
-		log.Error("failed to save token", err.Error())
+		log.Error("failed to save token", "err", err.Error())
 		return false, err
 	}
 	log.Info("token saved to redis successfully")
