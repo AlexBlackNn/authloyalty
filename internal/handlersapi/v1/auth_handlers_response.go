@@ -14,6 +14,9 @@ type Login struct {
 	Password string `json:"password"`
 }
 
+func (l *Login) GetEmail() string    { return l.Email }
+func (l *Login) GetPassword() string { return l.Password }
+
 type Register struct {
 	Email    string `json:"email" validate:"email"`
 	Password string `json:"password" validate:"required"`

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/AlexBlackNn/authloyalty/internal/services/authservice"
 	"github.com/AlexBlackNn/authloyalty/pkg/storage"
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
@@ -22,7 +23,51 @@ func New(log *slog.Logger, authService *authservice.Auth) AuthHandlers {
 	return AuthHandlers{log: log, auth: authService}
 }
 
-//TODO: generics
+func ProcessRequest[T Login | Logout | Refresh | Register](w http.ResponseWriter, r *http.Request) (T, error) {
+	var reqData T
+
+	if r.Method != http.MethodPost {
+		responseError(
+			w, r, http.StatusMethodNotAllowed, "method not allowed",
+		)
+		return reqData, errors.New("method not allowed")
+	}
+
+	err := render.DecodeJSON(r.Body, &reqData)
+	if err != nil {
+		if errors.Is(err, io.EOF) {
+			// Post with empty body
+			responseError(
+				w, r, http.StatusBadRequest, "empty request",
+			)
+			return reqData, errors.New("empty request")
+		}
+		responseError(
+			w, r, http.StatusBadRequest, "failed to decode request",
+		)
+		return reqData, errors.New("failed to decode request")
+	}
+	if err = validator.New().Struct(reqData); err != nil {
+		var validateErr validator.ValidationErrors
+		if errors.As(err, &validateErr) {
+			errorText := ValidationError(validateErr)
+			responseError(
+				w, r, http.StatusBadRequest, errorText,
+			)
+			return reqData, errors.New("validation error")
+		}
+		responseError(
+			w, r, http.StatusUnprocessableEntity, "unprocessable entity",
+		)
+		return reqData, errors.New("unprocessable entity")
+	}
+	return reqData, err
+}
+
+type EmailPassworder interface {
+	GetEmail() string
+	GetPassword() string
+}
 
 // @Summary Login
 // @Description Authenticates a user and returns access and refresh tokens.
@@ -37,40 +82,9 @@ func New(log *slog.Logger, authService *authservice.Auth) AuthHandlers {
 // @Failure 500 {object} Response "Internal server error"
 // @Router /auth/login [post]
 func (a *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		responseError(
-			w, r, http.StatusMethodNotAllowed, "method not allowed",
-		)
-		return
-	}
 
-	var reqLogin Login
-	err := render.DecodeJSON(r.Body, &reqLogin)
+	reqData, err := ProcessRequest[Login](w, r)
 	if err != nil {
-		if errors.Is(err, io.EOF) {
-			// Post with empty body
-			responseError(
-				w, r, http.StatusBadRequest, "empty request",
-			)
-			return
-		}
-		responseError(
-			w, r, http.StatusBadRequest, "failed to decode request",
-		)
-		return
-	}
-	if err = validator.New().Struct(reqLogin); err != nil {
-		var validateErr validator.ValidationErrors
-		if errors.As(err, &validateErr) {
-			errorText := ValidationError(validateErr)
-			responseError(
-				w, r, http.StatusBadRequest, errorText,
-			)
-			return
-		}
-		responseError(
-			w, r, http.StatusUnprocessableEntity, "failed to validate request",
-		)
 		return
 	}
 
@@ -80,11 +94,9 @@ func (a *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	accessToken, refreshToken, err := a.auth.Login(
-		ctx, reqLogin.Email, reqLogin.Password,
+		ctx, reqData.GetEmail(), reqData.GetPassword(),
 	)
-
 	if err != nil {
-		fmt.Println(err.Error())
 		if errors.Is(err, authservice.ErrInvalidCredentials) {
 			responseError(
 				w, r, http.StatusNotFound, err.Error(),
@@ -114,45 +126,16 @@ func (a *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} Response "Internal server error"
 // @Router /auth/logout [post]
 func (a *AuthHandlers) Logout(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		responseError(
-			w, r, http.StatusMethodNotAllowed, "method not allowed",
-		)
-		return
-	}
-
-	var reqLogout Logout
-	err := render.DecodeJSON(r.Body, &reqLogout)
+	reqData, err := ProcessRequest[Logout](w, r)
 	if err != nil {
-		if errors.Is(err, io.EOF) {
-			// Post with empty body
-			responseError(w, r, http.StatusBadRequest, "empty request")
-			return
-		}
-		responseError(w, r, http.StatusBadRequest, "failed to decode request")
 		return
 	}
-	if err = validator.New().Struct(reqLogout); err != nil {
-		var validateErr validator.ValidationErrors
-		if errors.As(err, &validateErr) {
-			errorText := ValidationError(validateErr)
-			responseError(
-				w, r, http.StatusBadRequest, errorText,
-			)
-			return
-		}
-		responseError(
-			w, r, http.StatusUnprocessableEntity, "failed to validate request",
-		)
-		return
-	}
-
 	ctx, cancel := context.WithTimeoutCause(
 		r.Context(), 300*time.Millisecond, errors.New("updateMetric timeout"),
 	)
 	defer cancel()
 
-	_, err = a.auth.Logout(ctx, reqLogout.Token)
+	_, err = a.auth.Logout(ctx, reqData.Token)
 	if err != nil {
 		responseError(
 			w, r, http.StatusInternalServerError, "internal server error",
@@ -175,38 +158,8 @@ func (a *AuthHandlers) Logout(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} Response "Internal server error"
 // @Router /auth/registration [post]
 func (a *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		responseError(w, r, http.StatusMethodNotAllowed, "method not allowed")
-		return
-	}
-
-	var reqRegister Register
-	err := render.DecodeJSON(r.Body, &reqRegister)
+	reqData, err := ProcessRequest[Register](w, r)
 	if err != nil {
-		if errors.Is(err, io.EOF) {
-			// Post with empty body
-			responseError(
-				w, r, http.StatusBadRequest, "empty request",
-			)
-			return
-		}
-		responseError(
-			w, r, http.StatusBadRequest, "failed to decode request",
-		)
-		return
-	}
-	if err = validator.New().Struct(reqRegister); err != nil {
-		var validateErr validator.ValidationErrors
-		if errors.As(err, &validateErr) {
-			errorText := ValidationError(validateErr)
-			responseError(
-				w, r, http.StatusBadRequest, errorText,
-			)
-			return
-		}
-		responseError(
-			w, r, http.StatusUnprocessableEntity, "failed to validate request",
-		)
 		return
 	}
 
@@ -216,7 +169,7 @@ func (a *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	_, err = a.auth.Register(
-		ctx, reqRegister.Email, reqRegister.Password,
+		ctx, reqData.Email, reqData.Password,
 	)
 
 	if err != nil {
@@ -234,7 +187,7 @@ func (a *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	accessToken, refreshToken, err := a.auth.Login(
-		ctx, reqRegister.Email, reqRegister.Password,
+		ctx, reqData.Email, reqData.Password,
 	)
 
 	if err != nil {
@@ -268,38 +221,8 @@ func (a *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} Response "Internal server error"
 // @Router /auth/refresh [post]
 func (a *AuthHandlers) Refresh(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		responseError(w, r, http.StatusMethodNotAllowed, "method not allowed")
-		return
-	}
-
-	var reqRefresh Refresh
-	err := render.DecodeJSON(r.Body, &reqRefresh)
+	reqData, err := ProcessRequest[Refresh](w, r)
 	if err != nil {
-		if errors.Is(err, io.EOF) {
-			// Post with empty body
-			responseError(
-				w, r, http.StatusBadRequest, "empty request",
-			)
-			return
-		}
-		responseError(
-			w, r, http.StatusBadRequest, "failed to decode request",
-		)
-		return
-	}
-	if err = validator.New().Struct(reqRefresh); err != nil {
-		var validateErr validator.ValidationErrors
-		if errors.As(err, &validateErr) {
-			errorText := ValidationError(validateErr)
-			responseError(
-				w, r, http.StatusBadRequest, errorText,
-			)
-			return
-		}
-		responseError(
-			w, r, http.StatusUnprocessableEntity, "failed to validate request",
-		)
 		return
 	}
 
@@ -308,7 +231,7 @@ func (a *AuthHandlers) Refresh(w http.ResponseWriter, r *http.Request) {
 	)
 	defer cancel()
 
-	accessToken, refreshToken, err := a.auth.Refresh(ctx, reqRefresh.Token)
+	accessToken, refreshToken, err := a.auth.Refresh(ctx, reqData.Token)
 
 	if err != nil {
 		fmt.Println(err.Error())
