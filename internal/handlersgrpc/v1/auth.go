@@ -1,7 +1,4 @@
-package auth
-
-//TRANSPORT LAYER
-// serverAPI(transport layer) encapsulates auth_service(service layer)
+package v1
 
 import (
 	"context"
@@ -166,7 +163,6 @@ func (s *serverAPI) Register(
 		ctx, req.GetEmail(), req.GetPassword(),
 	)
 	if err != nil {
-		// TODO: add error processing depends on the type of error
 		if errors.Is(err, storage.ErrUserExists) {
 			return nil, status.Error(
 				codes.AlreadyExists, "user already exists",

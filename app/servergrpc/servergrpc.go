@@ -2,7 +2,7 @@ package servergrpc
 
 import (
 	"github.com/AlexBlackNn/authloyalty/internal/config"
-	handlersgrpc "github.com/AlexBlackNn/authloyalty/internal/handlersgrpc/auth"
+	handlersgrpc "github.com/AlexBlackNn/authloyalty/internal/handlersgrpc/v1"
 	"github.com/AlexBlackNn/authloyalty/internal/services/authservice"
 	authgen "github.com/AlexBlackNn/authloyalty/protos/proto/sso/gen"
 	rkboot "github.com/rookie-ninja/rk-boot"
