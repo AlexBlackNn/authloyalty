@@ -7,7 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/AlexBlackNn/authloyalty/internal/services/auth_service"
+	"github.com/AlexBlackNn/authloyalty/internal/services/authservice"
 	"github.com/AlexBlackNn/authloyalty/pkg/storage"
 	ssov1 "github.com/AlexBlackNn/authloyalty/protos/proto/sso/gen"
 	"github.com/prometheus/common/log"
@@ -20,16 +20,45 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+type AuthorizationInterface interface {
+	Login(
+		ctx context.Context,
+		email string,
+		password string,
+	) (accessToken string, refreshToken string, err error)
+	Register(
+		ctx context.Context,
+		email string,
+		password string,
+	) (userID string, err error)
+	Logout(
+		ctx context.Context,
+		token string,
+	) (success bool, err error)
+	IsAdmin(
+		ctx context.Context,
+		userID string,
+	) (success bool, err error)
+	Validate(
+		ctx context.Context,
+		token string,
+	) (success bool, err error)
+	Refresh(
+		ctx context.Context,
+		token string,
+	) (accessToken string, refreshToken string, err error)
+}
+
 // serverAPI TRANSPORT layer
 type serverAPI struct {
 	// provides ability to work even without service interface realisation
 	ssov1.UnimplementedAuthServer
 	// service layer
-	auth   auth_service.AuthorizationInterface
+	auth   AuthorizationInterface
 	tracer trace.Tracer
 }
 
-func Register(gRPC *grpc.Server, auth auth_service.AuthorizationInterface) {
+func Register(gRPC *grpc.Server, auth AuthorizationInterface) {
 	ssov1.RegisterAuthServer(gRPC, &serverAPI{auth: auth, tracer: otel.Tracer("sso service")})
 }
 
@@ -66,7 +95,7 @@ func (s *serverAPI) Login(
 	)
 	if err != nil {
 		fmt.Println(err.Error())
-		if errors.Is(err, auth_service.ErrInvalidCredentials) {
+		if errors.Is(err, authservice.ErrInvalidCredentials) {
 			return nil, status.Error(codes.InvalidArgument, "invalid credentials")
 		}
 		return nil, status.Error(codes.Internal, "internal error")
@@ -99,10 +128,10 @@ func (s *serverAPI) Refresh(
 		ctx, req.GetRefreshToken(),
 	)
 	if err != nil {
-		if errors.Is(err, auth_service.ErrTokenWrongType) {
+		if errors.Is(err, authservice.ErrTokenWrongType) {
 			return nil, status.Error(codes.InvalidArgument, "Provide valid refresh token")
 		}
-		if errors.Is(err, auth_service.ErrTokenRevoked) {
+		if errors.Is(err, authservice.ErrTokenRevoked) {
 			return nil, status.Error(codes.Unauthenticated, "Provide valid refresh token")
 		}
 		return nil, status.Error(codes.Internal, "internal error")

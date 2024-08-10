@@ -7,10 +7,10 @@ import (
 	"github.com/AlexBlackNn/authloyalty/internal/config"
 	"github.com/AlexBlackNn/authloyalty/internal/domain/models"
 	"github.com/AlexBlackNn/authloyalty/internal/logger"
-	authservice "github.com/AlexBlackNn/authloyalty/internal/services/auth_service"
+	"github.com/AlexBlackNn/authloyalty/internal/services/authservice"
 	"github.com/AlexBlackNn/authloyalty/pkg/broker"
-	patroni "github.com/AlexBlackNn/authloyalty/pkg/storage/patroni"
-	redis "github.com/AlexBlackNn/authloyalty/pkg/storage/redissentinel"
+	"github.com/AlexBlackNn/authloyalty/pkg/storage/patroni"
+	"github.com/AlexBlackNn/authloyalty/pkg/storage/redissentinel"
 	"github.com/AlexBlackNn/authloyalty/tracing"
 	"github.com/prometheus/common/log"
 	"google.golang.org/protobuf/proto"
@@ -102,7 +102,6 @@ func (a *App) Stop() error {
 	if err != nil {
 		return err
 	}
-	//TODO: add other entities closure
 	return nil
 }
 
@@ -116,7 +115,7 @@ func New() (*App, error) {
 		return nil, err
 	}
 
-	tokenStorage := redis.New(cfg)
+	tokenStorage := redissentinel.New(cfg)
 
 	producer, err := broker.NewProducer(cfg.Kafka.KafkaURL, cfg.Kafka.SchemaRegistryURL)
 

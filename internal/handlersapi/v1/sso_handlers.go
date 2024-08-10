@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/AlexBlackNn/authloyalty/internal/services/auth_service"
 	"github.com/AlexBlackNn/authloyalty/pkg/storage"
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
@@ -16,10 +15,10 @@ import (
 
 type AuthHandlers struct {
 	log  *slog.Logger
-	auth *auth_service.Auth
+	auth *authservice.Auth
 }
 
-func New(log *slog.Logger, authService *auth_service.Auth) AuthHandlers {
+func New(log *slog.Logger, authService *authservice.Auth) AuthHandlers {
 	return AuthHandlers{log: log, auth: authService}
 }
 
@@ -86,7 +85,7 @@ func (a *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		fmt.Println(err.Error())
-		if errors.Is(err, auth_service.ErrInvalidCredentials) {
+		if errors.Is(err, authservice.ErrInvalidCredentials) {
 			responseError(
 				w, r, http.StatusNotFound, err.Error(),
 			)
@@ -240,7 +239,7 @@ func (a *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		fmt.Println(err.Error())
-		if errors.Is(err, auth_service.ErrInvalidCredentials) {
+		if errors.Is(err, authservice.ErrInvalidCredentials) {
 			responseError(
 				w, r, http.StatusNotFound, err.Error(),
 			)

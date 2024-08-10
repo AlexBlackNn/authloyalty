@@ -1,4 +1,4 @@
-package postgres
+package patroni
 
 import (
 	"context"
