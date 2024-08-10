@@ -107,6 +107,7 @@ func (b *Broker) GetResponseChan() chan *Response {
 }
 
 // Send sends serialized message to kafka using schema registry
+// TODO: add context, otel instrumentation
 func (b *Broker) Send(msg proto.Message, topic string, key string) error {
 	payload, err := b.serializer.Serialize(topic, msg)
 	if err != nil {

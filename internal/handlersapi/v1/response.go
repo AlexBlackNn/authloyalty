@@ -50,7 +50,7 @@ func ResponseOk(msg string) Response {
 	}
 }
 
-func RepsonseOkWithTokens(msg string, accessToken string, refreshToken string) Response {
+func ResponseOkWithTokens(msg string, accessToken string, refreshToken string) Response {
 	return Response{
 		Status:       msg,
 		AccessToken:  accessToken,
@@ -119,7 +119,7 @@ func responseAccessRefresh(
 ) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
-	dataMarshal, _ := easyjson.Marshal(RepsonseOkWithTokens(
+	dataMarshal, _ := easyjson.Marshal(ResponseOkWithTokens(
 		message, accessToken, refreshToken),
 	)
 	w.Write(dataMarshal)

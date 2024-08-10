@@ -12,21 +12,6 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
 )
 
-// // Init configures an OpenTelemetry exporter and trace provider.
-//func Init() (*sdktrace.TracerProvider, error) {
-//	exporter, err := stdout.New(stdout.WithPrettyPrint())
-//	if err != nil {
-//		return nil, err
-//	}
-//	tp := sdktrace.NewTracerProvider(
-//		sdktrace.WithSampler(sdktrace.AlwaysSample()),
-//		sdktrace.WithBatcher(exporter),
-//	)
-//	otel.SetTracerProvider(tp)
-//	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
-//	return tp, nil
-//}
-
 func newResource(ctx context.Context, serviceName string) (*resource.Resource, error) {
 	return resource.New(ctx,
 		resource.WithAttributes(

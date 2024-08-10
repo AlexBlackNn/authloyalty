@@ -175,3 +175,6 @@ metrics
 https://stackoverflow.com/a/65609042
 https://github.com/prometheus/client_golang
 https://grafana.com/oss/prometheus/exporters/go-exporter/#metrics-usage
+
+// otel instrumentation
+https://github.com/open-telemetry/opentelemetry-go-contrib/tree/main/instrumentation#new-instrumentation

@@ -11,7 +11,7 @@ import (
 	"github.com/AlexBlackNn/authloyalty/pkg/broker"
 	"github.com/AlexBlackNn/authloyalty/pkg/storage/patroni"
 	"github.com/AlexBlackNn/authloyalty/pkg/storage/redissentinel"
-	"github.com/AlexBlackNn/authloyalty/tracing"
+	"github.com/AlexBlackNn/authloyalty/pkg/tracing"
 	"github.com/prometheus/common/log"
 	"google.golang.org/protobuf/proto"
 	"time"
