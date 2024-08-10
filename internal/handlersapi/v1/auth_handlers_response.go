@@ -1,7 +1,6 @@
 package v1
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/go-playground/validator/v10"
 	"github.com/mailru/easyjson"
@@ -106,7 +105,7 @@ func responseHealth(
 ) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
-	dataMarshal, _ := json.Marshal(ResponseOk(message))
+	dataMarshal, _ := easyjson.Marshal(ResponseOk(message))
 	w.Write(dataMarshal)
 }
 
@@ -120,7 +119,7 @@ func responseAccessRefresh(
 ) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
-	dataMarshal, _ := json.Marshal(RepsonseOkWithTokens(
+	dataMarshal, _ := easyjson.Marshal(RepsonseOkWithTokens(
 		message, accessToken, refreshToken),
 	)
 	w.Write(dataMarshal)

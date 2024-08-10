@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/AlexBlackNn/authloyalty/internal/services/authservice"
 	"github.com/AlexBlackNn/authloyalty/pkg/storage"
-	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
 	"io"
 	"log/slog"
@@ -23,9 +22,13 @@ func New(log *slog.Logger, authService *authservice.Auth) AuthHandlers {
 	return AuthHandlers{log: log, auth: authService}
 }
 
-func ValidateRequest[T Login | Logout | Refresh | Register](w http.ResponseWriter, r *http.Request) (T, error) {
-	var reqData T
+// EasyJSONUnmarshaler provides ability easyjson lib to work with generic type
+// in case of using "err := render.DecodeJSON(r.Body, &reqData)" it can be deleted
+type EasyJSONUnmarshaler interface {
+	UnmarshalJSON(data []byte) error
+}
 
+func ValidateRequest[T EasyJSONUnmarshaler](w http.ResponseWriter, r *http.Request, reqData T) (T, error) {
 	if r.Method != http.MethodPost {
 		responseError(
 			w, r, http.StatusMethodNotAllowed, "method not allowed",
@@ -33,7 +36,11 @@ func ValidateRequest[T Login | Logout | Refresh | Register](w http.ResponseWrite
 		return reqData, errors.New("method not allowed")
 	}
 
-	err := render.DecodeJSON(r.Body, &reqData)
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		responseError(w, r, http.StatusBadRequest, "failed to read body")
+	}
+	err = reqData.UnmarshalJSON(body)
 	if err != nil {
 		if errors.Is(err, io.EOF) {
 			// Post with empty body
@@ -78,7 +85,7 @@ func ValidateRequest[T Login | Logout | Refresh | Register](w http.ResponseWrite
 // @Router /auth/login [post]
 func (a *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 
-	reqData, err := ValidateRequest[Login](w, r)
+	reqData, err := ValidateRequest[*Login](w, r, &Login{})
 	if err != nil {
 		return
 	}
@@ -121,7 +128,7 @@ func (a *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} Response "Internal server error"
 // @Router /auth/logout [post]
 func (a *AuthHandlers) Logout(w http.ResponseWriter, r *http.Request) {
-	reqData, err := ValidateRequest[Logout](w, r)
+	reqData, err := ValidateRequest[*Logout](w, r, &Logout{})
 	if err != nil {
 		return
 	}
@@ -153,7 +160,7 @@ func (a *AuthHandlers) Logout(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} Response "Internal server error"
 // @Router /auth/registration [post]
 func (a *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
-	reqData, err := ValidateRequest[Register](w, r)
+	reqData, err := ValidateRequest[*Register](w, r, &Register{})
 	if err != nil {
 		return
 	}
@@ -216,7 +223,7 @@ func (a *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} Response "Internal server error"
 // @Router /auth/refresh [post]
 func (a *AuthHandlers) Refresh(w http.ResponseWriter, r *http.Request) {
-	reqData, err := ValidateRequest[Refresh](w, r)
+	reqData, err := ValidateRequest[*Refresh](w, r, &Refresh{})
 	if err != nil {
 		return
 	}
