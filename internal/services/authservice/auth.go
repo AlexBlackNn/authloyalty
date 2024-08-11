@@ -241,6 +241,7 @@ func (a *Auth) Register(
 		log.Error("failed to generate password hash", "err", err.Error())
 		return "", fmt.Errorf("%s: %w", op, err)
 	}
+	// TODO: move to dto and need to add name
 	ctx, uuid, err := a.userStorage.SaveUser(ctx, reqData.Email, passHash)
 	if err != nil {
 		log.Error("failed to save user", "err", err.Error())
