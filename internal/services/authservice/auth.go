@@ -219,8 +219,7 @@ func (a *Auth) Refresh(
 // Register registers new users.
 func (a *Auth) Register(
 	ctx context.Context,
-	email string,
-	password string,
+	reqData *models.Register,
 ) (string, error) {
 
 	const op = "SERVICE LAYER: auth_service.RegisterNewUser"
@@ -236,13 +235,13 @@ func (a *Auth) Register(
 
 	log.Info("registering user")
 	passHash, err := bcrypt.GenerateFromPassword(
-		[]byte(password), bcrypt.DefaultCost,
+		[]byte(reqData.Password), bcrypt.DefaultCost,
 	)
 	if err != nil {
 		log.Error("failed to generate password hash", "err", err.Error())
 		return "", fmt.Errorf("%s: %w", op, err)
 	}
-	ctx, uuid, err := a.userStorage.SaveUser(ctx, email, passHash)
+	ctx, uuid, err := a.userStorage.SaveUser(ctx, reqData.Email, passHash)
 	if err != nil {
 		log.Error("failed to save user", "err", err.Error())
 		return "", fmt.Errorf("%s: %w", op, err)
@@ -251,7 +250,7 @@ func (a *Auth) Register(
 
 	// TODO: Full name should be extracted from post body
 	registrationMsg := registration_v1.RegistrationMessage{
-		Email:    email,
+		Email:    reqData.Email,
 		FullName: "Alex Black",
 	}
 	err = a.producer.Send(&registrationMsg, "registration", uuid)
