@@ -4,7 +4,7 @@ import (
 	"compress/gzip"
 	_ "github.com/AlexBlackNn/authloyalty/cmd/sso/docs"
 	"github.com/AlexBlackNn/authloyalty/internal/config"
-	handlersV1 "github.com/AlexBlackNn/authloyalty/internal/handlersapi/v1"
+	handlersV1 "github.com/AlexBlackNn/authloyalty/internal/handlersapi/api_v1"
 	customMiddleware "github.com/AlexBlackNn/authloyalty/internal/middleware"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"

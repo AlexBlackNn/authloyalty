@@ -1,8 +1,9 @@
-package v1
+package api_v1
 
 import (
 	"context"
 	"errors"
+	"github.com/AlexBlackNn/authloyalty/internal/domain/models"
 	"github.com/AlexBlackNn/authloyalty/internal/services/authservice"
 	"log/slog"
 	"net/http"
@@ -30,7 +31,7 @@ type Request struct {
 // @Router /auth/ready [get]
 func (m *HealthHandlers) ReadinessProbe(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		responseError(w, r, http.StatusMethodNotAllowed, "method not allowed")
+		models.ResponseError(w, r, http.StatusMethodNotAllowed, "method not allowed")
 		return
 	}
 	ctx, cancel := context.WithTimeoutCause(r.Context(), 300*time.Millisecond, errors.New("readinessProbe timeout"))
@@ -39,11 +40,11 @@ func (m *HealthHandlers) ReadinessProbe(w http.ResponseWriter, r *http.Request) 
 	ctx, err := m.authservice.HealthCheck(ctx)
 
 	if err != nil {
-		responseError(w, r, http.StatusInternalServerError, "internal server error")
+		models.ResponseError(w, r, http.StatusInternalServerError, "internal server error")
 		return
 	}
 	w.WriteHeader(http.StatusOK)
-	responseHealth(w, r, http.StatusOK, "ready")
+	models.ResponseHealth(w, r, http.StatusOK, "ready")
 }
 
 // @Summary Проверка, что приложение живо
@@ -54,8 +55,8 @@ func (m *HealthHandlers) ReadinessProbe(w http.ResponseWriter, r *http.Request) 
 // @Router /auth/healthz [get]
 func (m *HealthHandlers) LivenessProbe(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		responseError(w, r, http.StatusMethodNotAllowed, "method not allowed")
+		models.ResponseError(w, r, http.StatusMethodNotAllowed, "method not allowed")
 		return
 	}
-	responseHealth(w, r, http.StatusOK, "alive")
+	models.ResponseHealth(w, r, http.StatusOK, "alive")
 }

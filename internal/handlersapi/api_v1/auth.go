@@ -1,10 +1,11 @@
-package v1
+package api_v1
 
 import (
 	"context"
 	"errors"
 	"fmt"
 	"github.com/AlexBlackNn/authloyalty/internal/config"
+	"github.com/AlexBlackNn/authloyalty/internal/domain/models"
 	"github.com/AlexBlackNn/authloyalty/internal/services/authservice"
 	"github.com/AlexBlackNn/authloyalty/pkg/storage"
 	"github.com/go-playground/validator/v10"
@@ -36,7 +37,7 @@ type EasyJSONUnmarshaler interface {
 // work with easyjson.
 func ValidateRequest[T EasyJSONUnmarshaler](w http.ResponseWriter, r *http.Request, reqData T) (T, error) {
 	if r.Method != http.MethodPost {
-		responseError(
+		models.ResponseError(
 			w, r, http.StatusMethodNotAllowed, "method not allowed",
 		)
 		return reqData, errors.New("method not allowed")
@@ -44,12 +45,12 @@ func ValidateRequest[T EasyJSONUnmarshaler](w http.ResponseWriter, r *http.Reque
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		responseError(w, r, http.StatusBadRequest, "failed to read body")
+		models.ResponseError(w, r, http.StatusBadRequest, "failed to read body")
 		return reqData, errors.New("failed to read body")
 	}
 	err = reqData.UnmarshalJSON(body)
 	if err != nil {
-		responseError(
+		models.ResponseError(
 			w, r, http.StatusBadRequest, "failed to decode request",
 		)
 		return reqData, errors.New("failed to decode request")
@@ -57,13 +58,13 @@ func ValidateRequest[T EasyJSONUnmarshaler](w http.ResponseWriter, r *http.Reque
 	if err = validator.New().Struct(reqData); err != nil {
 		var validateErr validator.ValidationErrors
 		if errors.As(err, &validateErr) {
-			errorText := ValidationError(validateErr)
-			responseError(
+			errorText := models.ValidationError(validateErr)
+			models.ResponseError(
 				w, r, http.StatusBadRequest, errorText,
 			)
 			return reqData, errors.New("validation error")
 		}
-		responseError(
+		models.ResponseError(
 			w, r, http.StatusUnprocessableEntity, "unprocessable entity",
 		)
 		return reqData, errors.New("unprocessable entity")
@@ -85,7 +86,7 @@ func ValidateRequest[T EasyJSONUnmarshaler](w http.ResponseWriter, r *http.Reque
 // @Router /auth/login [post]
 func (a *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 
-	reqData, err := ValidateRequest[*Login](w, r, &Login{})
+	reqData, err := ValidateRequest[*models.Login](w, r, &models.Login{})
 	if err != nil {
 		return
 	}
@@ -98,21 +99,21 @@ func (a *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	accessToken, refreshToken, err := a.auth.Login(
-		ctx, reqData.Email, reqData.Password,
+		ctx, reqData,
 	)
 	if err != nil {
 		if errors.Is(err, authservice.ErrInvalidCredentials) {
-			responseError(
+			models.ResponseError(
 				w, r, http.StatusNotFound, err.Error(),
 			)
 			return
 		}
-		responseError(
+		models.ResponseError(
 			w, r, http.StatusInternalServerError, "internal server error",
 		)
 		return
 	}
-	responseAccessRefresh(
+	models.ResponseAccessRefresh(
 		w, r, http.StatusOK, "Ok", accessToken, refreshToken,
 	)
 }
@@ -130,7 +131,7 @@ func (a *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} Response "Internal server error"
 // @Router /auth/logout [post]
 func (a *AuthHandlers) Logout(w http.ResponseWriter, r *http.Request) {
-	reqData, err := ValidateRequest[*Logout](w, r, &Logout{})
+	reqData, err := ValidateRequest[*models.Logout](w, r, &models.Logout{})
 	if err != nil {
 		return
 	}
@@ -143,12 +144,12 @@ func (a *AuthHandlers) Logout(w http.ResponseWriter, r *http.Request) {
 
 	_, err = a.auth.Logout(ctx, reqData.Token)
 	if err != nil {
-		responseError(
+		models.ResponseError(
 			w, r, http.StatusInternalServerError, "internal server error",
 		)
 		return
 	}
-	responseOK(w, r)
+	models.ResponseOK(w, r)
 }
 
 // @Summary Registration
@@ -164,7 +165,7 @@ func (a *AuthHandlers) Logout(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} Response "Internal server error"
 // @Router /auth/registration [post]
 func (a *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
-	reqData, err := ValidateRequest[*Register](w, r, &Register{})
+	reqData, err := ValidateRequest[*models.Register](w, r, &models.Register{})
 	if err != nil {
 		return
 	}
@@ -183,35 +184,36 @@ func (a *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Println(err.Error())
 		if errors.Is(err, storage.ErrUserExists) {
-			responseError(
+			models.ResponseError(
 				w, r, http.StatusConflict, err.Error(),
 			)
 			return
 		}
-		responseError(
+		models.ResponseError(
 			w, r, http.StatusInternalServerError, "internal server error",
 		)
 		return
 	}
 
+	login := &models.Login{Email: reqData.Email, Password: reqData.Password}
 	accessToken, refreshToken, err := a.auth.Login(
-		ctx, reqData.Email, reqData.Password,
+		ctx, login,
 	)
 
 	if err != nil {
 		fmt.Println(err.Error())
 		if errors.Is(err, authservice.ErrInvalidCredentials) {
-			responseError(
+			models.ResponseError(
 				w, r, http.StatusNotFound, err.Error(),
 			)
 			return
 		}
-		responseError(
+		models.ResponseError(
 			w, r, http.StatusInternalServerError, "internal server error",
 		)
 		return
 	}
-	responseAccessRefresh(
+	models.ResponseAccessRefresh(
 		w, r, http.StatusOK, "Ok", accessToken, refreshToken,
 	)
 }
@@ -229,7 +231,7 @@ func (a *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} Response "Internal server error"
 // @Router /auth/refresh [post]
 func (a *AuthHandlers) Refresh(w http.ResponseWriter, r *http.Request) {
-	reqData, err := ValidateRequest[*Refresh](w, r, &Refresh{})
+	reqData, err := ValidateRequest[*models.Refresh](w, r, &models.Refresh{})
 	if err != nil {
 		return
 	}
@@ -246,18 +248,18 @@ func (a *AuthHandlers) Refresh(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Println(err.Error())
 		if errors.Is(err, storage.ErrUserExists) {
-			responseError(
+			models.ResponseError(
 				w, r, http.StatusConflict, err.Error(),
 			)
 			return
 		}
-		responseError(
+		models.ResponseError(
 			w, r, http.StatusInternalServerError, "internal server error",
 		)
 		return
 	}
 
-	responseAccessRefresh(
+	models.ResponseAccessRefresh(
 		w, r, http.StatusOK, "Ok", accessToken, refreshToken,
 	)
 }

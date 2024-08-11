@@ -1,9 +1,10 @@
-package v1
+package grpc_v1
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/AlexBlackNn/authloyalty/internal/domain/models"
 	"github.com/AlexBlackNn/authloyalty/internal/services/authservice"
 	"github.com/AlexBlackNn/authloyalty/pkg/storage"
 	ssov1 "github.com/AlexBlackNn/authloyalty/protos/proto/sso/gen"
@@ -20,8 +21,7 @@ import (
 type AuthorizationInterface interface {
 	Login(
 		ctx context.Context,
-		email string,
-		password string,
+		reqData *models.Login,
 	) (accessToken string, refreshToken string, err error)
 	Register(
 		ctx context.Context,
@@ -87,8 +87,11 @@ func (s *serverAPI) Login(
 	if err := validateLogin(req); err != nil {
 		return nil, err
 	}
+
+	login := &models.Login{Email: req.GetEmail(), Password: req.GetPassword()}
+
 	accessToken, refreshToken, err := s.auth.Login(
-		ctx, req.GetEmail(), req.GetPassword(),
+		ctx, login,
 	)
 	if err != nil {
 		fmt.Println(err.Error())

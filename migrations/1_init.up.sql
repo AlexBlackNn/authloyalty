@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS users
     is_admin boolean NOT NULL DEFAULT FALSE,
     created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     modified TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    full_name text,
     message_status status DEFAULT 'inProgress',
     PRIMARY KEY (uuid, email)
 ) PARTITION BY HASH (email);

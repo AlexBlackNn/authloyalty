@@ -148,8 +148,7 @@ func (a *Auth) HealthCheck(ctx context.Context) (context.Context, error) {
 // Login logins users.
 func (a *Auth) Login(
 	ctx context.Context,
-	email string,
-	password string,
+	reqData *models.Login,
 ) (string, string, error) {
 	ctx, span := tracer.Start(ctx, "service layer: login",
 		trace.WithAttributes(attribute.String("handler", "login")))
@@ -161,14 +160,14 @@ func (a *Auth) Login(
 		"user-id", md.Get("user-id"),
 		"x-trace-id", md.Get("x-trace-id"),
 	)
-
-	ctx, usrWithTokens, err := a.generateRefreshAccessToken(ctx, email)
+	// TODO: generateRefreshAccessToken m.b. should be separated by several functions it violates S from solid
+	ctx, usrWithTokens, err := a.generateRefreshAccessToken(ctx, reqData.Email)
 	if err != nil {
-		a.log.Error("Generation token failed:", "err", err)
+		a.log.Error("Generation token failed:", "err", err.Error())
 		return "", "", fmt.Errorf("generation token failed: %w", err)
 	}
-	if err := bcrypt.CompareHashAndPassword(
-		usrWithTokens.user.PassHash, []byte(password),
+	if err = bcrypt.CompareHashAndPassword(
+		usrWithTokens.user.PassHash, []byte(reqData.Password),
 	); err != nil {
 		a.log.Warn("invalid credentials")
 		return "", "", fmt.Errorf("invalid credentials: %w", ErrInvalidCredentials)
@@ -194,20 +193,15 @@ func (a *Auth) Refresh(
 	log.Info("starting validate token")
 	ctx, claims, err := a.validateToken(ctx, token)
 	if err != nil {
-		log.Error("token validation failed")
+		log.Error("token validation failed", "err", err.Error())
 		return "", "", fmt.Errorf("refresh: token validation failed: %w", err)
 	}
 	ttl := time.Duration(claims["exp"].(float64)-float64(time.Now().Unix())) * time.Second
 	if claims["token_type"].(string) == "access" {
 		return "", "", ErrTokenWrongType
 	}
-	email, ok := claims["email"].(string)
-	if !ok {
-		log.Error("token validation failed")
-		return "", "", fmt.Errorf("token validation failed")
-	}
 	log.Info("validate token successfully")
-	ctx, usrWithTokens, err := a.generateRefreshAccessToken(ctx, email)
+	ctx, usrWithTokens, err := a.generateRefreshAccessToken(ctx, claims["email"].(string))
 	if err != nil {
 		a.log.Error("failed to generate tokens", "err", err.Error())
 		return "", "", err
@@ -218,7 +212,7 @@ func (a *Auth) Refresh(
 		a.log.Error("failed to save token", "err", err.Error())
 		return "", "", err
 	}
-	a.log.Info(" token saved to redis successfully")
+	a.log.Info("token saved to redis successfully")
 	return usrWithTokens.accessToken, usrWithTokens.refreshToken, nil
 }
 
@@ -248,23 +242,36 @@ func (a *Auth) Register(
 		log.Error("failed to generate password hash", "err", err.Error())
 		return "", fmt.Errorf("%s: %w", op, err)
 	}
-	ctx, id, err := a.userStorage.SaveUser(ctx, email, passHash)
+	ctx, uuid, err := a.userStorage.SaveUser(ctx, email, passHash)
 	if err != nil {
 		log.Error("failed to save user", "err", err.Error())
 		return "", fmt.Errorf("%s: %w", op, err)
 	}
-	log.Info("user registrated")
+	log.Info("user registered")
 
-	RegirationMsg := registration_v1.RegistrationMessage{
+	// TODO: Full name should be extracted from post body
+	registrationMsg := registration_v1.RegistrationMessage{
 		Email:    email,
 		FullName: "Alex Black",
 	}
-	err = a.producer.Send(&RegirationMsg, "registration", id)
+	err = a.producer.Send(&registrationMsg, "registration", uuid)
 	if err != nil {
-		// no return here with err!!!, we do continue working (so-called soft degradation)
-		log.Error("Sending message to broker failed")
+		// TODO: determine the err can be faced
+		// No return here with err!!!, we do continue working (so-called soft degradation)
+		// even kafka does not work, server is still able to process users.
+		log.Error("Sending message to broker failed", "err", err.Error())
+		ctx, err = a.userStorage.UpdateSendStatus(
+			context.Background(), uuid, "failed",
+		)
+		if err != nil {
+			log.Error(
+				"failed to update message status",
+				"err", err.Error(),
+				"uuid", uuid,
+			)
+		}
 	}
-	return id, nil
+	return uuid, nil
 }
 
 // IsAdmin checks if user is admin

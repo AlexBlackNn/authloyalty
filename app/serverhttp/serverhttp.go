@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/AlexBlackNn/authloyalty/cmd/sso/router"
 	"github.com/AlexBlackNn/authloyalty/internal/config"
-	handlers "github.com/AlexBlackNn/authloyalty/internal/handlersapi/v1"
+	handlers "github.com/AlexBlackNn/authloyalty/internal/handlersapi/api_v1"
 	"github.com/AlexBlackNn/authloyalty/internal/services/authservice"
 	"log/slog"
 	"net/http"

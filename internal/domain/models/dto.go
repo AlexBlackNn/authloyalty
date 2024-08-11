@@ -1,4 +1,4 @@
-package v1
+package models
 
 import (
 	"fmt"
@@ -44,7 +44,7 @@ func Error(msg string) Response {
 	}
 }
 
-func ResponseOk(msg string) Response {
+func responseOk(msg string) Response {
 	return Response{
 		Status: msg,
 	}
@@ -77,7 +77,7 @@ func ValidationError(errs validator.ValidationErrors) string {
 	return strings.Join(errMsgs, ", ")
 }
 
-func responseOK(
+func ResponseOK(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
@@ -85,7 +85,7 @@ func responseOK(
 	w.WriteHeader(http.StatusOK)
 }
 
-func responseError(
+func ResponseError(
 	w http.ResponseWriter,
 	r *http.Request,
 	statusCode int,
@@ -97,7 +97,7 @@ func responseError(
 	w.Write(dataMarshal)
 }
 
-func responseHealth(
+func ResponseHealth(
 	w http.ResponseWriter,
 	r *http.Request,
 	statusCode int,
@@ -105,11 +105,11 @@ func responseHealth(
 ) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
-	dataMarshal, _ := easyjson.Marshal(ResponseOk(message))
+	dataMarshal, _ := easyjson.Marshal(responseOk(message))
 	w.Write(dataMarshal)
 }
 
-func responseAccessRefresh(
+func ResponseAccessRefresh(
 	w http.ResponseWriter,
 	r *http.Request,
 	statusCode int,
