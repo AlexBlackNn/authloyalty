@@ -31,15 +31,25 @@ type UserStorage interface {
 }
 
 type TokenStorage interface {
-	SaveToken(ctx context.Context, token string, ttl time.Duration) (context.Context, error)
-	GetToken(ctx context.Context, token string) (context.Context, string, error)
-	CheckTokenExists(ctx context.Context, token string) (context.Context, int64, error)
+	SaveToken(
+		ctx context.Context,
+		token string,
+		ttl time.Duration,
+	) (context.Context, error)
+	GetToken(
+		ctx context.Context,
+		token string,
+	) (context.Context, string, error)
+	CheckTokenExists(
+		ctx context.Context,
+		token string,
+	) (context.Context, int64, error)
 }
 
 type HealthChecker interface {
 	HealthCheck(
 		ctx context.Context,
-	) error
+	) (context.Context, error)
 }
 
 type SendCloser interface {

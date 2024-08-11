@@ -181,3 +181,6 @@ https://github.com/open-telemetry/opentelemetry-go-contrib/tree/main/instrumenta
 https://github.com/open-telemetry/opentelemetry-go-contrib/blob/main/instrumentation/github.com/gin-gonic/gin/otelgin/example/server.go
 https://github.com/confluentinc/confluent-kafka-go/issues/712
 https://github.com/etf1/opentelemetry-go-contrib
+
+// kafka health check
+https://github.com/confluentinc/confluent-kafka-go/discussions/1041
