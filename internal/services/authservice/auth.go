@@ -135,7 +135,7 @@ const (
 
 var tracer = otel.Tracer("sso service")
 
-// HealthCheck returns service health check
+// HealthCheck returns service health check.
 func (a *Auth) HealthCheck(ctx context.Context) (context.Context, error) {
 	log := a.log.With(
 		slog.String("info", "SERVICE LAYER: metrics_service.HealthCheck"),
@@ -145,6 +145,7 @@ func (a *Auth) HealthCheck(ctx context.Context) (context.Context, error) {
 	return a.userStorage.HealthCheck(ctx)
 }
 
+// Login logins users.
 func (a *Auth) Login(
 	ctx context.Context,
 	email string,
@@ -175,6 +176,7 @@ func (a *Auth) Login(
 	return usrWithTokens.accessToken, usrWithTokens.refreshToken, nil
 }
 
+// Refresh creates new access and refresh tokens.
 func (a *Auth) Refresh(
 	ctx context.Context,
 	token string,
@@ -220,6 +222,7 @@ func (a *Auth) Refresh(
 	return usrWithTokens.accessToken, usrWithTokens.refreshToken, nil
 }
 
+// Register registers new users.
 func (a *Auth) Register(
 	ctx context.Context,
 	email string,
@@ -264,6 +267,7 @@ func (a *Auth) Register(
 	return id, nil
 }
 
+// IsAdmin checks if user is admin
 func (a *Auth) IsAdmin(
 	ctx context.Context,
 	userID string,
@@ -286,6 +290,7 @@ func (a *Auth) IsAdmin(
 	return user.IsUserAmin(), nil
 }
 
+// Logout revokes tokens
 func (a *Auth) Logout(
 	ctx context.Context,
 	token string,
@@ -317,6 +322,7 @@ func (a *Auth) Logout(
 	return true, nil
 }
 
+// Validate validates tokens
 func (a *Auth) Validate(
 	ctx context.Context,
 	token string,
