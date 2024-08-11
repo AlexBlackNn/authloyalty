@@ -248,10 +248,9 @@ func (a *Auth) Register(
 	}
 	log.Info("user registered")
 
-	// TODO: Full name should be extracted from post body
 	registrationMsg := registration_v1.RegistrationMessage{
 		Email:    reqData.Email,
-		FullName: "Alex Black",
+		FullName: reqData.Name,
 	}
 	err = a.producer.Send(&registrationMsg, "registration", uuid)
 	if err != nil {
