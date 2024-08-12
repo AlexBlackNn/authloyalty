@@ -1,10 +1,15 @@
 FROM golang:latest AS build
-WORKDIR /application
-COPY . /application/
+WORKDIR /app
+COPY . /app/
 RUN GOOS=linux go build -a -o . cmd/sso/main.go
-RUN ls -la
-ENV CONFIG_PATH="/application/config/demo.yaml"
-ENTRYPOINT ["/application/main"]
 
+FROM golang:latest
+WORKDIR /app
+COPY --from=build /app/main /app/config/demo.yaml /app/
+COPY --from=build  /app/boot.yaml /app/
+COPY --from=build  /app/protos/proto/sso/gen /app/protos/proto/sso/gen
+ENV CONFIG_PATH="/app/demo.yaml"
+RUN ls -la
+ENTRYPOINT ["/app/main"]
 
 
