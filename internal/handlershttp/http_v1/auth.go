@@ -213,25 +213,21 @@ func (a *AuthHandlers) Refresh(w http.ResponseWriter, r *http.Request) {
 	accessToken, refreshToken, err := a.auth.Refresh(ctx, reqData)
 
 	if err != nil {
-		if errors.Is(err, authservice.ErrUserNotFound) {
+		switch {
+		case errors.Is(err, authservice.ErrUserNotFound):
 			models.ResponseErrorNotFound(w, "user not found")
-			return
-		}
-		if errors.Is(err, authservice.ErrTokenRevoked) {
+		case errors.Is(err, authservice.ErrTokenWrongType):
+			models.ResponseErrorStatusConflict(w, "token wrong type, expected refresh")
+		case errors.Is(err, authservice.ErrTokenRevoked):
 			models.ResponseErrorStatusConflict(w, "token revoked")
-			return
-		}
-		if errors.Is(err, authservice.ErrTokenParsing) {
+		case errors.Is(err, authservice.ErrTokenParsing):
 			models.ResponseErrorBadRequest(w, "token error")
-			return
+		case errors.Is(err, authservice.ErrTokenTtlExpired):
+			models.ResponseErrorStatusConflict(w, "token ttl expired")
+		default:
+			models.ResponseErrorInternal(w, "internal server error")
 		}
-		if errors.Is(err, authservice.ErrTokenWrongType) {
-			models.ResponseErrorBadRequest(w, "token wrong type")
-			return
-		}
-		models.ResponseErrorInternal(w, "internal server error")
 		return
 	}
-
 	models.ResponseOKAccessRefresh(w, accessToken, refreshToken)
 }

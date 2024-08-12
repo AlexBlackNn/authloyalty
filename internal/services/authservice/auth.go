@@ -194,7 +194,7 @@ func (a *Auth) Refresh(
 	ctx, claims, err := a.validateToken(ctx, reqData.Token)
 	if err != nil {
 		log.Error("token validation failed", "err", err.Error())
-		return "", "", fmt.Errorf("refresh: token validation failed: %w", ErrTokenParsing)
+		return "", "", fmt.Errorf("refresh: token validation failed: %w", err)
 	}
 	ttl := time.Duration(claims["exp"].(float64)-float64(time.Now().Unix())) * time.Second
 	if claims["token_type"].(string) == "access" {
@@ -355,7 +355,7 @@ func (a *Auth) validateToken(ctx context.Context, token string) (context.Context
 		return []byte(a.cfg.ServiceSecret), nil
 	})
 	if err != nil {
-		return ctx, jwt.MapClaims{}, err
+		return ctx, jwt.MapClaims{}, ErrTokenParsing
 	}
 	claims, ok := tokenParsed.Claims.(jwt.MapClaims)
 	if !ok {
