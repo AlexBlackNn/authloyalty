@@ -1,4 +1,4 @@
-package api_v1
+package http_v1
 
 import (
 	"context"
@@ -37,37 +37,28 @@ type EasyJSONUnmarshaler interface {
 // work with easyjson.
 func ValidateRequest[T EasyJSONUnmarshaler](w http.ResponseWriter, r *http.Request, reqData T) (T, error) {
 	if r.Method != http.MethodPost {
-		models.ResponseError(
-			w, r, http.StatusMethodNotAllowed, "method not allowed",
-		)
+		models.ResponseErrorNowAllowed(w, "only POST method allowed")
 		return reqData, errors.New("method not allowed")
 	}
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		models.ResponseError(w, r, http.StatusBadRequest, "failed to read body")
+		models.ResponseErrorBadRequest(w, "failed to read body")
 		return reqData, errors.New("failed to read body")
 	}
 	err = reqData.UnmarshalJSON(body)
 	if err != nil {
-		models.ResponseError(
-			w, r, http.StatusBadRequest, "failed to decode request",
-		)
+		models.ResponseErrorBadRequest(w, "failed to decode request")
 		return reqData, errors.New("failed to decode request")
 	}
 	if err = validator.New().Struct(reqData); err != nil {
 		var validateErr validator.ValidationErrors
 		if errors.As(err, &validateErr) {
-			errorText := models.ValidationError(validateErr)
-			models.ResponseError(
-				w, r, http.StatusBadRequest, errorText,
-			)
+			models.ResponseErrorBadRequest(w, models.ValidationError(validateErr))
 			return reqData, errors.New("validation error")
 		}
-		models.ResponseError(
-			w, r, http.StatusUnprocessableEntity, "unprocessable entity",
-		)
-		return reqData, errors.New("unprocessable entity")
+		models.ResponseErrorBadRequest(w, "bad request")
+		return reqData, errors.New("bad request")
 	}
 	return reqData, nil
 }
@@ -98,24 +89,16 @@ func (a *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 	)
 	defer cancel()
 
-	accessToken, refreshToken, err := a.auth.Login(
-		ctx, reqData,
-	)
+	accessToken, refreshToken, err := a.auth.Login(ctx, reqData)
 	if err != nil {
 		if errors.Is(err, authservice.ErrInvalidCredentials) {
-			models.ResponseError(
-				w, r, http.StatusNotFound, err.Error(),
-			)
+			models.ResponseErrorNotFound(w, "user not found")
 			return
 		}
-		models.ResponseError(
-			w, r, http.StatusInternalServerError, "internal server error",
-		)
+		models.ResponseErrorInternal(w, "internal server error")
 		return
 	}
-	models.ResponseAccessRefresh(
-		w, r, http.StatusOK, "Ok", accessToken, refreshToken,
-	)
+	models.ResponseOKAccessRefresh(w, accessToken, refreshToken)
 }
 
 // @Summary Logout
@@ -142,14 +125,12 @@ func (a *AuthHandlers) Logout(w http.ResponseWriter, r *http.Request) {
 	)
 	defer cancel()
 
-	_, err = a.auth.Logout(ctx, reqData.Token)
+	_, err = a.auth.Logout(ctx, reqData)
 	if err != nil {
-		models.ResponseError(
-			w, r, http.StatusInternalServerError, "internal server error",
-		)
+		models.ResponseErrorInternal(w, "internal server error")
 		return
 	}
-	models.ResponseOK(w, r)
+	models.ResponseOK(w)
 }
 
 // @Summary Registration
@@ -179,39 +160,29 @@ func (a *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 	_, err = a.auth.Register(ctx, reqData)
 	if err != nil {
 		fmt.Println(err.Error())
+		// TODO change to service error
 		if errors.Is(err, storage.ErrUserExists) {
-			models.ResponseError(
-				w, r, http.StatusConflict, err.Error(),
-			)
+			models.ResponseErrorStatusConflict(w, "user already exists")
 			return
 		}
-		models.ResponseError(
-			w, r, http.StatusInternalServerError, "internal server error",
-		)
+		models.ResponseErrorInternal(w, "internal server error")
 		return
 	}
 
-	login := &models.Login{Email: reqData.Email, Password: reqData.Password}
 	accessToken, refreshToken, err := a.auth.Login(
-		ctx, login,
+		ctx, &models.Login{Email: reqData.Email, Password: reqData.Password},
 	)
 
 	if err != nil {
 		fmt.Println(err.Error())
 		if errors.Is(err, authservice.ErrInvalidCredentials) {
-			models.ResponseError(
-				w, r, http.StatusNotFound, err.Error(),
-			)
+			models.ResponseErrorNotFound(w, "user not found")
 			return
 		}
-		models.ResponseError(
-			w, r, http.StatusInternalServerError, "internal server error",
-		)
+		models.ResponseErrorInternal(w, "internal server error")
 		return
 	}
-	models.ResponseAccessRefresh(
-		w, r, http.StatusOK, "Ok", accessToken, refreshToken,
-	)
+	models.ResponseOKAccessRefresh(w, accessToken, refreshToken)
 }
 
 // @Summary Refresh
@@ -239,23 +210,28 @@ func (a *AuthHandlers) Refresh(w http.ResponseWriter, r *http.Request) {
 	)
 	defer cancel()
 
-	accessToken, refreshToken, err := a.auth.Refresh(ctx, reqData.Token)
+	accessToken, refreshToken, err := a.auth.Refresh(ctx, reqData)
 
 	if err != nil {
-		fmt.Println(err.Error())
-		if errors.Is(err, storage.ErrUserExists) {
-			models.ResponseError(
-				w, r, http.StatusConflict, err.Error(),
-			)
+		if errors.Is(err, authservice.ErrUserNotFound) {
+			models.ResponseErrorNotFound(w, "user not found")
 			return
 		}
-		models.ResponseError(
-			w, r, http.StatusInternalServerError, "internal server error",
-		)
+		if errors.Is(err, authservice.ErrTokenRevoked) {
+			models.ResponseErrorStatusConflict(w, "token revoked")
+			return
+		}
+		if errors.Is(err, authservice.ErrTokenParsing) {
+			models.ResponseErrorBadRequest(w, "token error")
+			return
+		}
+		if errors.Is(err, authservice.ErrTokenWrongType) {
+			models.ResponseErrorBadRequest(w, "token wrong type")
+			return
+		}
+		models.ResponseErrorInternal(w, "internal server error")
 		return
 	}
 
-	models.ResponseAccessRefresh(
-		w, r, http.StatusOK, "Ok", accessToken, refreshToken,
-	)
+	models.ResponseOKAccessRefresh(w, accessToken, refreshToken)
 }

@@ -1,4 +1,4 @@
-package api_v1
+package http_v1
 
 import (
 	"context"
@@ -31,7 +31,7 @@ type Request struct {
 // @Router /auth/ready [get]
 func (m *HealthHandlers) ReadinessProbe(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		models.ResponseError(w, r, http.StatusMethodNotAllowed, "method not allowed")
+		models.ResponseErrorNowAllowed(w, "only GET method allowed")
 		return
 	}
 	ctx, cancel := context.WithTimeoutCause(r.Context(), 300*time.Millisecond, errors.New("readinessProbe timeout"))
@@ -40,11 +40,10 @@ func (m *HealthHandlers) ReadinessProbe(w http.ResponseWriter, r *http.Request) 
 	ctx, err := m.authservice.HealthCheck(ctx)
 
 	if err != nil {
-		models.ResponseError(w, r, http.StatusInternalServerError, "internal server error")
+		models.ResponseErrorInternal(w, "internal server error")
 		return
 	}
-	w.WriteHeader(http.StatusOK)
-	models.ResponseHealth(w, r, http.StatusOK, "ready")
+	models.ResponseOK(w)
 }
 
 // @Summary Проверка, что приложение живо
@@ -55,8 +54,8 @@ func (m *HealthHandlers) ReadinessProbe(w http.ResponseWriter, r *http.Request) 
 // @Router /auth/healthz [get]
 func (m *HealthHandlers) LivenessProbe(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		models.ResponseError(w, r, http.StatusMethodNotAllowed, "method not allowed")
+		models.ResponseErrorNowAllowed(w, "only GET method allowed")
 		return
 	}
-	models.ResponseHealth(w, r, http.StatusOK, "alive")
+	models.ResponseOK(w)
 }

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/AlexBlackNn/authloyalty/cmd/sso/router"
 	"github.com/AlexBlackNn/authloyalty/internal/config"
-	handlers "github.com/AlexBlackNn/authloyalty/internal/handlersapi/api_v1"
+	"github.com/AlexBlackNn/authloyalty/internal/handlershttp/http_v1"
 	"github.com/AlexBlackNn/authloyalty/internal/services/authservice"
 	"log/slog"
 	"net/http"
@@ -17,8 +17,8 @@ type App struct {
 	Log           *slog.Logger
 	Srv           *http.Server
 	authService   *authservice.Auth
-	HandlersV1    handlers.AuthHandlers
-	HealthChecker handlers.HealthHandlers
+	HandlersV1    http_v1.AuthHandlers
+	HealthChecker http_v1.HealthHandlers
 }
 
 // New creates App collecting handlers and server
@@ -28,8 +28,8 @@ func New(
 	authService *authservice.Auth,
 ) (*App, error) {
 
-	projectHandlersV1 := handlers.New(log, cfg, authService)
-	healthHandlersV1 := handlers.NewHealth(log, authService)
+	projectHandlersV1 := http_v1.New(log, cfg, authService)
+	healthHandlersV1 := http_v1.NewHealth(log, authService)
 	srv := &http.Server{
 		Addr: fmt.Sprintf(cfg.Address),
 		Handler: router.NewChiRouter(

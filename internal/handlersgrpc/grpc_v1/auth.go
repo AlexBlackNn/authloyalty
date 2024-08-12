@@ -29,7 +29,7 @@ type AuthorizationInterface interface {
 	) (userID string, err error)
 	Logout(
 		ctx context.Context,
-		token string,
+		reqData *models.Logout,
 	) (success bool, err error)
 	IsAdmin(
 		ctx context.Context,
@@ -41,7 +41,7 @@ type AuthorizationInterface interface {
 	) (success bool, err error)
 	Refresh(
 		ctx context.Context,
-		token string,
+		reqData *models.Refresh,
 	) (accessToken string, refreshToken string, err error)
 }
 
@@ -83,14 +83,12 @@ func (s *serverAPI) Login(
 		trace.WithAttributes(attribute.String("handler", "login")))
 	defer span.End()
 
-	if err := validateLogin(req); err != nil {
+	if err = validateLogin(req); err != nil {
 		return nil, err
 	}
 
-	login := &models.Login{Email: req.GetEmail(), Password: req.GetPassword()}
-
 	accessToken, refreshToken, err := s.auth.Login(
-		ctx, login,
+		ctx, &models.Login{Email: req.GetEmail(), Password: req.GetPassword()},
 	)
 	if err != nil {
 		fmt.Println(err.Error())
@@ -124,7 +122,7 @@ func (s *serverAPI) Refresh(
 	defer span.End()
 
 	accessToken, refreshToken, err := s.auth.Refresh(
-		ctx, req.GetRefreshToken(),
+		ctx, &models.Refresh{Token: req.GetRefreshToken()},
 	)
 	if err != nil {
 		if errors.Is(err, authservice.ErrTokenWrongType) {
@@ -157,12 +155,12 @@ func (s *serverAPI) Register(
 	ctx, span := s.tracer.Start(ctx, "transport layer: register",
 		trace.WithAttributes(attribute.String("handler", "register")))
 	defer span.End()
-	if err := validateRegister(req); err != nil {
+	if err = validateRegister(req); err != nil {
 		return nil, err
 	}
-	// call RegisterNewUser from service layer
-	reqData := &models.Register{Email: req.GetEmail(), Password: req.GetPassword()}
-	userID, err := s.auth.Register(ctx, reqData)
+	userID, err := s.auth.Register(
+		ctx, &models.Register{Email: req.GetEmail(), Password: req.GetPassword()},
+	)
 	if err != nil {
 		if errors.Is(err, storage.ErrUserExists) {
 			return nil, status.Error(
@@ -199,7 +197,9 @@ func (s *serverAPI) Logout(
 	ctx context.Context,
 	req *ssov1.LogoutRequest,
 ) (*ssov1.LogoutResponse, error) {
-	success, err := s.auth.Logout(ctx, req.GetToken())
+	success, err := s.auth.Logout(
+		ctx, &models.Logout{Token: req.GetToken()},
+	)
 	if err != nil {
 		// TODO: add error processing depends on the type of error
 		return nil, status.Error(codes.InvalidArgument, "bad token")

@@ -8,6 +8,8 @@ import (
 	"strings"
 )
 
+// DTO http and grpc structures.
+
 type Login struct {
 	Email    string `json:"email" validate:"email"`
 	Password string `json:"password"`
@@ -28,6 +30,8 @@ type Logout struct {
 	Token string `json:"token" validate:"jwt"`
 }
 
+// Output http structures.
+
 type Response struct {
 	Status       string `json:"status"`
 	Error        string `json:"error,omitempty"`
@@ -36,27 +40,98 @@ type Response struct {
 }
 
 const StatusError = "Error"
+const StatusSuccess = "Success"
 
-func Error(msg string) Response {
-	return Response{
+func sendJSON(w http.ResponseWriter, statusCode int, data []byte) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	w.Write(data)
+}
+
+// Errors.
+
+func ResponseErrorNotFound(
+	w http.ResponseWriter,
+	message string,
+) {
+	dataMarshal, _ := easyjson.Marshal(Response{
 		Status: StatusError,
-		Error:  msg,
-	}
+		Error:  message,
+	})
+	sendJSON(w, http.StatusNotFound, dataMarshal)
 }
 
-func responseOk(msg string) Response {
-	return Response{
-		Status: msg,
-	}
+func ResponseErrorInternal(
+	w http.ResponseWriter,
+	message string,
+) {
+	dataMarshal, _ := easyjson.Marshal(Response{
+		Status: StatusError,
+		Error:  message,
+	})
+	sendJSON(w, http.StatusInternalServerError, dataMarshal)
 }
 
-func ResponseOkWithTokens(msg string, accessToken string, refreshToken string) Response {
-	return Response{
-		Status:       msg,
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-	}
+func ResponseErrorNowAllowed(
+	w http.ResponseWriter,
+	message string,
+) {
+	dataMarshal, _ := easyjson.Marshal(Response{
+		Status: StatusError,
+		Error:  message,
+	})
+	sendJSON(w, http.StatusMethodNotAllowed, dataMarshal)
 }
+
+func ResponseErrorStatusConflict(
+	w http.ResponseWriter,
+	message string,
+) {
+	dataMarshal, _ := easyjson.Marshal(Response{
+		Status: StatusError,
+		Error:  message,
+	})
+	sendJSON(w, http.StatusMethodNotAllowed, dataMarshal)
+}
+
+func ResponseErrorBadRequest(
+	w http.ResponseWriter,
+	message string,
+) {
+	dataMarshal, _ := easyjson.Marshal(Response{
+		Status: StatusError,
+		Error:  message,
+	})
+	sendJSON(w, http.StatusBadRequest, dataMarshal)
+}
+
+// OK.
+
+func ResponseOK(w http.ResponseWriter) {
+	dataMarshal, _ := easyjson.Marshal(
+		Response{
+			Status: StatusSuccess,
+		},
+	)
+	sendJSON(w, http.StatusOK, dataMarshal)
+}
+
+func ResponseOKAccessRefresh(
+	w http.ResponseWriter,
+	accessToken string,
+	refreshToken string,
+) {
+	dataMarshal, _ := easyjson.Marshal(
+		Response{
+			Status:       StatusSuccess,
+			AccessToken:  accessToken,
+			RefreshToken: refreshToken,
+		},
+	)
+	sendJSON(w, http.StatusCreated, dataMarshal)
+}
+
+// Validation error.
 
 func ValidationError(errs validator.ValidationErrors) string {
 	var errMsgs []string
@@ -73,54 +148,5 @@ func ValidationError(errs validator.ValidationErrors) string {
 			)
 		}
 	}
-
 	return strings.Join(errMsgs, ", ")
-}
-
-func ResponseOK(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-}
-
-func ResponseError(
-	w http.ResponseWriter,
-	r *http.Request,
-	statusCode int,
-	message string,
-) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	dataMarshal, _ := easyjson.Marshal(Error(message))
-	w.Write(dataMarshal)
-}
-
-func ResponseHealth(
-	w http.ResponseWriter,
-	r *http.Request,
-	statusCode int,
-	message string,
-) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	dataMarshal, _ := easyjson.Marshal(responseOk(message))
-	w.Write(dataMarshal)
-}
-
-func ResponseAccessRefresh(
-	w http.ResponseWriter,
-	r *http.Request,
-	statusCode int,
-	message string,
-	accessToken string,
-	refreshToken string,
-) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	dataMarshal, _ := easyjson.Marshal(ResponseOkWithTokens(
-		message, accessToken, refreshToken),
-	)
-	w.Write(dataMarshal)
 }

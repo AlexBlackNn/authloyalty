@@ -178,7 +178,7 @@ func (a *Auth) Login(
 // Refresh creates new access and refresh tokens.
 func (a *Auth) Refresh(
 	ctx context.Context,
-	token string,
+	reqData *models.Refresh,
 ) (string, string, error) {
 	ctx, span := tracer.Start(ctx, "service layer: refresh",
 		trace.WithAttributes(attribute.String("handler", "refresh")))
@@ -191,10 +191,10 @@ func (a *Auth) Refresh(
 		slog.String("user-id", "user-id from opentelemetry extracted from jwt"),
 	)
 	log.Info("starting validate token")
-	ctx, claims, err := a.validateToken(ctx, token)
+	ctx, claims, err := a.validateToken(ctx, reqData.Token)
 	if err != nil {
 		log.Error("token validation failed", "err", err.Error())
-		return "", "", fmt.Errorf("refresh: token validation failed: %w", err)
+		return "", "", fmt.Errorf("refresh: token validation failed: %w", ErrTokenParsing)
 	}
 	ttl := time.Duration(claims["exp"].(float64)-float64(time.Now().Unix())) * time.Second
 	if claims["token_type"].(string) == "access" {
@@ -207,7 +207,7 @@ func (a *Auth) Refresh(
 		return "", "", err
 	}
 	a.log.Info("saving refresh token to redis")
-	ctx, err = a.tokenStorage.SaveToken(ctx, token, ttl)
+	ctx, err = a.tokenStorage.SaveToken(ctx, reqData.Token, ttl)
 	if err != nil {
 		a.log.Error("failed to save token", "err", err.Error())
 		return "", "", err
@@ -299,7 +299,7 @@ func (a *Auth) IsAdmin(
 // Logout revokes tokens
 func (a *Auth) Logout(
 	ctx context.Context,
-	token string,
+	reqData *models.Logout,
 ) (success bool, err error) {
 
 	log := a.log.With(
@@ -309,7 +309,7 @@ func (a *Auth) Logout(
 	)
 
 	log.Info("starting validate token")
-	ctx, claims, err := a.validateToken(ctx, token)
+	ctx, claims, err := a.validateToken(ctx, reqData.Token)
 	if err != nil {
 		log.Error("failed validate token: ", "err", err.Error())
 		return false, err
@@ -319,7 +319,7 @@ func (a *Auth) Logout(
 	log.Info("validate token successfully")
 	log.Info("saving token to redis")
 
-	ctx, err = a.tokenStorage.SaveToken(ctx, token, ttl)
+	ctx, err = a.tokenStorage.SaveToken(ctx, reqData.Token, ttl)
 	if err != nil {
 		log.Error("failed to save token", "err", err.Error())
 		return false, err

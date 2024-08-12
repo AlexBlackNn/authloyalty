@@ -4,7 +4,7 @@ import (
 	"compress/gzip"
 	_ "github.com/AlexBlackNn/authloyalty/cmd/sso/docs"
 	"github.com/AlexBlackNn/authloyalty/internal/config"
-	handlersV1 "github.com/AlexBlackNn/authloyalty/internal/handlersapi/api_v1"
+	"github.com/AlexBlackNn/authloyalty/internal/handlershttp/http_v1"
 	customMiddleware "github.com/AlexBlackNn/authloyalty/internal/middleware"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -17,8 +17,8 @@ import (
 func NewChiRouter(
 	cfg *config.Config,
 	log *slog.Logger,
-	authHandlerV1 handlersV1.AuthHandlers,
-	healthHandlerV1 handlersV1.HealthHandlers,
+	authHandlerV1 http_v1.AuthHandlers,
+	healthHandlerV1 http_v1.HealthHandlers,
 ) *chi.Mux {
 	router := chi.NewRouter()
 	router.Use(middleware.RequestID)
