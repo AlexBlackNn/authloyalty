@@ -184,3 +184,10 @@ https://github.com/etf1/opentelemetry-go-contrib
 
 // kafka health check
 https://github.com/confluentinc/confluent-kafka-go/discussions/1041
+
+# using confluent-kafka-go
+https://stackoverflow.com/a/55106860
+CGO_ENABLED=0 can't be used, so dynamic links
+https://github.com/confluentinc/confluent-kafka-go/issues/303?ysclid=lzrc7rstfd681525235#issuecomment-530566274
+https://stackoverflow.com/a/69030479
+https://github.com/confluentinc/confluent-kafka-go/issues/461
