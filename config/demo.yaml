@@ -15,3 +15,17 @@ redis_sentinel:
   sentinelAddrs3: "redis_sentinel3:26381"
   password: "123456"
 jaeger_url: "http://jaeger:14268/api/traces"
+rate_limit: 10000
+address: ":8000"
+kafka:
+  kafkaUrl: "kafka-0:9092"
+  schemaRegistryURL: "http://schema-registry:8081"
+server_timeout:
+  readTimeout: 10
+  writeTimeout: 10
+  idleTimeout: 10
+server_handlers_timeouts:
+  loginTimeoutMs: 300
+  logoutTimeoutMs: 300
+  registerTimeoutMs: 300
+  refreshTimeoutMs: 300

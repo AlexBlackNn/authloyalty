@@ -1,0 +1,425 @@
+version: "3.5"
+services:
+  sso:
+    build:
+      context: ../.
+    restart: unless-stopped
+    ports:
+      - "44044:44044"
+      - "8000:8000"
+    labels:
+      logging: "promtail"
+      logging_jobname: "containerlogs"
+    depends_on:
+      - jaeger
+      - loki
+      - promtail
+      - redis_master
+      - redis_replica1
+      - redis_replica2
+      - redis_sentinel1
+      - redis_sentinel2
+      - redis_sentinel3
+      - patroni1
+      - patroni2
+      - patroni3
+      - haproxy
+      - etcd1
+      - etcd2
+      - etcd3
+    networks:
+      - proxynet
+
+  redis_master:
+    image: bitnami/redis:6.2.10
+    ports:
+      - "6379:6379"
+    labels:
+      logging: "promtail"
+      logging_jobname: "containerlogs"
+    environment:
+      - BITANMI_DEBUG=true
+      - REDIS_PORT_NUMBER=6379
+      - REDIS_REPLICATION_MODE=master
+      - REDIS_PASSWORD=123456
+      - REDIS_MASTER_PASSWORD=123456
+      - REDIS_MASTER_USER=user
+    networks:
+      - proxynet
+
+  redis_replica1:
+    image: bitnami/redis:6.2.10
+    ports:
+      - "6380:6380"
+    labels:
+      logging: "promtail"
+      logging_jobname: "containerlogs"
+    environment:
+      - BITANMI_DEBUG=true
+      - REDIS_PORT_NUMBER=6380
+      - REDIS_REPLICATION_MODE=slave
+      - REDIS_MASTER_HOST=redis_master
+      - REDIS_MASTER_PORT_NUMBER=6379
+      - REDIS_MASTER_PASSWORD=123456
+      - REDIS_MASTER_USER=user
+      - REDIS_PASSWORD=123456
+    depends_on:
+      - redis_master
+    networks:
+      - proxynet
+
+  redis_replica2:
+    image: bitnami/redis:6.2.10
+    ports:
+      - "6381:6381"
+    labels:
+      logging: "promtail"
+      logging_jobname: "containerlogs"
+    environment:
+      - BITANMI_DEBUG=true
+      - REDIS_PORT_NUMBER=6381
+      - REDIS_REPLICATION_MODE=slave
+      - REDIS_MASTER_HOST=redis_master
+      - REDIS_MASTER_PORT_NUMBER=6379
+      - REDIS_MASTER_PASSWORD=123456
+      - REDIS_MASTER_USER=user
+      - REDIS_PASSWORD=123456
+    depends_on:
+      - redis_master
+    networks:
+      - proxynet
+
+  redis_sentinel1:
+    image: bitnami/redis-sentinel:6.2.10
+    ports:
+      - "26379:26379"
+    labels:
+      logging: "promtail"
+      logging_jobname: "containerlogs"
+    environment:
+      - BITANMI_DEBUG=true
+      - REDIS_MASTER_HOST=redis_master
+      - REDIS_MASTER_PORT_NUMBER=6379
+      - REDIS_MASTER_PASSWORD=123456
+      - REDIS_MASTER_USER=user
+      - REDIS_SENTINEL_PORT_NUMBER=26379
+    depends_on:
+      - redis_master
+      - redis_replica1
+      - redis_replica2
+    networks:
+      - proxynet
+
+  redis_sentinel2:
+    image: bitnami/redis-sentinel:6.2.10
+    ports:
+      - "26380:26380"
+    labels:
+      logging: "promtail"
+      logging_jobname: "containerlogs"
+    environment:
+      - BITANMI_DEBUG=true
+      - REDIS_MASTER_HOST=redis_master
+      - REDIS_MASTER_PORT_NUMBER=6379
+      - REDIS_MASTER_PASSWORD=123456
+      - REDIS_MASTER_USER=user
+      - REDIS_SENTINEL_PORT_NUMBER=26380
+    depends_on:
+      - redis_master
+      - redis_replica1
+      - redis_replica2
+    networks:
+      - proxynet
+
+  redis_sentinel3:
+    image: bitnami/redis-sentinel:6.2.10
+    ports:
+      - "26381:26381"
+    labels:
+      logging: "promtail"
+      logging_jobname: "containerlogs"
+    environment:
+      - BITANMI_DEBUG=true
+      - REDIS_MASTER_HOST=redis_master
+      - REDIS_MASTER_PORT_NUMBER=6379
+      - REDIS_MASTER_PASSWORD=123456
+      - REDIS_MASTER_USER=user
+      - REDIS_SENTINEL_PORT_NUMBER=26381
+    depends_on:
+      - redis_master
+      - redis_replica1
+      - redis_replica2
+    networks:
+      - proxynet
+
+  etcd1: &etcd
+    image: alexblacknn/patroni:0.0.1
+    labels:
+      logging: "promtail"
+      logging_jobname: "containerlogs"
+    environment:
+      ETCD_LISTEN_PEER_URLS: http://0.0.0.0:2380
+      ETCD_LISTEN_CLIENT_URLS: http://0.0.0.0:2379
+      ETCD_INITIAL_CLUSTER: etcd1=http://etcd1:2380,etcd2=http://etcd2:2380,etcd3=http://etcd3:2380
+      ETCD_INITIAL_CLUSTER_STATE: new
+      ETCD_INITIAL_CLUSTER_TOKEN: tutorial
+      ETCD_UNSUPPORTED_ARCH: arm64
+    container_name: demo-etcd1
+    hostname: etcd1
+    command: etcd --name etcd1 --initial-advertise-peer-urls http://etcd1:2380
+    networks:
+      - proxynet
+
+  etcd2:
+    <<: *etcd
+    container_name: demo-etcd2
+    hostname: etcd2
+    command: etcd --name etcd2 --initial-advertise-peer-urls http://etcd2:2380
+    networks:
+      - proxynet
+
+  etcd3:
+    <<: *etcd
+    container_name: demo-etcd3
+    hostname: etcd3
+    command: etcd --name etcd3 --initial-advertise-peer-urls http://etcd3:2380
+    networks:
+      - proxynet
+
+  haproxy:
+    image: alexblacknn/patroni:0.0.1
+    env_file: .patroni.env
+    hostname: haproxy
+    container_name: demo-haproxy
+    ports:
+      - "5000:5000"
+      - "5001:5001"
+    labels:
+      logging: "promtail"
+      logging_jobname: "containerlogs"
+    command: haproxy
+    environment: &haproxy_env
+      ETCDCTL_ENDPOINTS: http://etcd1:2379,http://etcd2:2379,http://etcd3:2379
+      PATRONI_ETCD3_HOSTS: "'etcd1:2379','etcd2:2379','etcd3:2379'"
+      PATRONI_SCOPE: demo
+    networks:
+      - proxynet
+
+  patroni1:
+    image: alexblacknn/patroni:0.0.1
+    env_file: .patroni.env
+    hostname: patroni1
+    labels:
+      logging: "promtail"
+      logging_jobname: "containerlogs"
+    container_name: demo-patroni1
+    environment:
+      <<: *haproxy_env
+      PATRONI_NAME: patroni1
+    networks:
+      - proxynet
+
+  patroni2:
+    image: alexblacknn/patroni:0.0.1
+    env_file: .patroni.env
+    hostname: patroni2
+    labels:
+      logging: "promtail"
+      logging_jobname: "containerlogs"
+    container_name: demo-patroni2
+    environment:
+      <<: *haproxy_env
+      PATRONI_NAME: patroni2
+    networks:
+      - proxynet
+
+  patroni3:
+    image: alexblacknn/patroni:0.0.1
+    env_file: .patroni.env
+    hostname: patroni3
+    labels:
+      logging: "promtail"
+      logging_jobname: "containerlogs"
+    container_name: demo-patroni3
+    environment:
+      <<: *haproxy_env
+      PATRONI_NAME: patroni3
+    networks:
+      - proxynet
+
+  ######################
+  ##### MONITORING #####
+  ######################
+  #  prometheus:
+  #    image: prom/prometheus
+  #    container_name: prometheus
+  #    ports:
+  #      - 9090:9090
+  #    volumes:
+  #      - ../monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+  #    command:
+  #      - '--config.file=/etc/prometheus/prometheus.yml'
+  #
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - 3000:3000
+    labels:
+      logging: "promtail"
+      logging_jobname: "containerlogs"
+    volumes:
+      - ../monitoring/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yaml
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+      - GF_SERVER_ROOT_URL=https://localhost/grafana/
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+    networks:
+      - proxynet
+
+  loki:
+    image: grafana/loki:2.7.4
+    labels:
+      logging: "promtail"
+      logging_jobname: "containerlogs"
+    ports:
+      - 3100:3100
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - proxynet
+
+  promtail:
+    image: grafana/promtail:2.7.4
+    container_name: promtail
+    labels:
+      logging: "promtail"
+      logging_jobname: "containerlogs"
+    volumes:
+      - ../monitoring/promtail.yaml:/etc/promtail/docker-config.yaml
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: -config.file=/etc/promtail/docker-config.yaml
+    depends_on:
+      - loki
+    networks:
+      - proxynet
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.42
+    container_name: monitoring-jaeger
+    labels:
+      logging: "promtail"
+      logging_jobname: "containerlogs"
+    ports:
+      - "5775:5775/udp"
+      - "6831:6831/udp"
+      - "6832:6832/udp"
+      - "5778:5778"
+      - "16686:16686"
+      - "14268:14268"
+      - "9411:9411"
+      - "14250:14250"
+    environment:
+      - QUERY_BASE_PATH=/jaeger
+    networks:
+      - proxynet
+
+  kafka-0:
+    image: bitnami/kafka:3.7
+    restart: always
+    ports:
+      - "127.0.0.1:9094:9094"
+    environment:
+      - KAFKA_ENABLE_KRAFT=yes
+      - KAFKA_CFG_PROCESS_ROLES=broker,controller
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_CFG_NODE_ID=0
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka-0:9093,1@kafka-1:9093,2@kafka-2:9093
+      - KAFKA_KRAFT_CLUSTER_ID=abcdefghijklmnopqrstuv
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka-0:9092,EXTERNAL://127.0.0.1:9094
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
+    volumes:
+      - kafka_0_data:/bitnami/kafka
+    networks:
+      - proxynet
+
+
+  kafka-1:
+    image: bitnami/kafka:3.7
+    restart: always
+    ports:
+      - "127.0.0.1:9095:9095"
+    environment:
+      - KAFKA_ENABLE_KRAFT=yes
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_CFG_NODE_ID=1
+      - KAFKA_CFG_PROCESS_ROLES=broker,controller
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka-0:9093,1@kafka-1:9093,2@kafka-2:9093
+      - KAFKA_KRAFT_CLUSTER_ID=abcdefghijklmnopqrstuv
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9095
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka-1:9092,EXTERNAL://127.0.0.1:9095
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
+    volumes:
+      - kafka_1_data:/bitnami/kafka
+    networks:
+      - proxynet
+
+  kafka-2:
+    image: bitnami/kafka:3.7
+    restart: always
+    ports:
+      - "127.0.0.1:9096:9096"
+    environment:
+      - KAFKA_ENABLE_KRAFT=yes
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_CFG_NODE_ID=2
+      - KAFKA_CFG_PROCESS_ROLES=broker,controller
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka-0:9093,1@kafka-1:9093,2@kafka-2:9093
+      - KAFKA_KRAFT_CLUSTER_ID=abcdefghijklmnopqrstuv
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9096
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka-2:9092,EXTERNAL://127.0.0.1:9096
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
+    volumes:
+      - kafka_2_data:/bitnami/kafka
+    networks:
+      - proxynet
+
+  schema-registry:
+    image: bitnami/schema-registry:7.6
+    ports:
+      - '8081:8081'
+    depends_on:
+      - kafka-0
+      - kafka-1
+      - kafka-2
+    environment:
+      - SCHEMA_REGISTRY_LISTENERS=http://0.0.0.0:8081
+      - SCHEMA_REGISTRY_KAFKA_BROKERS=PLAINTEXT://kafka-0:9092,PLAINTEXT://kafka-1:9092,PLAINTEXT://kafka-2:9092
+    networks:
+      - proxynet
+
+  ui:
+    image: provectuslabs/kafka-ui:v0.7.0
+    restart: always
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      - KAFKA_CLUSTERS_0_BOOTSTRAP_SERVERS=kafka-0:9092
+      - KAFKA_CLUSTERS_0_NAME=kraft
+    networks:
+      - proxynet
+
+networks:
+  proxynet:
+    name: custom_network
+
+volumes:
+  kafka_0_data:
+  kafka_1_data:
+  kafka_2_data:

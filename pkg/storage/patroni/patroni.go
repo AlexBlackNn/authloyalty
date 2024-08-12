@@ -42,18 +42,18 @@ func New(cfg *config.Config) (*Storage, error) {
 	}
 	// Open may just validate its arguments without creating a connection to the database.
 	// To verify that the data source name is valid, call DB.Ping.
-	err = dbRead.Ping()
-	if err != nil {
-		return nil, fmt.Errorf(
-			"DATA LAYER: storage.postgres.New: couldn't connect to database for Read: %w", err,
-		)
-	}
-	err = dbWrite.Ping()
-	if err != nil {
-		return nil, fmt.Errorf(
-			"DATA LAYER: storage.postgres.New: couldn't connect to database for Write: %w", err,
-		)
-	}
+	//err = dbRead.Ping()
+	//if err != nil {
+	//	return nil, fmt.Errorf(
+	//		"DATA LAYER: storage.postgres.New: couldn't connect to database for Read: %w", err,
+	//	)
+	//}
+	//err = dbWrite.Ping()
+	//if err != nil {
+	//	return nil, fmt.Errorf(
+	//		"DATA LAYER: storage.postgres.New: couldn't connect to database for Write: %w", err,
+	//	)
+	//}
 	return &Storage{dbRead: dbRead, dbWrite: dbWrite}, nil
 }
 

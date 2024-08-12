@@ -1,13 +1,10 @@
 FROM golang:latest AS build
-WORKDIR /app
-COPY . /app/
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o . cmd/sso/main.go
+WORKDIR /application
+COPY . /application/
+RUN GOOS=linux go build -a -o . cmd/sso/main.go
+RUN ls -la
+ENV CONFIG_PATH="/application/config/demo.yaml"
+ENTRYPOINT ["/application/main"]
 
-FROM scratch
-COPY --from=build /app/main /app/config/demo.yaml /app/
-COPY --from=build  /app/boot.yaml /
-COPY --from=build  /app/protos/proto/sso/gen /protos/proto/sso/gen
-ENV CONFIG_PATH="/app/demo.yaml"
-ENTRYPOINT ["/app/main"]
 
 
