@@ -68,12 +68,8 @@ func ValidateRequest[T EasyJSONUnmarshaler](w http.ResponseWriter, r *http.Reque
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Param body body Login true "Login request"
-// @Success 200 {object} Response "Login successful"
-// @Failure 400 {object} Response "Bad request"
-// @Failure 401 {object} Response "Unauthorized"
-// @Failure 404 {object} Response "User not found"
-// @Failure 500 {object} Response "Internal server error"
+// @Param body body models.Login true "Login request"
+// @Success 201 {object} models.Response "Login successful"
 // @Router /auth/login [post]
 func (a *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 
@@ -106,12 +102,8 @@ func (a *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Param body body Logout true "Logout request"
-// @Success 200 {object} Response "Logout successful"
-// @Failure 400 {object} Response "Bad request"
-// @Failure 401 {object} Response "Unauthorized"
-// @Failure 404 {object} Response "User not found"
-// @Failure 500 {object} Response "Internal server error"
+// @Param body body models.Logout true "Logout request"
+// @Success 200 {object} models.Response "Logout successful"
 // @Router /auth/logout [post]
 func (a *AuthHandlers) Logout(w http.ResponseWriter, r *http.Request) {
 	reqData, err := ValidateRequest[*models.Logout](w, r, &models.Logout{})
@@ -127,7 +119,18 @@ func (a *AuthHandlers) Logout(w http.ResponseWriter, r *http.Request) {
 
 	_, err = a.auth.Logout(ctx, reqData)
 	if err != nil {
-		models.ResponseErrorInternal(w, "internal server error")
+		switch {
+		case errors.Is(err, authservice.ErrUserNotFound):
+			models.ResponseErrorNotFound(w, "user not found")
+		case errors.Is(err, authservice.ErrTokenRevoked):
+			models.ResponseErrorStatusConflict(w, "token revoked")
+		case errors.Is(err, authservice.ErrTokenParsing):
+			models.ResponseErrorBadRequest(w, "token error")
+		case errors.Is(err, authservice.ErrTokenTTLExpired):
+			models.ResponseErrorStatusConflict(w, "token ttl expired")
+		default:
+			models.ResponseErrorInternal(w, "internal server error")
+		}
 		return
 	}
 	models.ResponseOK(w)
@@ -138,12 +141,8 @@ func (a *AuthHandlers) Logout(w http.ResponseWriter, r *http.Request) {
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Param body body Register Register "Register request"
-// @Success 200 {object} Response "Register successful"
-// @Failure 400 {object} Response "Bad request"
-// @Failure 401 {object} Response "Unauthorized"
-// @Failure 404 {object} Response "User not found"
-// @Failure 500 {object} Response "Internal server error"
+// @Param body body models.Register true "Register request"
+// @Success 201 {object} models.Response "Register successful"
 // @Router /auth/registration [post]
 func (a *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 	reqData, err := ValidateRequest[*models.Register](w, r, &models.Register{})
@@ -190,12 +189,8 @@ func (a *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Param body body Refresh Refresh "Refresh request"
-// @Success 200 {object} Response "Refresh successful"
-// @Failure 400 {object} Response "Bad request"
-// @Failure 401 {object} Response "Unauthorized"
-// @Failure 404 {object} Response "User not found"
-// @Failure 500 {object} Response "Internal server error"
+// @Param body body models.Refresh true "Refresh request"
+// @Success 201 {object} models.Response "Refresh successful"
 // @Router /auth/refresh [post]
 func (a *AuthHandlers) Refresh(w http.ResponseWriter, r *http.Request) {
 	reqData, err := ValidateRequest[*models.Refresh](w, r, &models.Refresh{})
@@ -222,7 +217,7 @@ func (a *AuthHandlers) Refresh(w http.ResponseWriter, r *http.Request) {
 			models.ResponseErrorStatusConflict(w, "token revoked")
 		case errors.Is(err, authservice.ErrTokenParsing):
 			models.ResponseErrorBadRequest(w, "token error")
-		case errors.Is(err, authservice.ErrTokenTtlExpired):
+		case errors.Is(err, authservice.ErrTokenTTLExpired):
 			models.ResponseErrorStatusConflict(w, "token ttl expired")
 		default:
 			models.ResponseErrorInternal(w, "internal server error")

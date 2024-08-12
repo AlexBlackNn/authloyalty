@@ -27,7 +27,7 @@ type Request struct {
 // @Description Определяет можно ли подавать трафик на сервис
 // @Tags Health
 // @Produce json
-// @Success 200 {object} Response
+// @Success 200 {object} models.Response
 // @Router /auth/ready [get]
 func (m *HealthHandlers) ReadinessProbe(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
@@ -50,7 +50,7 @@ func (m *HealthHandlers) ReadinessProbe(w http.ResponseWriter, r *http.Request) 
 // @Description Определяет, нужно ли перезагрузить сервис
 // @Tags Health
 // @Produce json
-// @Success 200 {object} Response
+// @Success 200 {object} models.Response
 // @Router /auth/healthz [get]
 func (m *HealthHandlers) LivenessProbe(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {

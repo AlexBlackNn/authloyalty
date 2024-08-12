@@ -364,7 +364,7 @@ func (a *Auth) validateToken(ctx context.Context, token string) (context.Context
 	// check ttl
 	ttl := time.Duration(claims["exp"].(float64)-float64(time.Now().Unix())) * time.Second
 	if ttl < 0 {
-		return ctx, jwt.MapClaims{}, ErrTokenTtlExpired
+		return ctx, jwt.MapClaims{}, ErrTokenTTLExpired
 	}
 	// check type of token
 	if (claims["token_type"] != "refresh") && claims["token_type"] != "access" {

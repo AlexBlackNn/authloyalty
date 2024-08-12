@@ -34,7 +34,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/v1.Response"
+                            "$ref": "#/definitions/models.Response"
                         }
                     }
                 }
@@ -60,39 +60,15 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/v1.Login"
+                            "$ref": "#/definitions/models.Login"
                         }
                     }
                 ],
                 "responses": {
-                    "200": {
+                    "201": {
                         "description": "Login successful",
                         "schema": {
-                            "$ref": "#/definitions/v1.Response"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad request",
-                        "schema": {
-                            "$ref": "#/definitions/v1.Response"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/v1.Response"
-                        }
-                    },
-                    "404": {
-                        "description": "User not found",
-                        "schema": {
-                            "$ref": "#/definitions/v1.Response"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/v1.Response"
+                            "$ref": "#/definitions/models.Response"
                         }
                     }
                 }
@@ -118,7 +94,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/v1.Logout"
+                            "$ref": "#/definitions/models.Logout"
                         }
                     }
                 ],
@@ -126,31 +102,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Logout successful",
                         "schema": {
-                            "$ref": "#/definitions/v1.Response"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad request",
-                        "schema": {
-                            "$ref": "#/definitions/v1.Response"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/v1.Response"
-                        }
-                    },
-                    "404": {
-                        "description": "User not found",
-                        "schema": {
-                            "$ref": "#/definitions/v1.Response"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/v1.Response"
+                            "$ref": "#/definitions/models.Response"
                         }
                     }
                 }
@@ -170,7 +122,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/v1.Response"
+                            "$ref": "#/definitions/models.Response"
                         }
                     }
                 }
@@ -193,40 +145,17 @@ const docTemplate = `{
                         "description": "Refresh request",
                         "name": "body",
                         "in": "body",
+                        "required": true,
                         "schema": {
-                            "$ref": "#/definitions/v1.Refresh"
+                            "$ref": "#/definitions/models.Refresh"
                         }
                     }
                 ],
                 "responses": {
-                    "200": {
+                    "201": {
                         "description": "Refresh successful",
                         "schema": {
-                            "$ref": "#/definitions/v1.Response"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad request",
-                        "schema": {
-                            "$ref": "#/definitions/v1.Response"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/v1.Response"
-                        }
-                    },
-                    "404": {
-                        "description": "User not found",
-                        "schema": {
-                            "$ref": "#/definitions/v1.Response"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/v1.Response"
+                            "$ref": "#/definitions/models.Response"
                         }
                     }
                 }
@@ -250,40 +179,17 @@ const docTemplate = `{
                         "description": "Register request",
                         "name": "body",
                         "in": "body",
+                        "required": true,
                         "schema": {
-                            "$ref": "#/definitions/v1.Register"
+                            "$ref": "#/definitions/models.Register"
                         }
                     }
                 ],
                 "responses": {
-                    "200": {
+                    "201": {
                         "description": "Register successful",
                         "schema": {
-                            "$ref": "#/definitions/v1.Response"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad request",
-                        "schema": {
-                            "$ref": "#/definitions/v1.Response"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/v1.Response"
-                        }
-                    },
-                    "404": {
-                        "description": "User not found",
-                        "schema": {
-                            "$ref": "#/definitions/v1.Response"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/v1.Response"
+                            "$ref": "#/definitions/models.Response"
                         }
                     }
                 }
@@ -291,7 +197,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "v1.Login": {
+        "models.Login": {
             "type": "object",
             "properties": {
                 "email": {
@@ -302,7 +208,7 @@ const docTemplate = `{
                 }
             }
         },
-        "v1.Logout": {
+        "models.Logout": {
             "type": "object",
             "properties": {
                 "token": {
@@ -310,7 +216,7 @@ const docTemplate = `{
                 }
             }
         },
-        "v1.Refresh": {
+        "models.Refresh": {
             "type": "object",
             "properties": {
                 "token": {
@@ -318,7 +224,7 @@ const docTemplate = `{
                 }
             }
         },
-        "v1.Register": {
+        "models.Register": {
             "type": "object",
             "required": [
                 "password"
@@ -338,7 +244,7 @@ const docTemplate = `{
                 }
             }
         },
-        "v1.Response": {
+        "models.Response": {
             "type": "object",
             "properties": {
                 "access_token": {
