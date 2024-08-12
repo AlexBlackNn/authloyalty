@@ -1,4 +1,4 @@
-package postgres
+package patroni
 
 import (
 	"context"
@@ -38,6 +38,20 @@ func New(cfg *config.Config) (*Storage, error) {
 		return nil, fmt.Errorf(
 			"DATA LAYER: storage.postgres.New: couldn't open a database for Read: %w",
 			err,
+		)
+	}
+	// Open may just validate its arguments without creating a connection to the database.
+	// To verify that the data source name is valid, call DB.Ping.
+	err = dbRead.Ping()
+	if err != nil {
+		return nil, fmt.Errorf(
+			"DATA LAYER: storage.postgres.New: couldn't connect to database for Read: %w", err,
+		)
+	}
+	err = dbWrite.Ping()
+	if err != nil {
+		return nil, fmt.Errorf(
+			"DATA LAYER: storage.postgres.New: couldn't connect to database for Write: %w", err,
 		)
 	}
 	return &Storage{dbRead: dbRead, dbWrite: dbWrite}, nil
@@ -139,7 +153,23 @@ func (s *Storage) UpdateSendStatus(ctx context.Context, uuid string, status stri
 	_, err := s.dbWrite.ExecContext(ctx, query, uuid, status)
 	if err != nil {
 		return ctx, fmt.Errorf(
-			"DATA LAYER: storage.postgres.UpdateSendStatus: couldn't update message registration status deluvery  %w",
+			"DATA LAYER: storage.postgres.UpdateSendStatus: couldn't update message registration status delivery  %w",
+			err,
+		)
+	}
+	return ctx, nil
+}
+
+func (s *Storage) HealthCheck(ctx context.Context) (context.Context, error) {
+	ctx, span := tracer.Start(ctx, "data layer Patroni: HealthCheck",
+		trace.WithAttributes(attribute.String("handler", "HealthCheck")))
+	defer span.End()
+	// Pinger is an optional interface that may be implemented by a Conn. Then if driver
+	// is changed need to be checked. https://pkg.go.dev/database/sql/driver#Pinger
+	err := s.dbWrite.Ping()
+	if err != nil {
+		return ctx, fmt.Errorf(
+			"DATA LAYER: storage.postgres.HealthCheck: couldn't ping databae  %w",
 			err,
 		)
 	}

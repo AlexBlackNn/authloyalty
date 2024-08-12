@@ -72,6 +72,47 @@ HTTP-handlers используются для общения с frontend, а gRP
 2. Сервис отправки сообщений: Подписан на топик. При получении сообщения, сервис обрабатывает данные нового пользователя и отправляет ему приветственное сообщение.
 3. Сервис начисления баллов лояльности: Подписан на топик. При получении сообщения, сервис обрабатывает данные нового пользователя и начисляет ему приветственные баллы.
 
+## Выбор библиотеки для взаимодействия сервисом через Kafka
+
+Для взаимодействия между сервисами через Kafka используется формат данных protobuf. Преимуществом по сравнению с 
+json является снижение кол-ва передаваемых байт (см. Высоконагруженные приложения. Программирование, масштабирование, поддержка. Автор
+Мартин Клеппман). 
+
+Было принято решение передачи данных через брокер Kafka с использованием   Schema Registry.  Schema Registry - это сервис, который позволяет хранить 
+и управлять схемами данных, которые используются в Kafka. Это позволит:
+* Управлять версиями схем: можно добавлять новые поля, изменять типы данных и т.д. без нарушения совместимости.
+* Проверять данные: Schema Registry гарантирует, что данные, передаваемые в Kafka, соответствуют определенной схеме.
+* Упростить десериализацию: Получатели данных могут использовать Schema Registry для получения необходимой схемы для десериализации данных.
+
+Рассматривались две библиотеки в go. [Kafka-go](https://github.com/segmentio/kafka-go) и [Сonfluent-kafka-go](https://github.com/confluentinc/confluent-kafka-go).
+Kafka-go данный момент не имеет встроенной поддержки Schema Registry https://github.com/segmentio/kafka-go/issues/728#issuecomment-909690992 и https://github.com/segmentio/kafka-go/issues/728#issuecomment-2221492034. 
+Чтобы не  разработать собственный механизм взаимодействия с Schema Registry принятно решение использовать Сonfluent-kafka-go.
+
+Кратко:
+
+* Schema Registry - это сервис, который позволяет хранить и управлять схемами данных, которые вы используете в Kafka. Это позволяет вам:
+    * Управлять версиями схем: Вы можете добавлять новые поля, изменять типы данных и т.д. без нарушения совместимости.
+    * Проверять данные: Schema Registry гарантирует, что данные, передаваемые в Kafka, соответствуют определенной схеме.
+    * Упростить десериализацию: Получатели данных могут использовать Schema Registry для получения необходимой схемы для десериализации данных.
+
+* Kafka-go - это библиотека Golang для работы с Kafka.
+
+* Проблема: Библиотека Kafka-go не имеет встроенной поддержки Schema Registry. Это означает, что вам придется реализовать взаимодействие с Schema Registry вручную.
+
+В результате:
+
+* Вам нужно будет найти альтернативные библиотеки Golang, которые поддерживают Schema Registry, такие как `confluent-kafka-go` или `go-avro` .
+* Либо разработать собственный механизм взаимодействия с Schema Registry.
+
+Рекомендации:
+
+1. Используйте библиотеки, поддерживающие Schema Registry:
+    * `confluent-kafka-go` - официальная библиотека от Confluent, которая поддерживает Schema Registry (https://github.com/confluentinc/confluent-kafka-go).
+    * `go-avro` - библиотека для работы с Avro, которая также поддерживает Schema Registry (https://github.com/linkedin/goavro).
+2. Рассмотрите вариант ручного взаимодействия с Schema Registry:
+    * Вы можете использовать HTTP-запросы для получения схемы из Schema Registry и затем использовать ее для сериализации/десериализации данных.
+    * Но это потребует дополнительных усилий по реализации логики работы со Schema Registry.
+
 
 ################################################################################################## 
 
@@ -134,3 +175,12 @@ metrics
 https://stackoverflow.com/a/65609042
 https://github.com/prometheus/client_golang
 https://grafana.com/oss/prometheus/exporters/go-exporter/#metrics-usage
+
+// otel instrumentation
+https://github.com/open-telemetry/opentelemetry-go-contrib/tree/main/instrumentation#new-instrumentation
+https://github.com/open-telemetry/opentelemetry-go-contrib/blob/main/instrumentation/github.com/gin-gonic/gin/otelgin/example/server.go
+https://github.com/confluentinc/confluent-kafka-go/issues/712
+https://github.com/etf1/opentelemetry-go-contrib
+
+// kafka health check
+https://github.com/confluentinc/confluent-kafka-go/discussions/1041

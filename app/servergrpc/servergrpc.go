@@ -2,8 +2,8 @@ package servergrpc
 
 import (
 	"github.com/AlexBlackNn/authloyalty/internal/config"
-	handlersgrpc "github.com/AlexBlackNn/authloyalty/internal/handlersgrpc/auth"
-	authservice "github.com/AlexBlackNn/authloyalty/internal/services/auth_service"
+	"github.com/AlexBlackNn/authloyalty/internal/handlersgrpc/grpc_v1"
+	"github.com/AlexBlackNn/authloyalty/internal/services/authservice"
 	authgen "github.com/AlexBlackNn/authloyalty/protos/proto/sso/gen"
 	rkboot "github.com/rookie-ninja/rk-boot"
 	rkgrpc "github.com/rookie-ninja/rk-grpc/boot"
@@ -37,6 +37,6 @@ func New(
 
 func registerAuthFunc(authService *authservice.Auth) func(server *grpc.Server) {
 	return func(server *grpc.Server) { // Use the provided server
-		handlersgrpc.Register(server, authService)
+		grpc_v1.Register(server, authService)
 	}
 }

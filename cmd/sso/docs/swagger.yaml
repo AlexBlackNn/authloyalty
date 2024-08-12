@@ -1,22 +1,22 @@
 definitions:
-  v1.Login:
+  models.Login:
     properties:
       email:
         type: string
       password:
         type: string
     type: object
-  v1.Logout:
+  models.Logout:
     properties:
       token:
         type: string
     type: object
-  v1.Refresh:
+  models.Refresh:
     properties:
       token:
         type: string
     type: object
-  v1.Register:
+  models.Register:
     properties:
       birthday:
         type: string
@@ -29,7 +29,7 @@ definitions:
     required:
     - password
     type: object
-  v1.Response:
+  models.Response:
     properties:
       access_token:
         type: string
@@ -59,7 +59,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/v1.Response'
+            $ref: '#/definitions/models.Response'
       summary: Проверка, что приложение живо
       tags:
       - Health
@@ -74,30 +74,14 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/v1.Login'
+          $ref: '#/definitions/models.Login'
       produces:
       - application/json
       responses:
-        "200":
+        "201":
           description: Login successful
           schema:
-            $ref: '#/definitions/v1.Response'
-        "400":
-          description: Bad request
-          schema:
-            $ref: '#/definitions/v1.Response'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/v1.Response'
-        "404":
-          description: User not found
-          schema:
-            $ref: '#/definitions/v1.Response'
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/v1.Response'
+            $ref: '#/definitions/models.Response'
       summary: Login
       tags:
       - Auth
@@ -113,30 +97,14 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/v1.Logout'
+          $ref: '#/definitions/models.Logout'
       produces:
       - application/json
       responses:
         "200":
           description: Logout successful
           schema:
-            $ref: '#/definitions/v1.Response'
-        "400":
-          description: Bad request
-          schema:
-            $ref: '#/definitions/v1.Response'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/v1.Response'
-        "404":
-          description: User not found
-          schema:
-            $ref: '#/definitions/v1.Response'
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/v1.Response'
+            $ref: '#/definitions/models.Response'
       summary: Logout
       tags:
       - Auth
@@ -149,7 +117,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/v1.Response'
+            $ref: '#/definitions/models.Response'
       summary: Проверка готовности приложения
       tags:
       - Health
@@ -161,31 +129,16 @@ paths:
       - description: Refresh request
         in: body
         name: body
+        required: true
         schema:
-          $ref: '#/definitions/v1.Refresh'
+          $ref: '#/definitions/models.Refresh'
       produces:
       - application/json
       responses:
-        "200":
+        "201":
           description: Refresh successful
           schema:
-            $ref: '#/definitions/v1.Response'
-        "400":
-          description: Bad request
-          schema:
-            $ref: '#/definitions/v1.Response'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/v1.Response'
-        "404":
-          description: User not found
-          schema:
-            $ref: '#/definitions/v1.Response'
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/v1.Response'
+            $ref: '#/definitions/models.Response'
       summary: Refresh
       tags:
       - Auth
@@ -198,31 +151,16 @@ paths:
       - description: Register request
         in: body
         name: body
+        required: true
         schema:
-          $ref: '#/definitions/v1.Register'
+          $ref: '#/definitions/models.Register'
       produces:
       - application/json
       responses:
-        "200":
+        "201":
           description: Register successful
           schema:
-            $ref: '#/definitions/v1.Response'
-        "400":
-          description: Bad request
-          schema:
-            $ref: '#/definitions/v1.Response'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/v1.Response'
-        "404":
-          description: User not found
-          schema:
-            $ref: '#/definitions/v1.Response'
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/v1.Response'
+            $ref: '#/definitions/models.Response'
       summary: Registration
       tags:
       - Auth

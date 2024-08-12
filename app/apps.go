@@ -7,11 +7,11 @@ import (
 	"github.com/AlexBlackNn/authloyalty/internal/config"
 	"github.com/AlexBlackNn/authloyalty/internal/domain/models"
 	"github.com/AlexBlackNn/authloyalty/internal/logger"
-	authservice "github.com/AlexBlackNn/authloyalty/internal/services/auth_service"
+	"github.com/AlexBlackNn/authloyalty/internal/services/authservice"
 	"github.com/AlexBlackNn/authloyalty/pkg/broker"
-	patroni "github.com/AlexBlackNn/authloyalty/pkg/storage/patroni"
-	redis "github.com/AlexBlackNn/authloyalty/pkg/storage/redissentinel"
-	"github.com/AlexBlackNn/authloyalty/tracing"
+	"github.com/AlexBlackNn/authloyalty/pkg/storage/patroni"
+	"github.com/AlexBlackNn/authloyalty/pkg/storage/redissentinel"
+	"github.com/AlexBlackNn/authloyalty/pkg/tracing"
 	"github.com/prometheus/common/log"
 	"google.golang.org/protobuf/proto"
 	"time"
@@ -31,15 +31,25 @@ type UserStorage interface {
 }
 
 type TokenStorage interface {
-	SaveToken(ctx context.Context, token string, ttl time.Duration) (context.Context, error)
-	GetToken(ctx context.Context, token string) (context.Context, string, error)
-	CheckTokenExists(ctx context.Context, token string) (context.Context, int64, error)
+	SaveToken(
+		ctx context.Context,
+		token string,
+		ttl time.Duration,
+	) (context.Context, error)
+	GetToken(
+		ctx context.Context,
+		token string,
+	) (context.Context, string, error)
+	CheckTokenExists(
+		ctx context.Context,
+		token string,
+	) (context.Context, int64, error)
 }
 
 type HealthChecker interface {
 	HealthCheck(
 		ctx context.Context,
-	) error
+	) (context.Context, error)
 }
 
 type SendCloser interface {
@@ -102,7 +112,6 @@ func (a *App) Stop() error {
 	if err != nil {
 		return err
 	}
-	//TODO: add other entities closure
 	return nil
 }
 
@@ -116,7 +125,7 @@ func New() (*App, error) {
 		return nil, err
 	}
 
-	tokenStorage := redis.New(cfg)
+	tokenStorage := redissentinel.New(cfg)
 
 	producer, err := broker.NewProducer(cfg.Kafka.KafkaURL, cfg.Kafka.SchemaRegistryURL)
 

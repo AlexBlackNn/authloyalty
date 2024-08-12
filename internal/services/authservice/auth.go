@@ -1,4 +1,4 @@
-package auth_service
+package authservice
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"github.com/AlexBlackNn/authloyalty/internal/domain/models"
 	jwtlib "github.com/AlexBlackNn/authloyalty/internal/lib/jwt"
 	"github.com/AlexBlackNn/authloyalty/pkg/broker"
-	storage2 "github.com/AlexBlackNn/authloyalty/pkg/storage"
+	"github.com/AlexBlackNn/authloyalty/pkg/storage"
 	"github.com/AlexBlackNn/authloyalty/protos/proto/registration/registration.v1"
 	"github.com/golang-jwt/jwt/v5"
 	"go.opentelemetry.io/otel"
@@ -40,13 +40,30 @@ type UserStorage interface {
 		ctx context.Context,
 		email string,
 	) (context.Context, models.User, error)
-	UpdateSendStatus(ctx context.Context, uuid string, status string) (context.Context, error)
+	UpdateSendStatus(
+		ctx context.Context,
+		uuid string,
+		status string,
+	) (context.Context, error)
+	HealthCheck(
+		ctx context.Context,
+	) (context.Context, error)
 }
 
 type TokenStorage interface {
-	SaveToken(ctx context.Context, token string, ttl time.Duration) (context.Context, error)
-	GetToken(ctx context.Context, token string) (context.Context, string, error)
-	CheckTokenExists(ctx context.Context, token string) (context.Context, int64, error)
+	SaveToken(
+		ctx context.Context,
+		token string,
+		ttl time.Duration,
+	) (context.Context, error)
+	GetToken(
+		ctx context.Context,
+		token string,
+	) (context.Context, string, error)
+	CheckTokenExists(
+		ctx context.Context,
+		token string,
+	) (context.Context, int64, error)
 }
 
 type Auth struct {
@@ -65,24 +82,38 @@ func New(
 	tokenStorage TokenStorage,
 	producer GetResponseChanSender,
 ) *Auth {
+	// Channel that is used by kafka to return sent message status.
 	brokerRespChan := producer.GetResponseChan()
-
+	// Getting status (async) from channel to determine if a message was sent successfully.
 	go func() {
 		for brokerResponse := range brokerRespChan {
-			log.Debug("broker response", "resp", brokerResponse)
 			if brokerResponse.Err != nil {
 				if errors.Is(brokerResponse.Err, broker.KafkaError) {
 					log.Error("broker error", "err", brokerResponse.Err)
 					continue
 				}
-				log.Error("broker response error on message", "err", brokerResponse.Err)
-				_, err := userStorage.UpdateSendStatus(context.Background(), brokerResponse.UserUUID, "failed")
+				log.Error(
+					"broker response error on message",
+					"err", brokerResponse.Err,
+					"uuid", brokerResponse.UserUUID,
+				)
+				_, err := userStorage.UpdateSendStatus(
+					context.Background(), brokerResponse.UserUUID, "failed",
+				)
 				if err != nil {
-					log.Error("failed to update message status", "err", err.Error())
+					log.Error(
+						"failed to update message status",
+						"err", err.Error(),
+						"uuid", brokerResponse.UserUUID,
+					)
 				}
 				continue
 			}
-			_, err := userStorage.UpdateSendStatus(context.Background(), brokerResponse.UserUUID, "successful")
+			_, err := userStorage.UpdateSendStatus(
+				context.Background(),
+				brokerResponse.UserUUID,
+				"successful",
+			)
 			if err != nil {
 				log.Error("failed to update message status", "err", err.Error())
 			}
@@ -104,22 +135,20 @@ const (
 
 var tracer = otel.Tracer("sso service")
 
-// HealthCheck returns service health check
-func (a *Auth) HealthCheck(ctx context.Context) error {
+// HealthCheck returns service health check.
+func (a *Auth) HealthCheck(ctx context.Context) (context.Context, error) {
 	log := a.log.With(
 		slog.String("info", "SERVICE LAYER: metrics_service.HealthCheck"),
 	)
 	log.Info("starts getting health check")
 	defer log.Info("finish getting health check")
-	//TODO: add healthCheck
-	//return a.healthChecker.HealthCheck(ctx)
-	return nil
+	return a.userStorage.HealthCheck(ctx)
 }
 
+// Login logins users.
 func (a *Auth) Login(
 	ctx context.Context,
-	email string,
-	password string,
+	reqData *models.Login,
 ) (string, string, error) {
 	ctx, span := tracer.Start(ctx, "service layer: login",
 		trace.WithAttributes(attribute.String("handler", "login")))
@@ -131,14 +160,14 @@ func (a *Auth) Login(
 		"user-id", md.Get("user-id"),
 		"x-trace-id", md.Get("x-trace-id"),
 	)
-
-	ctx, usrWithTokens, err := a.generateRefreshAccessToken(ctx, email)
+	// TODO: generateRefreshAccessToken m.b. should be separated by several functions it violates S from solid
+	ctx, usrWithTokens, err := a.generateRefreshAccessToken(ctx, reqData.Email)
 	if err != nil {
-		a.log.Error("Generation token failed:", err)
+		a.log.Error("Generation token failed:", "err", err.Error())
 		return "", "", fmt.Errorf("generation token failed: %w", err)
 	}
-	if err := bcrypt.CompareHashAndPassword(
-		usrWithTokens.user.PassHash, []byte(password),
+	if err = bcrypt.CompareHashAndPassword(
+		usrWithTokens.user.PassHash, []byte(reqData.Password),
 	); err != nil {
 		a.log.Warn("invalid credentials")
 		return "", "", fmt.Errorf("invalid credentials: %w", ErrInvalidCredentials)
@@ -146,9 +175,10 @@ func (a *Auth) Login(
 	return usrWithTokens.accessToken, usrWithTokens.refreshToken, nil
 }
 
+// Refresh creates new access and refresh tokens.
 func (a *Auth) Refresh(
 	ctx context.Context,
-	token string,
+	reqData *models.Refresh,
 ) (string, string, error) {
 	ctx, span := tracer.Start(ctx, "service layer: refresh",
 		trace.WithAttributes(attribute.String("handler", "refresh")))
@@ -161,43 +191,35 @@ func (a *Auth) Refresh(
 		slog.String("user-id", "user-id from opentelemetry extracted from jwt"),
 	)
 	log.Info("starting validate token")
-	ctx, claims, err := a.validateToken(ctx, token)
+	ctx, claims, err := a.validateToken(ctx, reqData.Token)
 	if err != nil {
-		return "", "", ErrTokenRevoked
+		log.Error("token validation failed", "err", err.Error())
+		return "", "", fmt.Errorf("refresh: token validation failed: %w", err)
 	}
 	ttl := time.Duration(claims["exp"].(float64)-float64(time.Now().Unix())) * time.Second
-	if err != nil {
-		log.Info("failed validate token: ", "err", err.Error())
-		return "", "", err
-	}
-	log.Info("validate token successfully")
 	if claims["token_type"].(string) == "access" {
 		return "", "", ErrTokenWrongType
 	}
-	email, ok := claims["email"].(string)
-	if !ok {
-		log.Error("token validation failed")
-		return "", "", fmt.Errorf("token validation failed")
-	}
-	ctx, usrWithTokens, err := a.generateRefreshAccessToken(ctx, email)
+	log.Info("validate token successfully")
+	ctx, usrWithTokens, err := a.generateRefreshAccessToken(ctx, claims["email"].(string))
 	if err != nil {
 		a.log.Error("failed to generate tokens", "err", err.Error())
 		return "", "", err
 	}
 	a.log.Info("saving refresh token to redis")
-	ctx, err = a.tokenStorage.SaveToken(ctx, token, ttl)
+	ctx, err = a.tokenStorage.SaveToken(ctx, reqData.Token, ttl)
 	if err != nil {
-		a.log.Error("failed to save token", err.Error())
+		a.log.Error("failed to save token", "err", err.Error())
 		return "", "", err
 	}
-	a.log.Info(" token saved to redis successfully")
+	a.log.Info("token saved to redis successfully")
 	return usrWithTokens.accessToken, usrWithTokens.refreshToken, nil
 }
 
+// Register registers new users.
 func (a *Auth) Register(
 	ctx context.Context,
-	email string,
-	password string,
+	reqData *models.Register,
 ) (string, error) {
 
 	const op = "SERVICE LAYER: auth_service.RegisterNewUser"
@@ -213,31 +235,45 @@ func (a *Auth) Register(
 
 	log.Info("registering user")
 	passHash, err := bcrypt.GenerateFromPassword(
-		[]byte(password), bcrypt.DefaultCost,
+		[]byte(reqData.Password), bcrypt.DefaultCost,
 	)
 	if err != nil {
-		log.Error("failed to generate password hash", err.Error())
+		log.Error("failed to generate password hash", "err", err.Error())
 		return "", fmt.Errorf("%s: %w", op, err)
 	}
-	ctx, id, err := a.userStorage.SaveUser(ctx, email, passHash)
+	// TODO: move to dto and need to add name
+	ctx, uuid, err := a.userStorage.SaveUser(ctx, reqData.Email, passHash)
 	if err != nil {
-		log.Error("failed to save user", err.Error())
+		log.Error("failed to save user", "err", err.Error())
 		return "", fmt.Errorf("%s: %w", op, err)
 	}
-	log.Info("user registrated")
+	log.Info("user registered")
 
-	RegirationMsg := registration_v1.RegistrationMessage{
-		Email:    email,
-		FullName: "Alex Black",
+	registrationMsg := registration_v1.RegistrationMessage{
+		Email:    reqData.Email,
+		FullName: reqData.Name,
 	}
-	err = a.producer.Send(&RegirationMsg, "registration", id)
+	err = a.producer.Send(&registrationMsg, "registration", uuid)
 	if err != nil {
-		// no return here with err!!!, we do continue working (so-called soft degradation)
-		log.Error("Sending message to broker failed")
+		// TODO: determine the err can be faced
+		// No return here with err!!!, we do continue working (so-called soft degradation)
+		// even kafka does not work, server is still able to process users.
+		log.Error("Sending message to broker failed", "err", err.Error())
+		ctx, err = a.userStorage.UpdateSendStatus(
+			context.Background(), uuid, "failed",
+		)
+		if err != nil {
+			log.Error(
+				"failed to update message status",
+				"err", err.Error(),
+				"uuid", uuid,
+			)
+		}
 	}
-	return id, nil
+	return uuid, nil
 }
 
+// IsAdmin checks if user is admin
 func (a *Auth) IsAdmin(
 	ctx context.Context,
 	userID string,
@@ -253,16 +289,17 @@ func (a *Auth) IsAdmin(
 	log.Info("getting user from database")
 	ctx, user, err := a.userStorage.GetUser(ctx, userID)
 	if err != nil {
-		log.Error("failed to extract user", err.Error())
+		log.Error("failed to extract user", "err", err.Error())
 		return false, fmt.Errorf("%s: %w", op, err)
 	}
 	log.Info("user from database extracted")
 	return user.IsUserAmin(), nil
 }
 
+// Logout revokes tokens
 func (a *Auth) Logout(
 	ctx context.Context,
-	token string,
+	reqData *models.Logout,
 ) (success bool, err error) {
 
 	log := a.log.With(
@@ -272,9 +309,9 @@ func (a *Auth) Logout(
 	)
 
 	log.Info("starting validate token")
-	ctx, claims, err := a.validateToken(ctx, token)
+	ctx, claims, err := a.validateToken(ctx, reqData.Token)
 	if err != nil {
-		log.Info("failed validate token: ", err.Error())
+		log.Error("failed validate token: ", "err", err.Error())
 		return false, err
 	}
 	ttl := time.Duration(claims["exp"].(float64)-float64(time.Now().Unix())) * time.Second
@@ -282,15 +319,16 @@ func (a *Auth) Logout(
 	log.Info("validate token successfully")
 	log.Info("saving token to redis")
 
-	ctx, err = a.tokenStorage.SaveToken(ctx, token, ttl)
+	ctx, err = a.tokenStorage.SaveToken(ctx, reqData.Token, ttl)
 	if err != nil {
-		log.Error("failed to save token", err.Error())
+		log.Error("failed to save token", "err", err.Error())
 		return false, err
 	}
 	log.Info("token saved to redis successfully")
 	return true, nil
 }
 
+// Validate validates tokens
 func (a *Auth) Validate(
 	ctx context.Context,
 	token string,
@@ -317,7 +355,7 @@ func (a *Auth) validateToken(ctx context.Context, token string) (context.Context
 		return []byte(a.cfg.ServiceSecret), nil
 	})
 	if err != nil {
-		return ctx, jwt.MapClaims{}, err
+		return ctx, jwt.MapClaims{}, ErrTokenParsing
 	}
 	claims, ok := tokenParsed.Claims.(jwt.MapClaims)
 	if !ok {
@@ -326,7 +364,7 @@ func (a *Auth) validateToken(ctx context.Context, token string) (context.Context
 	// check ttl
 	ttl := time.Duration(claims["exp"].(float64)-float64(time.Now().Unix())) * time.Second
 	if ttl < 0 {
-		return ctx, jwt.MapClaims{}, ErrTokenTtlExpired
+		return ctx, jwt.MapClaims{}, ErrTokenTTLExpired
 	}
 	// check type of token
 	if (claims["token_type"] != "refresh") && claims["token_type"] != "access" {
@@ -358,7 +396,7 @@ func (a *Auth) generateRefreshAccessToken(
 
 	ctx, user, err := a.userStorage.GetUserByEmail(ctx, email)
 	if err != nil {
-		if errors.Is(err, storage2.ErrUserNotFound) {
+		if errors.Is(err, storage.ErrUserNotFound) {
 			return ctx,
 				userWithTokens{
 					user:         nil,

@@ -1,13 +1,11 @@
-package auth
-
-//TRANSPORT LAYER
-// serverAPI(transport layer) encapsulates auth_service(service layer)
+package grpc_v1
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/AlexBlackNn/authloyalty/internal/services/auth_service"
+	"github.com/AlexBlackNn/authloyalty/internal/domain/models"
+	"github.com/AlexBlackNn/authloyalty/internal/services/authservice"
 	"github.com/AlexBlackNn/authloyalty/pkg/storage"
 	ssov1 "github.com/AlexBlackNn/authloyalty/protos/proto/sso/gen"
 	"github.com/prometheus/common/log"
@@ -20,16 +18,43 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+type AuthorizationInterface interface {
+	Login(
+		ctx context.Context,
+		reqData *models.Login,
+	) (accessToken string, refreshToken string, err error)
+	Register(
+		ctx context.Context,
+		reqData *models.Register,
+	) (userID string, err error)
+	Logout(
+		ctx context.Context,
+		reqData *models.Logout,
+	) (success bool, err error)
+	IsAdmin(
+		ctx context.Context,
+		userID string,
+	) (success bool, err error)
+	Validate(
+		ctx context.Context,
+		token string,
+	) (success bool, err error)
+	Refresh(
+		ctx context.Context,
+		reqData *models.Refresh,
+	) (accessToken string, refreshToken string, err error)
+}
+
 // serverAPI TRANSPORT layer
 type serverAPI struct {
 	// provides ability to work even without service interface realisation
 	ssov1.UnimplementedAuthServer
 	// service layer
-	auth   auth_service.AuthorizationInterface
+	auth   AuthorizationInterface
 	tracer trace.Tracer
 }
 
-func Register(gRPC *grpc.Server, auth auth_service.AuthorizationInterface) {
+func Register(gRPC *grpc.Server, auth AuthorizationInterface) {
 	ssov1.RegisterAuthServer(gRPC, &serverAPI{auth: auth, tracer: otel.Tracer("sso service")})
 }
 
@@ -58,15 +83,16 @@ func (s *serverAPI) Login(
 		trace.WithAttributes(attribute.String("handler", "login")))
 	defer span.End()
 
-	if err := validateLogin(req); err != nil {
+	if err = validateLogin(req); err != nil {
 		return nil, err
 	}
+
 	accessToken, refreshToken, err := s.auth.Login(
-		ctx, req.GetEmail(), req.GetPassword(),
+		ctx, &models.Login{Email: req.GetEmail(), Password: req.GetPassword()},
 	)
 	if err != nil {
 		fmt.Println(err.Error())
-		if errors.Is(err, auth_service.ErrInvalidCredentials) {
+		if errors.Is(err, authservice.ErrInvalidCredentials) {
 			return nil, status.Error(codes.InvalidArgument, "invalid credentials")
 		}
 		return nil, status.Error(codes.Internal, "internal error")
@@ -96,13 +122,13 @@ func (s *serverAPI) Refresh(
 	defer span.End()
 
 	accessToken, refreshToken, err := s.auth.Refresh(
-		ctx, req.GetRefreshToken(),
+		ctx, &models.Refresh{Token: req.GetRefreshToken()},
 	)
 	if err != nil {
-		if errors.Is(err, auth_service.ErrTokenWrongType) {
+		if errors.Is(err, authservice.ErrTokenWrongType) {
 			return nil, status.Error(codes.InvalidArgument, "Provide valid refresh token")
 		}
-		if errors.Is(err, auth_service.ErrTokenRevoked) {
+		if errors.Is(err, authservice.ErrTokenRevoked) {
 			return nil, status.Error(codes.Unauthenticated, "Provide valid refresh token")
 		}
 		return nil, status.Error(codes.Internal, "internal error")
@@ -129,15 +155,13 @@ func (s *serverAPI) Register(
 	ctx, span := s.tracer.Start(ctx, "transport layer: register",
 		trace.WithAttributes(attribute.String("handler", "register")))
 	defer span.End()
-	if err := validateRegister(req); err != nil {
+	if err = validateRegister(req); err != nil {
 		return nil, err
 	}
-	// call RegisterNewUser from service layer
 	userID, err := s.auth.Register(
-		ctx, req.GetEmail(), req.GetPassword(),
+		ctx, &models.Register{Email: req.GetEmail(), Password: req.GetPassword()},
 	)
 	if err != nil {
-		// TODO: add error processing depends on the type of error
 		if errors.Is(err, storage.ErrUserExists) {
 			return nil, status.Error(
 				codes.AlreadyExists, "user already exists",
@@ -173,7 +197,9 @@ func (s *serverAPI) Logout(
 	ctx context.Context,
 	req *ssov1.LogoutRequest,
 ) (*ssov1.LogoutResponse, error) {
-	success, err := s.auth.Logout(ctx, req.GetToken())
+	success, err := s.auth.Logout(
+		ctx, &models.Logout{Token: req.GetToken()},
+	)
 	if err != nil {
 		// TODO: add error processing depends on the type of error
 		return nil, status.Error(codes.InvalidArgument, "bad token")
