@@ -191,3 +191,6 @@ CGO_ENABLED=0 can't be used, so dynamic links
 https://github.com/confluentinc/confluent-kafka-go/issues/303?ysclid=lzrc7rstfd681525235#issuecomment-530566274
 https://stackoverflow.com/a/69030479
 https://github.com/confluentinc/confluent-kafka-go/issues/461
+
+https://stackoverflow.com/questions/37630274/what-do-these-go-build-flags-mean-netgo-extldflags-lm-lstdc-static
+https://blog.hashbangbash.com/2014/04/linking-golang-statically/ 
