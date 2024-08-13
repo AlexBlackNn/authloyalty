@@ -194,3 +194,31 @@ https://github.com/confluentinc/confluent-kafka-go/issues/461
 
 https://stackoverflow.com/questions/37630274/what-do-these-go-build-flags-mean-netgo-extldflags-lm-lstdc-static
 https://blog.hashbangbash.com/2014/04/linking-golang-statically/ 
+
+
+
+Решается флагами при сборке. Получившийся образ стал 68 МБ, что радует против 890МБ изначального 🤯
+
+RUN GOOS=linux go build -ldflags '-extldflags "-static"' -o main ./cmd/sso/main.go
+
+Do not link against shared libraries. This is only meaningful on platforms for which shared libraries are supported. The different variants of this option are for compatibility with various systems. You may use this option multiple times on the command line: it affects library searching for -l options which follow it. This option also implies --unresolved-symbols=report-all. This option can be used with -shared. Doing so means that a shared library is being created but that all of the library's external references must be resolved by pulling in entries from static libraries.
+https://github.com/ko-build/ko/issues/756#issue-1298084220
+
+githubassets.com
+Build with -extldflags="-static" by default · Issue #756 · ko-build/ko · GitHub
+
+-extldflags flags Set space-separated flags to pass to the external linker. from https://pkg.go.dev/cmd/link -static Do not link against shared libraries. This is only meaningful on platforms for which shared libraries are supported. The...
+
+Вот еще крутой туториал нашел https://blog.hashbangbash.com/2014/04/linking-golang-statically/ Из интересного  ldd можно использовать чтоюы посмотреть динамическая или нет линковка. И собственно правильные флаги " go build --ldflags '-extldflags "-static"' ./code-cgo.go"
+
+https://stackoverflow.com/a/76177689 -  а в этой ссылке у меня не сработало добавка -tags musl
+
+GOOS=linux go build -tags musl -o main ./cmd/sso/main.go
+
+/snap/go/10660/pkg/tool/linux_amd64/link: running gcc failed: exit status 1
+/usr/bin/ld: /home/alex/go/pkg/mod/github.com/confluentinc/confluent-kafka-go@v1.9.2/kafka/librdkafka_vendor/librdkafka_musl_linux.a(rdkafka_admin.o): in function `rd_kafka_CreateTopicsResponse_parse':
+(.text+0x730): undefined reference to `strlcpy'
+/usr/bin/ld: (.text+0x834): undefined reference to `strlcpy'
+/usr/bin/ld: (.text+0xcef): undefined reference to `strlcpy'
+/usr/bin/ld: (.text+0xe7d): undefined reference to `strlcpy'
+/usr/bin/ld: (.text+0x1014): undefined reference to `strlcpy'
