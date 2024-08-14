@@ -250,16 +250,19 @@ services:
   ######################
   ##### MONITORING #####
   ######################
-  #  prometheus:
-  #    image: prom/prometheus
-  #    container_name: prometheus
-  #    ports:
-  #      - 9090:9090
-  #    volumes:
-  #      - ../monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
-  #    command:
-  #      - '--config.file=/etc/prometheus/prometheus.yml'
-  #
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    labels:
+      logging: "promtail"
+      logging_jobname: "containerlogs"
+    ports:
+      - 9090:9090
+    volumes:
+      - ../monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+
 
   grafana:
     image: grafana/grafana

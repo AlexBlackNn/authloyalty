@@ -8,6 +8,13 @@ http://localhost:44044/sw/
 ## Swagger http доступен по адресу:
 http://localhost:8000/swagger/index.html
 
+## Grafana
+http://localhost:3000/grafana/
+
+## Prometheus
+http://localhost:9090/targets/
+
+
 ## Архитектурные решения 
 
 ### API:
