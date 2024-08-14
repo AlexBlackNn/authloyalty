@@ -14,6 +14,8 @@ http://localhost:3000/grafana/
 ## Prometheus
 http://localhost:9090/targets/
 
+##  metrics
+http://localhost:8000/metrics 
 
 ## Архитектурные решения 
 
@@ -229,3 +231,7 @@ GOOS=linux go build -tags musl -o main ./cmd/sso/main.go
 /usr/bin/ld: (.text+0xcef): undefined reference to `strlcpy'
 /usr/bin/ld: (.text+0xe7d): undefined reference to `strlcpy'
 /usr/bin/ld: (.text+0x1014): undefined reference to `strlcpy'
+
+
+docker compose -f docker-compose.prod.yaml build --progress=plain --no-cache
+docker compose -f docker-compose.prod.yaml up

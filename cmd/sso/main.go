@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"github.com/AlexBlackNn/authloyalty/app"
-	"github.com/prometheus/common/log"
+	"log"
 	"os/signal"
 	"syscall"
 )

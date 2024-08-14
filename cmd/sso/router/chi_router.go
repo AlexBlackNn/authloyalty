@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/httprate"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 	"log/slog"
 	"time"
@@ -46,6 +47,8 @@ func NewChiRouter(
 		r.Get("/swagger/*", httpSwagger.Handler(
 			httpSwagger.URL("http://localhost:8000/swagger/doc.json"),
 		))
+		r.Get("/metrics", promhttp.Handler().ServeHTTP)
 	})
+
 	return router
 }

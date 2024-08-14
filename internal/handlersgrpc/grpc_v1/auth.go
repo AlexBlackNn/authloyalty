@@ -8,7 +8,6 @@ import (
 	"github.com/AlexBlackNn/authloyalty/internal/services/authservice"
 	"github.com/AlexBlackNn/authloyalty/pkg/storage"
 	ssov1 "github.com/AlexBlackNn/authloyalty/protos/proto/sso/gen"
-	"github.com/prometheus/common/log"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -16,6 +15,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+	log "log/slog"
 )
 
 type AuthorizationInterface interface {

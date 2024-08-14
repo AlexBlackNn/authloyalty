@@ -12,7 +12,7 @@ require (
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/jackc/pgx/v5 v5.6.0
 	github.com/mattn/go-sqlite3 v1.14.22
-	github.com/prometheus/common v0.18.0
+	github.com/prometheus/common v0.48.0
 	github.com/redis/go-redis/extra/redisotel/v9 v9.5.3
 	github.com/redis/go-redis/v9 v9.6.1
 	github.com/rookie-ninja/rk-boot v1.4.8
@@ -34,7 +34,7 @@ require (
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
 	github.com/ajg/form v1.5.1 // indirect
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751 // indirect
-	github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d // indirect
+	github.com/alecthomas/units v0.0.0-20211218093645-b94a6e3cc137 // indirect
 	github.com/andres-erbsen/clock v0.0.0-20160526145045-9e14626cd129 // indirect
 	github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -109,9 +109,9 @@ require (
 	github.com/pelletier/go-toml/v2 v2.0.6 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/prometheus/client_golang v1.10.0 // indirect
-	github.com/prometheus/client_model v0.2.0 // indirect
-	github.com/prometheus/procfs v0.6.0 // indirect
+	github.com/prometheus/client_golang v1.19.1 // indirect
+	github.com/prometheus/client_model v0.5.0 // indirect
+	github.com/prometheus/procfs v0.12.0 // indirect
 	github.com/redis/go-redis/extra/rediscmd/v9 v9.5.3 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
 	github.com/rookie-ninja/rk-common v1.2.3 // indirect

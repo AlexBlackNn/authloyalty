@@ -12,8 +12,8 @@ import (
 	"github.com/AlexBlackNn/authloyalty/pkg/storage/patroni"
 	"github.com/AlexBlackNn/authloyalty/pkg/storage/redissentinel"
 	"github.com/AlexBlackNn/authloyalty/pkg/tracing"
-	"github.com/prometheus/common/log"
 	"google.golang.org/protobuf/proto"
+	log "log/slog"
 	"time"
 )
 
@@ -93,6 +93,8 @@ func (a *App) Start(ctx context.Context) error {
 	}
 }
 
+// TODO: close all unexported methods
+
 func (a *App) Stop() error {
 	log.Info("close user storage client")
 	err := a.ServerUserStorage.Stop()
@@ -136,6 +138,8 @@ func New() (*App, error) {
 		tokenStorage,
 		producer,
 	)
+
+	// TODO: init in parallel ErrorGroup
 
 	// http server
 	serverHttp, err := serverhttp.New(cfg, log, authService)
