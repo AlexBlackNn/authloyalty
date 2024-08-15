@@ -240,3 +240,7 @@ GOOS=linux go build -tags musl -o main ./cmd/sso/main.go
 
 docker compose -f docker-compose.prod.yaml build --progress=plain --no-cache
 docker compose -f docker-compose.prod.yaml up
+
+
+metrics - 4 golden signals
+https://github.com/slok/go-http-metrics?tab=readme-ov-file#benchmarks 
