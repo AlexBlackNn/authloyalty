@@ -233,7 +233,8 @@ services:
       - ../monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
-
+    networks:
+      - proxynet
 
   grafana:
     image: grafana/grafana
