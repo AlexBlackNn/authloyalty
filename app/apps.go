@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"github.com/AlexBlackNn/authloyalty/app/servergrpc"
 	"github.com/AlexBlackNn/authloyalty/app/serverhttp"
 	"github.com/AlexBlackNn/authloyalty/internal/config"
@@ -9,6 +10,7 @@ import (
 	"github.com/AlexBlackNn/authloyalty/internal/logger"
 	"github.com/AlexBlackNn/authloyalty/internal/services/authservice"
 	"github.com/AlexBlackNn/authloyalty/pkg/broker"
+	"github.com/AlexBlackNn/authloyalty/pkg/storage"
 	"github.com/AlexBlackNn/authloyalty/pkg/storage/patroni"
 	"github.com/AlexBlackNn/authloyalty/pkg/storage/redissentinel"
 	"github.com/AlexBlackNn/authloyalty/pkg/tracing"
@@ -124,12 +126,21 @@ func New() (*App, error) {
 
 	userStorage, err := patroni.New(cfg)
 	if err != nil {
+		if !errors.Is(err, storage.ErrConnection) {
+			return nil, err
+		}
+		log.Warn(err.Error())
+	}
+
+	tokenStorage, err := redissentinel.New(cfg)
+	if err != nil {
 		return nil, err
 	}
 
-	tokenStorage := redissentinel.New(cfg)
-
 	producer, err := broker.NewProducer(cfg.Kafka.KafkaURL, cfg.Kafka.SchemaRegistryURL)
+	if err != nil {
+		return nil, err
+	}
 
 	authService := authservice.New(
 		cfg,
