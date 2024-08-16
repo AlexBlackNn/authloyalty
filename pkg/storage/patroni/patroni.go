@@ -8,6 +8,7 @@ import (
 	"github.com/AlexBlackNn/authloyalty/internal/config"
 	"github.com/AlexBlackNn/authloyalty/internal/domain/models"
 	"github.com/AlexBlackNn/authloyalty/pkg/storage"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"go.opentelemetry.io/otel"
@@ -19,15 +20,16 @@ import (
 const UniqueViolation = "23505"
 
 type Storage struct {
-	dbRead  *sql.DB
-	dbWrite *sql.DB
+	dbRead  *pgx.Conn
+	dbWrite *pgx.Conn
 }
 
 var tracer = otel.Tracer("sso service")
 
 func New(cfg *config.Config) (*Storage, error) {
 	//dbWrite, err := otelsql.Open("pgx", cfg.StoragePatroni.Master)
-	dbWrite, err := sql.Open("pgx", cfg.StoragePatroni.Master)
+	//dbWrite, err := sql.Open("pgx", cfg.StoragePatroni.Master)
+	dbWrite, err := pgx.Connect(context.Background(), cfg.StoragePatroni.Master)
 	if err != nil {
 		return nil, fmt.Errorf(
 			"DATA LAYER: storage.postgres.New: couldn't open a database for Write: %w",
@@ -35,7 +37,8 @@ func New(cfg *config.Config) (*Storage, error) {
 		)
 	}
 	//dbRead, err := otelsql.Open("pgx", cfg.StoragePatroni.Slave)
-	dbRead, err := sql.Open("pgx", cfg.StoragePatroni.Slave)
+	//dbRead, err := sql.Open("pgx", cfg.StoragePatroni.Slave)
+	dbRead, err := pgx.Connect(context.Background(), cfg.StoragePatroni.Slave)
 	if err != nil {
 		return nil, fmt.Errorf(
 			"DATA LAYER: storage.postgres.New: couldn't open a database for Read: %w",
@@ -44,13 +47,13 @@ func New(cfg *config.Config) (*Storage, error) {
 	}
 	// Open may just validate its arguments without creating a connection to the database.
 	// To verify that the data source name is valid, call DB.Ping.
-	err = dbRead.Ping()
+	err = dbRead.Ping(context.Background())
 	if err != nil {
 		return nil, fmt.Errorf(
 			"DATA LAYER: storage.postgres.New: couldn't connect to database for Read: %w", err,
 		)
 	}
-	err = dbWrite.Ping()
+	err = dbWrite.Ping(context.Background())
 	if err != nil {
 		return nil, fmt.Errorf(
 			"DATA LAYER: storage.postgres.New: couldn't connect to database for Write: %w", err,
@@ -62,10 +65,10 @@ func New(cfg *config.Config) (*Storage, error) {
 func (s *Storage) Stop() error {
 	var err1, err2 error
 	if s.dbRead != nil {
-		err1 = s.dbWrite.Close()
+		err1 = s.dbWrite.Close(context.Background())
 	}
 	if s.dbWrite != nil {
-		err2 = s.dbRead.Close()
+		err2 = s.dbRead.Close(context.Background())
 	}
 	return errors.Join(err1, err2)
 }
@@ -80,7 +83,7 @@ func (s *Storage) SaveUser(ctx context.Context, email string, passHash []byte) (
 
 	var uuid string
 	query := "INSERT INTO users(email, pass_hash) VALUES($1, $2) RETURNING uuid"
-	err := s.dbWrite.QueryRowContext(ctx, query, email, passHash).Scan(&uuid)
+	err := s.dbWrite.QueryRow(ctx, query, email, passHash).Scan(&uuid)
 	// https://www.postgresql.org/docs/11/protocol-error-fields.html
 	if err, ok := err.(*pgconn.PgError); ok {
 		if err.Code == UniqueViolation {
@@ -102,7 +105,7 @@ func (s *Storage) GetUser(ctx context.Context, uuid string) (context.Context, mo
 	defer span.End()
 
 	query := "SELECT uuid, email, pass_hash, is_admin FROM users WHERE (uuid = $1);"
-	row := s.dbRead.QueryRowContext(ctx, query, uuid)
+	row := s.dbRead.QueryRow(ctx, query, uuid)
 
 	var user models.User
 	err := row.Scan(&user.ID, &user.Email, &user.PassHash, &user.IsAdmin)
@@ -127,7 +130,7 @@ func (s *Storage) GetUserByEmail(ctx context.Context, email string) (context.Con
 	defer span.End()
 
 	query := "SELECT uuid, email, pass_hash, is_admin FROM users WHERE (email = $1);"
-	row := s.dbRead.QueryRowContext(ctx, query, email)
+	row := s.dbRead.QueryRow(ctx, query, email)
 
 	var user models.User
 	err := row.Scan(&user.ID, &user.Email, &user.PassHash, &user.IsAdmin)
@@ -153,7 +156,7 @@ func (s *Storage) UpdateSendStatus(ctx context.Context, uuid string, status stri
 	defer span.End()
 
 	query := "UPDATE users SET message_status=$2 WHERE uuid = $1;"
-	_, err := s.dbWrite.ExecContext(ctx, query, uuid, status)
+	_, err := s.dbWrite.Exec(ctx, query, uuid, status)
 	if err != nil {
 		return ctx, fmt.Errorf(
 			"DATA LAYER: storage.postgres.UpdateSendStatus: couldn't update message registration status delivery  %w",
@@ -169,7 +172,7 @@ func (s *Storage) HealthCheck(ctx context.Context) (context.Context, error) {
 	defer span.End()
 	// Pinger is an optional interface that may be implemented by a Conn. Then if driver
 	// is changed need to be checked. https://pkg.go.dev/database/sql/driver#Pinger
-	err := s.dbWrite.Ping()
+	err := s.dbWrite.Ping(context.Background())
 	if err != nil {
 		return ctx, fmt.Errorf(
 			"DATA LAYER: storage.postgres.HealthCheck: couldn't ping databae  %w",
