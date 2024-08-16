@@ -26,7 +26,7 @@ type AuthorizationInterface interface {
 	Register(
 		ctx context.Context,
 		reqData *models.Register,
-	) (userID string, err error)
+	) (ctxOut context.Context, userID string, err error)
 	Logout(
 		ctx context.Context,
 		reqData *models.Logout,
@@ -158,7 +158,7 @@ func (s *serverAPI) Register(
 	if err = validateRegister(req); err != nil {
 		return nil, err
 	}
-	userID, err := s.auth.Register(
+	ctx, userID, err := s.auth.Register(
 		ctx, &models.Register{Email: req.GetEmail(), Password: req.GetPassword()},
 	)
 	if err != nil {

@@ -220,7 +220,7 @@ func (a *Auth) Refresh(
 func (a *Auth) Register(
 	ctx context.Context,
 	reqData *models.Register,
-) (string, error) {
+) (context.Context, string, error) {
 
 	const op = "SERVICE LAYER: auth_service.RegisterNewUser"
 
@@ -239,13 +239,13 @@ func (a *Auth) Register(
 	)
 	if err != nil {
 		log.Error("failed to generate password hash", "err", err.Error())
-		return "", fmt.Errorf("%s: %w", op, err)
+		return ctx, "", fmt.Errorf("%s: %w", op, err)
 	}
 	// TODO: move to dto and need to add name
 	ctx, uuid, err := a.userStorage.SaveUser(ctx, reqData.Email, passHash)
 	if err != nil {
 		log.Error("failed to save user", "err", err.Error())
-		return "", fmt.Errorf("%s: %w", op, err)
+		return ctx, "", fmt.Errorf("%s: %w", op, err)
 	}
 	log.Info("user registered")
 
@@ -270,7 +270,7 @@ func (a *Auth) Register(
 			)
 		}
 	}
-	return uuid, nil
+	return ctx, uuid, nil
 }
 
 // IsAdmin checks if user is admin

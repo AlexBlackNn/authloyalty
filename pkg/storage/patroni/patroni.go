@@ -8,7 +8,6 @@ import (
 	"github.com/AlexBlackNn/authloyalty/internal/config"
 	"github.com/AlexBlackNn/authloyalty/internal/domain/models"
 	"github.com/AlexBlackNn/authloyalty/pkg/storage"
-	"github.com/XSAM/otelsql"
 	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"go.opentelemetry.io/otel"
@@ -27,14 +26,16 @@ type Storage struct {
 var tracer = otel.Tracer("sso service")
 
 func New(cfg *config.Config) (*Storage, error) {
-	dbWrite, err := otelsql.Open("pgx", cfg.StoragePatroni.Master)
+	//dbWrite, err := otelsql.Open("pgx", cfg.StoragePatroni.Master)
+	dbWrite, err := sql.Open("pgx", cfg.StoragePatroni.Master)
 	if err != nil {
 		return nil, fmt.Errorf(
 			"DATA LAYER: storage.postgres.New: couldn't open a database for Write: %w",
 			storage.ErrConnection,
 		)
 	}
-	dbRead, err := otelsql.Open("pgx", cfg.StoragePatroni.Slave)
+	//dbRead, err := otelsql.Open("pgx", cfg.StoragePatroni.Slave)
+	dbRead, err := sql.Open("pgx", cfg.StoragePatroni.Slave)
 	if err != nil {
 		return nil, fmt.Errorf(
 			"DATA LAYER: storage.postgres.New: couldn't open a database for Read: %w",
