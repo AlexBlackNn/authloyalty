@@ -9,7 +9,7 @@ import (
 	jwtlib "github.com/AlexBlackNn/authloyalty/internal/lib/jwt"
 	"github.com/AlexBlackNn/authloyalty/pkg/broker"
 	"github.com/AlexBlackNn/authloyalty/pkg/storage"
-	"github.com/AlexBlackNn/authloyalty/protos/proto/registration/registration.v1"
+	registration_v1 "github.com/AlexBlackNn/authloyalty/protos/proto/registration/registration.v1"
 	"github.com/golang-jwt/jwt/v5"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -22,7 +22,12 @@ import (
 )
 
 type GetResponseChanSender interface {
-	Send(msg proto.Message, topic string, key string) error
+	Send(
+		ctx context.Context,
+		msg proto.Message,
+		topic string,
+		key string,
+	) (context.Context, error)
 	GetResponseChan() chan *broker.Response
 }
 
@@ -220,7 +225,7 @@ func (a *Auth) Refresh(
 func (a *Auth) Register(
 	ctx context.Context,
 	reqData *models.Register,
-) (string, error) {
+) (context.Context, string, error) {
 
 	const op = "SERVICE LAYER: auth_service.RegisterNewUser"
 
@@ -239,13 +244,13 @@ func (a *Auth) Register(
 	)
 	if err != nil {
 		log.Error("failed to generate password hash", "err", err.Error())
-		return "", fmt.Errorf("%s: %w", op, err)
+		return ctx, "", fmt.Errorf("%s: %w", op, err)
 	}
 	// TODO: move to dto and need to add name
 	ctx, uuid, err := a.userStorage.SaveUser(ctx, reqData.Email, passHash)
 	if err != nil {
 		log.Error("failed to save user", "err", err.Error())
-		return "", fmt.Errorf("%s: %w", op, err)
+		return ctx, "", fmt.Errorf("%s: %w", op, err)
 	}
 	log.Info("user registered")
 
@@ -253,14 +258,14 @@ func (a *Auth) Register(
 		Email:    reqData.Email,
 		FullName: reqData.Name,
 	}
-	err = a.producer.Send(&registrationMsg, "registration", uuid)
+	ctx, err = a.producer.Send(ctx, &registrationMsg, "registration", uuid)
 	if err != nil {
 		// TODO: determine the err can be faced
 		// No return here with err!!!, we do continue working (so-called soft degradation)
 		// even kafka does not work, server is still able to process users.
 		log.Error("Sending message to broker failed", "err", err.Error())
 		ctx, err = a.userStorage.UpdateSendStatus(
-			context.Background(), uuid, "failed",
+			ctx, uuid, "failed",
 		)
 		if err != nil {
 			log.Error(
@@ -270,7 +275,7 @@ func (a *Auth) Register(
 			)
 		}
 	}
-	return uuid, nil
+	return ctx, uuid, nil
 }
 
 // IsAdmin checks if user is admin

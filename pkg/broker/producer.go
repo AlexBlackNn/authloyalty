@@ -1,17 +1,22 @@
 package broker
 
 import (
+	"context"
 	"errors"
 	"fmt"
-	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/confluentinc/confluent-kafka-go/schemaregistry"
 	"github.com/confluentinc/confluent-kafka-go/schemaregistry/serde"
 	"github.com/confluentinc/confluent-kafka-go/schemaregistry/serde/protobuf"
+	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/protobuf/proto"
 	"time"
 )
 
 type Broker struct {
+	//producer     *otelconfluent.Producer
 	producer     *kafka.Producer
 	serializer   serde.Serializer
 	ResponseChan chan *Response
@@ -24,13 +29,18 @@ type Response struct {
 
 var FlushBrokerTimeMs = 100
 var KafkaError = errors.New("kafka broker failed")
+var tracer = otel.Tracer("sso service")
 
 // NewProducer returns kafka producer with schema registry
 func NewProducer(kafkaURL, srURL string) (*Broker, error) {
-	p, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": kafkaURL})
+	confluentProducer, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": kafkaURL})
 	if err != nil {
 		return nil, err
 	}
+	//p := otelconfluent.NewProducerWithTracing(
+	//	confluentProducer,
+	//)
+	p := confluentProducer
 	c, err := schemaregistry.NewClient(schemaregistry.NewConfig(srURL))
 	if err != nil {
 		return nil, err
@@ -108,10 +118,15 @@ func (b *Broker) GetResponseChan() chan *Response {
 
 // Send sends serialized message to kafka using schema registry
 // TODO: add context, otel instrumentation
-func (b *Broker) Send(msg proto.Message, topic string, key string) error {
+func (b *Broker) Send(ctx context.Context, msg proto.Message, topic string, key string) (context.Context, error) {
+	ctx, span := tracer.Start(
+		ctx, "transfer layer Kafka: Send message",
+		trace.WithAttributes(attribute.String("transfer transfer", "Send")),
+	)
+	defer span.End()
 	payload, err := b.serializer.Serialize(topic, msg)
 	if err != nil {
-		return err
+		return ctx, err
 	}
 	if err = b.producer.Produce(&kafka.Message{
 		Key:            []byte(key),
@@ -123,9 +138,9 @@ func (b *Broker) Send(msg proto.Message, topic string, key string) error {
 			// Broker queue is full, wait 1s for messages
 			// to be delivered then try again.
 			time.Sleep(time.Second)
-			return err
+			return ctx, err
 		}
-		return err
+		return ctx, err
 	}
-	return nil
+	return ctx, nil
 }

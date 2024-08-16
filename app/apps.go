@@ -55,7 +55,12 @@ type HealthChecker interface {
 }
 
 type SendCloser interface {
-	Send(msg proto.Message, topic string, key string) error
+	Send(
+		ctx context.Context,
+		msg proto.Message,
+		topic string,
+		key string,
+	) (context.Context, error)
 	Close()
 }
 
