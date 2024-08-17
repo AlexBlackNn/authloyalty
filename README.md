@@ -251,3 +251,46 @@ https://stackoverflow.com/a/78329944
 https://opentelemetry.io/docs/demo/architecture/
 https://github.com/open-telemetry/opentelemetry-demo/tree/e5c45b9055627795e7577c395c641f6cf240f054
 https://github.com/open-telemetry/opentelemetry-demo/blob/e5c45b9055627795e7577c395c641f6cf240f054/src/checkoutservice/main.go#L527
+
+
+## SSO
+
+### NEED TO INSTALL
+1. Protocol Buffer Compiler Installation
+   https://grpc.io/docs/protoc-installation/#install-using-a-package-manager Г
+
+$ apt install -y protobuf-compiler
+$ protoc --version  # Ensure compiler version is 3+
+
+2. Install go plugins
+   https://grpc.io/docs/languages/go/quickstart/
+
+3. Генерим код:
+   ~/GolandProjects/sso/protos$ protoc -I proto proto/sso/sso.proto --go_out=./gen/go --go_opt=paths=source_relative --go-grpc_out=./gen/go/ --go-grpc_opt=paths=source_relative
+>>> ./gen/go/: No such file or directory
+
+~/GolandProjects/sso/protos$
+protoc -I proto proto/sso/sso.proto --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative
+
+Сгенирированные файлы будут лежать в protos/gen/go/sso
+
+4. Для автоматизации установить task
+   https://taskfile.dev/api/
+   sudo snap install task --classic
+
+   далее просто делаем >>>  task generate
+   alex@black:~/GolandProjects/sso/protos$ task generate
+   task: [generate] protoc -I proto proto/sso/*.proto --go_out=./gen/go/ --go_opt=paths=source_relative --go-grpc_out=./gen/go/ --go-grpc_opt=paths=source_relative
+
+
+auth swagger
+
+http://localhost:8000/swagger/index.html
+
+swag init -g ./cmd/sso/main.go -o ./cmd/sso/docs
+
+if err when starts
+
+Golang swaggo rendering error: "Failed to load API definition" and "Fetch error doc.json" [closed] Where the routers locate n most cases, the problem is that you forgot to import the generated docs as _ "/docs" in my case _ "github.com/AlexBlackNn/authloyalty/cmd/sso/docs"
+
+metrics https://stackoverflow.com/a/65609042 https://github.com/prometheus/client_golang https://grafana.com/oss/prometheus/exporters/go-exporter/#metrics-usage
