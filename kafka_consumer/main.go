@@ -17,6 +17,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	log "log/slog"
 	"os"
+	"time"
 )
 
 type OTelInterceptor struct {
@@ -50,14 +51,24 @@ func (oi *OTelInterceptor) OnConsume(kafkaHeaders []kafka.Header) context.Contex
 
 	ctx, span := oi.tracer.Start(
 		ctx,
-		"tracer consumer",
+		"tracer consumer1",
 		trace.WithSpanKind(trace.SpanKindConsumer),
 		trace.WithAttributes(oi.fixedAttrs...),
 		trace.WithAttributes(
 			semconv.MessagingDestinationName("registration"),
 		),
 	)
-	defer span.End()
+	span.End()
+	ctx, span = oi.tracer.Start(
+		ctx,
+		"tracer consumer2",
+		trace.WithSpanKind(trace.SpanKindConsumer),
+		trace.WithAttributes(oi.fixedAttrs...),
+		trace.WithAttributes(
+			semconv.MessagingDestinationName("registration"),
+		),
+	)
+	span.End()
 	return ctx
 }
 
@@ -125,6 +136,17 @@ func main() {
 				fmt.Printf("%% Headers: %v\n", e.Headers)
 				ctx := customInterceptor.OnConsume(e.Headers)
 				fmt.Println("1111111111111111111111", ctx)
+				ctx, span := customInterceptor.tracer.Start(
+					ctx,
+					"tracer consumer3",
+					trace.WithSpanKind(trace.SpanKindConsumer),
+					trace.WithAttributes(customInterceptor.fixedAttrs...),
+					trace.WithAttributes(
+						semconv.MessagingDestinationName("registration"),
+					),
+				)
+				defer span.End()
+				time.Sleep(33 * time.Millisecond)
 			}
 		case kafka.Error:
 			// Errors should generally be considered

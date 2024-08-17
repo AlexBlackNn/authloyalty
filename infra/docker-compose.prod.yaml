@@ -327,6 +327,7 @@ services:
       - "14250:14250"
     environment:
       - QUERY_BASE_PATH=/jaeger
+      - QUERY_MAX_CLOCK_SKEW_ADJUSTMENT=1s
     networks:
       - proxynet
 
