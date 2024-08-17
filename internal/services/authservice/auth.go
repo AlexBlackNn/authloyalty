@@ -272,11 +272,22 @@ func (a *Auth) Register(
 		// TODO: determine the err can be faced
 		// No return here with err!!!, we do continue working (so-called soft degradation)
 		// even kafka does not work, server is still able to process users.
-		log.Error("Sending message to broker failed", "err", err.Error())
+		span.SetStatus(codes.Error, err.Error())
+		span.SetAttributes(attribute.Bool("error", true))
+		span.RecordError(fmt.Errorf("sending message to broker failed %w", err))
+		log.Error("sending message to broker failed", "err", err.Error())
 		ctx, err = a.userStorage.UpdateSendStatus(
 			ctx, uuid, "failed",
 		)
 		if err != nil {
+			span.SetStatus(codes.Error, err.Error())
+			span.SetAttributes(attribute.Bool("error", true))
+			span.RecordError(
+				fmt.Errorf(
+					"failed to update message status with uuid %v: %w",
+					uuid, err,
+				),
+			)
 			log.Error(
 				"failed to update message status",
 				"err", err.Error(),
@@ -284,6 +295,10 @@ func (a *Auth) Register(
 			)
 		}
 	}
+	span.AddEvent(
+		"message to broker was sent successfully",
+		trace.WithAttributes(attribute.String("user-id", uuid)),
+	)
 	return ctx, uuid, nil
 }
 
