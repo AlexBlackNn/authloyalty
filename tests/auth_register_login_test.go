@@ -2,8 +2,8 @@ package tests
 
 import (
 	"fmt"
-	ssov1 "github.com/AlexBlackNn/authloyalty/protos/proto/sso/gen"
-	"github.com/AlexBlackNn/authloyalty/tests/suite"
+	ssov1 "github.com/AlexBlackNn/authloyalty/commands/proto/sso/gen"
+	"github.com/AlexBlackNn/authloyalty/tests/common"
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
@@ -13,10 +13,10 @@ import (
 )
 
 func TestRegisterLogin_Login_HappyPath(t *testing.T) {
-	ctx, testSuite := suite.New(t)
+	ctx, testSuite := common.New(t)
 
 	email := gofakeit.Email()
-	password := suite.RandomFakePassword()
+	password := common.RandomFakePassword()
 	respReg, err := testSuite.AuthClient.Register(ctx, &ssov1.RegisterRequest{
 		Email:    email,
 		Password: password,
@@ -74,7 +74,7 @@ func TestRegisterLogin_Login_HappyPath(t *testing.T) {
 //}
 
 func TestRegister_FailCases(t *testing.T) {
-	ctx, st := suite.New(t)
+	ctx, st := common.New(t)
 
 	tests := []struct {
 		name        string
@@ -91,7 +91,7 @@ func TestRegister_FailCases(t *testing.T) {
 		{
 			name:        "Register with Empty Email",
 			email:       "",
-			password:    suite.RandomFakePassword(),
+			password:    common.RandomFakePassword(),
 			expectedErr: "email is required",
 		},
 		{
@@ -116,7 +116,7 @@ func TestRegister_FailCases(t *testing.T) {
 }
 
 func TestLogin_FailCases(t *testing.T) {
-	ctx, st := suite.New(t)
+	ctx, st := common.New(t)
 
 	tests := []struct {
 		name        string
@@ -134,7 +134,7 @@ func TestLogin_FailCases(t *testing.T) {
 		{
 			name:        "Login with Empty Email",
 			email:       "",
-			password:    suite.RandomFakePassword(),
+			password:    common.RandomFakePassword(),
 			expectedErr: "email is required",
 		},
 		{
@@ -155,7 +155,7 @@ func TestLogin_FailCases(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := st.AuthClient.Register(ctx, &ssov1.RegisterRequest{
 				Email:    gofakeit.Email(),
-				Password: suite.RandomFakePassword(),
+				Password: common.RandomFakePassword(),
 			})
 			require.NoError(t, err)
 

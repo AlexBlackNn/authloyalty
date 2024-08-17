@@ -1,8 +1,8 @@
 package tests
 
 import (
-	ssov1 "github.com/AlexBlackNn/authloyalty/protos/proto/sso/gen"
-	"github.com/AlexBlackNn/authloyalty/tests/suite"
+	ssov1 "github.com/AlexBlackNn/authloyalty/commands/proto/sso/gen"
+	"github.com/AlexBlackNn/authloyalty/tests/common"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -11,7 +11,7 @@ import (
 )
 
 func TestLogin_Login_HappyPath(t *testing.T) {
-	ctx, testSuite := suite.New(t)
+	ctx, testSuite := common.New(t)
 
 	respLogin, err := testSuite.AuthClient.Login(ctx, &ssov1.LoginRequest{
 		Email:    "test@test.com",
