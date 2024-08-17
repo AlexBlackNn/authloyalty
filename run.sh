@@ -5,5 +5,5 @@ sleep 15
 cd ..
 go run ./cmd/migrator/postgres  --p ./migrations -d postgres://postgres:postgres@localhost:5000/postgres?sslmode=disable
 #sleep 5
-#go run ./cmd/sso/main.go --config=./config/local.yaml
+go run ./cmd/sso/main.go --config=./config/local.yaml
 go run ./kafka_consumer/main.go --config=./config/local.yaml

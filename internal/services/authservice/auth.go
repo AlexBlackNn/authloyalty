@@ -13,6 +13,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/metadata"
@@ -243,15 +244,22 @@ func (a *Auth) Register(
 		[]byte(reqData.Password), bcrypt.DefaultCost,
 	)
 	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
+		span.SetAttributes(attribute.Bool("error", true))
+		span.RecordError(fmt.Errorf("failed to generate password: %w", err))
 		log.Error("failed to generate password hash", "err", err.Error())
 		return ctx, "", fmt.Errorf("%s: %w", op, err)
 	}
 	// TODO: move to dto and need to add name
 	ctx, uuid, err := a.userStorage.SaveUser(ctx, reqData.Email, passHash)
 	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
+		span.SetAttributes(attribute.Bool("error", true))
+		span.RecordError(fmt.Errorf("failed to save user: %w", err))
 		log.Error("failed to save user", "err", err.Error())
 		return ctx, "", fmt.Errorf("%s: %w", op, err)
 	}
+	span.AddEvent("user registered", trace.WithAttributes(attribute.String("user-id", uuid)))
 	log.Info("user registered")
 
 	registrationMsg := registration_v1.RegistrationMessage{
