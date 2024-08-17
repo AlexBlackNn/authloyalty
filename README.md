@@ -244,3 +244,10 @@ docker compose -f docker-compose.prod.yaml up
 
 metrics - 4 golden signals
 https://github.com/slok/go-http-metrics?tab=readme-ov-file#benchmarks 
+
+### kafka tracing transfer 
+
+https://stackoverflow.com/a/78329944
+https://opentelemetry.io/docs/demo/architecture/
+https://github.com/open-telemetry/opentelemetry-demo/tree/e5c45b9055627795e7577c395c641f6cf240f054
+https://github.com/open-telemetry/opentelemetry-demo/blob/e5c45b9055627795e7577c395c641f6cf240f054/src/checkoutservice/main.go#L527

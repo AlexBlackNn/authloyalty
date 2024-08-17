@@ -8,16 +8,17 @@ import (
 	"github.com/confluentinc/confluent-kafka-go/schemaregistry/serde"
 	"github.com/confluentinc/confluent-kafka-go/schemaregistry/serde/protobuf"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	"github.com/etf1/opentelemetry-go-contrib/instrumentation/github.com/confluentinc/confluent-kafka-go/otelconfluent"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/propagation"
+	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/protobuf/proto"
-	"time"
 )
 
 type Broker struct {
-	//producer     *otelconfluent.Producer
-	producer     *kafka.Producer
+	producer     *otelconfluent.Producer
 	serializer   serde.Serializer
 	ResponseChan chan *Response
 }
@@ -37,10 +38,10 @@ func NewProducer(kafkaURL, srURL string) (*Broker, error) {
 	if err != nil {
 		return nil, err
 	}
-	//p := otelconfluent.NewProducerWithTracing(
-	//	confluentProducer,
-	//)
-	p := confluentProducer
+	p := otelconfluent.NewProducerWithTracing(
+		confluentProducer,
+		otelconfluent.WithTracerName("sso service"),
+	)
 	c, err := schemaregistry.NewClient(schemaregistry.NewConfig(srURL))
 	if err != nil {
 		return nil, err
@@ -117,30 +118,57 @@ func (b *Broker) GetResponseChan() chan *Response {
 }
 
 // Send sends serialized message to kafka using schema registry
-// TODO: add context, otel instrumentation
 func (b *Broker) Send(ctx context.Context, msg proto.Message, topic string, key string) (context.Context, error) {
 	ctx, span := tracer.Start(
-		ctx, "transfer layer Kafka: Send message",
+		ctx, "transfer layer Kafka: Serialize message",
 		trace.WithAttributes(attribute.String("transfer transfer", "Send")),
 	)
-	defer span.End()
 	payload, err := b.serializer.Serialize(topic, msg)
 	if err != nil {
 		return ctx, err
 	}
+	span.End()
+	ctx, span = tracer.Start(
+		ctx, "transfer layer Kafka: Send message",
+		trace.WithAttributes(attribute.String("transfer transfer", "Send")),
+	)
+	defer span.End()
+	headers := []kafka.Header{{Key: "request-Id", Value: []byte("header values are binary")}}
+
+	// add span to headers to send via kafka
+	span = createProducerSpan(ctx, headers)
+	defer span.End()
+
 	if err = b.producer.Produce(&kafka.Message{
 		Key:            []byte(key),
 		TopicPartition: kafka.TopicPartition{Topic: &topic},
 		Value:          payload,
-		Headers:        []kafka.Header{{Key: "request-Id", Value: []byte("header values are binary")}},
+		Headers:        headers,
 	}, nil); err != nil {
-		if err.(kafka.Error).Code() == kafka.ErrQueueFull {
-			// Broker queue is full, wait 1s for messages
-			// to be delivered then try again.
-			time.Sleep(time.Second)
-			return ctx, err
-		}
 		return ctx, err
 	}
 	return ctx, nil
+}
+
+func createProducerSpan(ctx context.Context, headers []kafka.Header) trace.Span {
+	ctx, span := tracer.Start(
+		ctx,
+		"transfer layer Kafka: to target services",
+		trace.WithAttributes(
+			semconv.PeerService("kafka"),
+			semconv.NetworkTransportTCP,
+			semconv.MessagingSystemKafka,
+			semconv.MessagingDestinationName("registration"),
+		),
+	)
+
+	carrier := propagation.MapCarrier{}
+	propagator := otel.GetTextMapPropagator()
+	propagator.Inject(ctx, carrier)
+
+	for key, value := range carrier {
+		headers = append(headers, kafka.Header{Key: key, Value: []byte(value)})
+	}
+
+	return span
 }

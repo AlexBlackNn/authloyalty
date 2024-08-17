@@ -14,6 +14,7 @@ import (
 	"github.com/AlexBlackNn/authloyalty/pkg/storage/patroni"
 	"github.com/AlexBlackNn/authloyalty/pkg/storage/redissentinel"
 	"github.com/AlexBlackNn/authloyalty/pkg/tracing"
+	"go.opentelemetry.io/otel/sdk/trace"
 	"google.golang.org/protobuf/proto"
 	log "log/slog"
 	"time"
@@ -74,7 +75,7 @@ type App struct {
 	ServerUserStorage   UserStorage
 	ServerTokenStorage  TokenStorage
 	ServerProducer      SendCloser
-	ServerOpenTelemetry Shutdowner
+	ServerOpenTelemetry *trace.TracerProvider
 }
 
 func (a *App) startHttpServer() chan error {

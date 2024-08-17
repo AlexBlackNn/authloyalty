@@ -258,6 +258,7 @@ func (a *Auth) Register(
 		Email:    reqData.Email,
 		FullName: reqData.Name,
 	}
+	//TODO: registration should be got from config
 	ctx, err = a.producer.Send(ctx, &registrationMsg, "registration", uuid)
 	if err != nil {
 		// TODO: determine the err can be faced
