@@ -251,8 +251,8 @@ https://stackoverflow.com/a/78329944
 https://opentelemetry.io/docs/demo/architecture/
 https://github.com/open-telemetry/opentelemetry-demo/tree/e5c45b9055627795e7577c395c641f6cf240f054
 https://github.com/open-telemetry/opentelemetry-demo/blob/e5c45b9055627795e7577c395c641f6cf240f054/src/checkoutservice/main.go#L527
-
-
+https://www.youtube.com/watch?v=49fA7gQsDwA&t=2539s
+https://www.youtube.com/watch?v=UEwkn0iHDzA&list=PLNxnp_rzlqf6z1cC0IkIwp6yjsBboX945&index=1
 ## SSO
 
 ### NEED TO INSTALL
