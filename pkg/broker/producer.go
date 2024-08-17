@@ -8,7 +8,6 @@ import (
 	"github.com/confluentinc/confluent-kafka-go/schemaregistry/serde"
 	"github.com/confluentinc/confluent-kafka-go/schemaregistry/serde/protobuf"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
-	"github.com/etf1/opentelemetry-go-contrib/instrumentation/github.com/confluentinc/confluent-kafka-go/otelconfluent"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/propagation"
@@ -18,7 +17,7 @@ import (
 )
 
 type Broker struct {
-	producer     *otelconfluent.Producer
+	producer     *kafka.Producer
 	serializer   serde.Serializer
 	ResponseChan chan *Response
 }
@@ -38,10 +37,7 @@ func NewProducer(kafkaURL, srURL string) (*Broker, error) {
 	if err != nil {
 		return nil, err
 	}
-	p := otelconfluent.NewProducerWithTracing(
-		confluentProducer,
-		otelconfluent.WithTracerName("sso service"),
-	)
+	p := confluentProducer
 	c, err := schemaregistry.NewClient(schemaregistry.NewConfig(srURL))
 	if err != nil {
 		return nil, err

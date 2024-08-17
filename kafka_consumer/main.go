@@ -39,7 +39,7 @@ func NewOTelInterceptor(groupID string) *OTelInterceptor {
 	return &oi
 }
 
-func (oi *OTelInterceptor) OnConsume(kafkaHeaders []kafka.Header) context.Context {
+func (oi *OTelInterceptor) OnConsume(ctx context.Context, kafkaHeaders []kafka.Header) context.Context {
 	headers := propagation.MapCarrier{}
 
 	for _, recordHeader := range kafkaHeaders {
@@ -47,7 +47,7 @@ func (oi *OTelInterceptor) OnConsume(kafkaHeaders []kafka.Header) context.Contex
 	}
 
 	propagator := otel.GetTextMapPropagator()
-	ctx := propagator.Extract(context.Background(), headers)
+	ctx = propagator.Extract(ctx, headers)
 
 	ctx, span := oi.tracer.Start(
 		ctx,
@@ -69,16 +69,18 @@ func (oi *OTelInterceptor) OnConsume(kafkaHeaders []kafka.Header) context.Contex
 		),
 	)
 	span.End()
+	time.Sleep(1 * time.Second)
 	return ctx
 }
 
 func main() {
+
 	cfg := config.New()
 	_, err := tracing.Init("consumer", cfg)
 	if err != nil {
 		log.Error(err.Error())
 	}
-
+	var customTracer = otel.Tracer("consumer")
 	c, err := kafka.NewConsumer(&kafka.ConfigMap{
 		"bootstrap.servers":  "localhost:9094",
 		"group.id":           "1",
@@ -117,7 +119,6 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Failed to subscribe to topics: %s\n", err)
 		os.Exit(1)
 	}
-	customInterceptor := NewOTelInterceptor("1")
 	for {
 		ev := c.Poll(100)
 		if ev == nil {
@@ -126,6 +127,10 @@ func main() {
 
 		switch e := ev.(type) {
 		case *kafka.Message:
+			ctx := context.Background()
+			ctx, span := customTracer.Start(ctx, "kafka_message_processing")
+			defer span.End()
+
 			value, err := deser.Deserialize(*e.TopicPartition.Topic, e.Value)
 			if err != nil {
 				fmt.Printf("Failed to deserialize payload: %s\n", err)
@@ -134,19 +139,55 @@ func main() {
 			}
 			if e.Headers != nil {
 				fmt.Printf("%% Headers: %v\n", e.Headers)
-				ctx := customInterceptor.OnConsume(e.Headers)
-				fmt.Println("1111111111111111111111", ctx)
-				ctx, span := customInterceptor.tracer.Start(
+
+				headers := propagation.MapCarrier{}
+
+				for _, recordHeader := range e.Headers {
+					headers[recordHeader.Key] = string(recordHeader.Value)
+				}
+
+				propagator := otel.GetTextMapPropagator()
+				ctx = propagator.Extract(ctx, headers)
+
+				ctx, span = customTracer.Start(
 					ctx,
-					"tracer consumer3",
+					"tracer consumer1",
 					trace.WithSpanKind(trace.SpanKindConsumer),
-					trace.WithAttributes(customInterceptor.fixedAttrs...),
 					trace.WithAttributes(
 						semconv.MessagingDestinationName("registration"),
 					),
 				)
-				defer span.End()
-				time.Sleep(33 * time.Millisecond)
+				span.End()
+				ctx, span = customTracer.Start(
+					ctx,
+					"tracer consumer2",
+					trace.WithSpanKind(trace.SpanKindConsumer),
+					trace.WithAttributes(
+						semconv.MessagingDestinationName("registration"),
+					),
+				)
+				span.End()
+				fmt.Println("1111111111111111111111", ctx)
+				ctx, span = customTracer.Start(
+					ctx,
+					"tracer consumer3",
+					trace.WithSpanKind(trace.SpanKindConsumer),
+					trace.WithAttributes(
+						semconv.MessagingDestinationName("registration"),
+					),
+				)
+				span.End()
+				foo(ctx)
+				ctx, span = customTracer.Start(
+					ctx,
+					"tracer consumer4",
+					trace.WithSpanKind(trace.SpanKindConsumer),
+					trace.WithAttributes(
+						semconv.MessagingDestinationName("registration"),
+					),
+				)
+				span.End()
+
 			}
 		case kafka.Error:
 			// Errors should generally be considered
@@ -160,4 +201,20 @@ func main() {
 
 	fmt.Printf("Closing consumer\n")
 	c.Close()
+}
+
+func foo(ctx context.Context) context.Context {
+	var customTracer = otel.Tracer("consumer")
+	fmt.Printf("Hello\n")
+	fmt.Println("1111111111111111111111", ctx)
+	ctx, span := customTracer.Start(
+		ctx,
+		"foo",
+		trace.WithSpanKind(trace.SpanKindConsumer),
+		trace.WithAttributes(
+			semconv.MessagingDestinationName("registration"),
+		),
+	)
+	span.End()
+	return ctx
 }
