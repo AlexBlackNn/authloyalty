@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-func TestLogin_Login_HappyPath(t *testing.T) {
+func TestLoginHappyPath(t *testing.T) {
 	ctx, testCommon := common.New(t)
 
 	respLogin, err := testCommon.AuthClient.Login(ctx, &ssov1.LoginRequest{

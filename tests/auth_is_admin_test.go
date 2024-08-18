@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestIsAdmin_HappyPath(t *testing.T) {
+func TestIsAdminHappyPath(t *testing.T) {
 	ctx, testCommon := common.New(t)
 	respIsAdmin, err := testCommon.AuthClient.IsAdmin(ctx, &ssov1.IsAdminRequest{
 		UserId: "22f23689-9b67-4ef9-a693-5ef2d18ee111",

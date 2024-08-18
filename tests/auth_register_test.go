@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-func TestRegister_HappyPath(t *testing.T) {
+func TestRegisterHappyPath(t *testing.T) {
 	ctx, testSuite := common.New(t)
 
 	email := gofakeit.Email()
