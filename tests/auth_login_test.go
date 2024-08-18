@@ -12,9 +12,9 @@ import (
 )
 
 func TestLogin_Login_HappyPath(t *testing.T) {
-	ctx, testSuite := common.New(t)
+	ctx, testCommon := common.New(t)
 
-	respLogin, err := testSuite.AuthClient.Login(ctx, &ssov1.LoginRequest{
+	respLogin, err := testCommon.AuthClient.Login(ctx, &ssov1.LoginRequest{
 		Email:    "user@test.com",
 		Password: "test",
 	})
@@ -24,7 +24,7 @@ func TestLogin_Login_HappyPath(t *testing.T) {
 	token := respLogin.GetAccessToken()
 
 	tokenParsed, err := jwt.Parse(token, func(token *jwt.Token) (any, error) {
-		return []byte(testSuite.Cfg.ServiceSecret), nil
+		return []byte(testCommon.Cfg.ServiceSecret), nil
 	})
 	require.NoError(t, err)
 
@@ -37,12 +37,12 @@ func TestLogin_Login_HappyPath(t *testing.T) {
 
 	// checking token expiration time might be only approximate
 	const deltaSeconds = 1
-	assert.InDelta(t, loginTime.Add(testSuite.Cfg.AccessTokenTtl).Unix(), claims["exp"].(float64), deltaSeconds)
+	assert.InDelta(t, loginTime.Add(testCommon.Cfg.AccessTokenTtl).Unix(), claims["exp"].(float64), deltaSeconds)
 
 }
 
 func TestLoginFailCases(t *testing.T) {
-	ctx, st := common.New(t)
+	ctx, testCommon := common.New(t)
 
 	tests := []struct {
 		name        string
@@ -73,13 +73,7 @@ func TestLoginFailCases(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := st.AuthClient.Register(ctx, &ssov1.RegisterRequest{
-				Email:    gofakeit.Email(),
-				Password: common.RandomFakePassword(),
-			})
-			require.NoError(t, err)
-
-			_, err = st.AuthClient.Login(ctx, &ssov1.LoginRequest{
+			_, err := testCommon.AuthClient.Login(ctx, &ssov1.LoginRequest{
 				Email:    tt.email,
 				Password: tt.password,
 			})
