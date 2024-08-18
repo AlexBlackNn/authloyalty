@@ -7,6 +7,7 @@ import (
 
 var _ propagation.TextMapCarrier = (*MessageCarrier)(nil)
 
+// TODO: AlexBlacknn comment --- from a sarama.Message https://github.com/IBM/sarama. Probably is a mistake. This lib is for confluentic kafka go
 // MessageCarrier injects and extracts traces from a sarama.Message.
 type MessageCarrier struct {
 	msg *kafka.Message
