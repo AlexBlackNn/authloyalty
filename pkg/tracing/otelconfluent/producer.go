@@ -23,7 +23,6 @@ import (
 	"github.com/AlexBlackNn/authloyalty/pkg/tracing/otelconfluent/internal"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 
-	"go.opentelemetry.io/contrib"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/propagation"
@@ -40,7 +39,7 @@ type Producer struct {
 	events     chan kafka.Event
 }
 
-func NewProducerWithTracing(producer *kafka.Producer, opts ...Option) *Producer {
+func NewProducerWithTracing(producer *kafka.Producer, tracer oteltrace.Tracer, opts ...Option) *Producer {
 	cfg := &config{
 		tracerProvider: otel.GetTracerProvider(),
 		propagator:     otel.GetTextMapPropagator(),
@@ -54,10 +53,11 @@ func NewProducerWithTracing(producer *kafka.Producer, opts ...Option) *Producer 
 	p := &Producer{
 		Producer: producer,
 		ctx:      context.Background(),
-		tracer: cfg.tracerProvider.Tracer(
-			cfg.tracerName,
-			oteltrace.WithInstrumentationVersion(contrib.SemVersion()),
-		),
+		//tracer: cfg.tracerProvider.Tracer(
+		//	cfg.tracerName,
+		//	oteltrace.WithInstrumentationVersion(contrib.SemVersion()),
+		//),
+		tracer:     tracer,
 		propagator: cfg.propagator,
 		spans:      &sync.Map{},
 		events:     make(chan kafka.Event, cap(producer.Events())),

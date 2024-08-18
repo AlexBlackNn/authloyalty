@@ -9,6 +9,7 @@ import (
 	"github.com/confluentinc/confluent-kafka-go/schemaregistry/serde"
 	"github.com/confluentinc/confluent-kafka-go/schemaregistry/serde/protobuf"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	"go.opentelemetry.io/contrib"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/propagation"
@@ -30,7 +31,10 @@ type Response struct {
 
 var FlushBrokerTimeMs = 100
 var KafkaError = errors.New("kafka broker failed")
-var tracer = otel.Tracer("sso service")
+var tracer = otel.Tracer(
+	"sso service",
+	trace.WithInstrumentationVersion(contrib.SemVersion()),
+)
 
 // NewProducer returns kafka producer with schema registry
 func NewProducer(kafkaURL, srURL string) (*Broker, error) {
@@ -40,7 +44,7 @@ func NewProducer(kafkaURL, srURL string) (*Broker, error) {
 	}
 	p := otelconfluent.NewProducerWithTracing(
 		confluentProducer,
-		otelconfluent.WithTracerName("sso service"),
+		tracer,
 	)
 	c, err := schemaregistry.NewClient(schemaregistry.NewConfig(srURL))
 	if err != nil {
