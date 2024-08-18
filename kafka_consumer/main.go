@@ -39,40 +39,6 @@ func NewOTelInterceptor(groupID string) *OTelInterceptor {
 	return &oi
 }
 
-func (oi *OTelInterceptor) OnConsume(ctx context.Context, kafkaHeaders []kafka.Header) context.Context {
-	headers := propagation.MapCarrier{}
-
-	for _, recordHeader := range kafkaHeaders {
-		headers[recordHeader.Key] = string(recordHeader.Value)
-	}
-
-	propagator := otel.GetTextMapPropagator()
-	ctx = propagator.Extract(ctx, headers)
-
-	ctx, span := oi.tracer.Start(
-		ctx,
-		"tracer consumer1",
-		trace.WithSpanKind(trace.SpanKindConsumer),
-		trace.WithAttributes(oi.fixedAttrs...),
-		trace.WithAttributes(
-			semconv.MessagingDestinationName("registration"),
-		),
-	)
-	span.End()
-	ctx, span = oi.tracer.Start(
-		ctx,
-		"tracer consumer2",
-		trace.WithSpanKind(trace.SpanKindConsumer),
-		trace.WithAttributes(oi.fixedAttrs...),
-		trace.WithAttributes(
-			semconv.MessagingDestinationName("registration"),
-		),
-	)
-	span.End()
-	time.Sleep(1 * time.Second)
-	return ctx
-}
-
 func main() {
 
 	cfg := config.New()
@@ -215,6 +181,7 @@ func foo(ctx context.Context) context.Context {
 			semconv.MessagingDestinationName("registration"),
 		),
 	)
+	time.Sleep(42 * time.Millisecond)
 	span.End()
 	return ctx
 }
