@@ -140,10 +140,10 @@ func (b *Broker) Send(ctx context.Context, msg proto.Message, topic string, key 
 	headers := []kafka.Header{{Key: "request-Id", Value: []byte("header values are binary")}}
 
 	// add span to headers to send via kafka
-	span = createProducerSpan(ctx, headers)
+	headers, span = createProducerSpan(ctx, headers)
 	defer span.End()
 
-	if err = b.producer.Produce(&kafka.Message{
+	if ctx, err = b.producer.Produce(ctx, &kafka.Message{
 		Key:            []byte(key),
 		TopicPartition: kafka.TopicPartition{Topic: &topic},
 		Value:          payload,
@@ -154,7 +154,7 @@ func (b *Broker) Send(ctx context.Context, msg proto.Message, topic string, key 
 	return ctx, nil
 }
 
-func createProducerSpan(ctx context.Context, headers []kafka.Header) trace.Span {
+func createProducerSpan(ctx context.Context, headers []kafka.Header) ([]kafka.Header, trace.Span) {
 	ctx, span := tracer.Start(
 		ctx,
 		"transfer layer Kafka: to target services",
@@ -174,5 +174,5 @@ func createProducerSpan(ctx context.Context, headers []kafka.Header) trace.Span 
 		headers = append(headers, kafka.Header{Key: key, Value: []byte(value)})
 	}
 
-	return span
+	return headers, span
 }
