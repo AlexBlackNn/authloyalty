@@ -24,19 +24,19 @@ func TestRegister_HappyPath(t *testing.T) {
 }
 
 func TestDuplicatedRegistration(t *testing.T) {
-	ctx, st := common.New(t)
+	ctx, testCommon := common.New(t)
 
 	email := gofakeit.Email()
 	pass := common.RandomFakePassword()
 
-	respReg, err := st.AuthClient.Register(ctx, &ssov1.RegisterRequest{
+	respReg, err := testCommon.AuthClient.Register(ctx, &ssov1.RegisterRequest{
 		Email:    email,
 		Password: pass,
 	})
 	require.NoError(t, err)
 	require.NotEmpty(t, respReg.GetUserId())
 
-	respReg, err = st.AuthClient.Register(ctx, &ssov1.RegisterRequest{
+	respReg, err = testCommon.AuthClient.Register(ctx, &ssov1.RegisterRequest{
 		Email:    email,
 		Password: pass,
 	})
@@ -46,7 +46,7 @@ func TestDuplicatedRegistration(t *testing.T) {
 }
 
 func TestAuthRegisterFailCases(t *testing.T) {
-	ctx, st := common.New(t)
+	ctx, testCommon := common.New(t)
 
 	tests := []struct {
 		name        string
@@ -76,7 +76,7 @@ func TestAuthRegisterFailCases(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := st.AuthClient.Register(ctx, &ssov1.RegisterRequest{
+			_, err := testCommon.AuthClient.Register(ctx, &ssov1.RegisterRequest{
 				Email:    tt.email,
 				Password: tt.password,
 			})
