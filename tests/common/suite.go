@@ -1,11 +1,11 @@
-package suite
+package common
 
 import (
 	"context"
 	"fmt"
+	ssov1 "github.com/AlexBlackNn/authloyalty/commands/proto/sso/gen"
 	"github.com/AlexBlackNn/authloyalty/internal/config"
 	"github.com/AlexBlackNn/authloyalty/pkg/tracing"
-	ssov1 "github.com/AlexBlackNn/authloyalty/protos/proto/sso/gen"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel"
 	"google.golang.org/grpc"

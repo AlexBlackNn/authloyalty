@@ -11,19 +11,15 @@ CREATE TABLE IF NOT EXISTS users
     modified TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     full_name text,
     message_status status DEFAULT 'inProgress',
-    PRIMARY KEY (uuid, email)
+    PRIMARY KEY (email, uuid)
 ) PARTITION BY HASH (email);
 
 
-CREATE TABLE users_p1 PARTITION OF users
-    FOR VALUES WITH (MODULUS 4, REMAINDER 0);
-
-CREATE TABLE users_p2 PARTITION OF users
-    FOR VALUES WITH (MODULUS 4, REMAINDER 1);
-
-CREATE TABLE users_p3 PARTITION OF users
-    FOR VALUES WITH (MODULUS 4, REMAINDER 2);
-
-CREATE TABLE users_p4 PARTITION OF users
-    FOR VALUES WITH (MODULUS 4, REMAINDER 3);
-
+DO $$
+    DECLARE
+        i INT;
+    BEGIN
+        FOR i IN 0..3 LOOP
+                EXECUTE format('CREATE TABLE users_p%s PARTITION OF users FOR VALUES WITH (MODULUS 4, REMAINDER %s);', i + 1, i);
+            END LOOP;
+    END $$;

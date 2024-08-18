@@ -16,7 +16,8 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-const ErrCodeUserAlreadyExists = "23505"
+// https://www.postgresql.org/docs/11/errcodes-appendix.html
+const UniqueViolation = "23505"
 
 type Storage struct {
 	dbRead  *sql.DB
@@ -30,30 +31,30 @@ func New(cfg *config.Config) (*Storage, error) {
 	if err != nil {
 		return nil, fmt.Errorf(
 			"DATA LAYER: storage.postgres.New: couldn't open a database for Write: %w",
-			err,
+			storage.ErrConnection,
 		)
 	}
 	dbRead, err := otelsql.Open("pgx", cfg.StoragePatroni.Slave)
 	if err != nil {
 		return nil, fmt.Errorf(
 			"DATA LAYER: storage.postgres.New: couldn't open a database for Read: %w",
-			err,
+			storage.ErrConnection,
 		)
 	}
 	// Open may just validate its arguments without creating a connection to the database.
 	// To verify that the data source name is valid, call DB.Ping.
-	//err = dbRead.Ping()
-	//if err != nil {
-	//	return nil, fmt.Errorf(
-	//		"DATA LAYER: storage.postgres.New: couldn't connect to database for Read: %w", err,
-	//	)
-	//}
-	//err = dbWrite.Ping()
-	//if err != nil {
-	//	return nil, fmt.Errorf(
-	//		"DATA LAYER: storage.postgres.New: couldn't connect to database for Write: %w", err,
-	//	)
-	//}
+	err = dbRead.Ping()
+	if err != nil {
+		return nil, fmt.Errorf(
+			"DATA LAYER: storage.postgres.New: couldn't connect to database for Read: %w", err,
+		)
+	}
+	err = dbWrite.Ping()
+	if err != nil {
+		return nil, fmt.Errorf(
+			"DATA LAYER: storage.postgres.New: couldn't connect to database for Write: %w", err,
+		)
+	}
 	return &Storage{dbRead: dbRead, dbWrite: dbWrite}, nil
 }
 
@@ -70,16 +71,18 @@ func (s *Storage) Stop() error {
 
 // SaveUser saves user to db.
 func (s *Storage) SaveUser(ctx context.Context, email string, passHash []byte) (context.Context, string, error) {
-	ctx, span := tracer.Start(ctx, "data layer Patroni: SaveUser",
-		trace.WithAttributes(attribute.String("handler", "SaveUser")))
+	ctx, span := tracer.Start(
+		ctx, "data layer Patroni: SaveUser",
+		trace.WithAttributes(attribute.String("handler", "SaveUser")),
+	)
 	defer span.End()
 
-	var id string
+	var uuid string
 	query := "INSERT INTO users(email, pass_hash) VALUES($1, $2) RETURNING uuid"
-	err := s.dbWrite.QueryRowContext(ctx, query, email, passHash).Scan(&id)
-	// https://stackoverflow.com/questions/34963064/go-pq-and-postgres-appropriate-error-handling-for-constraints
+	err := s.dbWrite.QueryRowContext(ctx, query, email, passHash).Scan(&uuid)
+	// https://www.postgresql.org/docs/11/protocol-error-fields.html
 	if err, ok := err.(*pgconn.PgError); ok {
-		if err.Code == ErrCodeUserAlreadyExists {
+		if err.Code == UniqueViolation {
 			return ctx, "", storage.ErrUserExists
 		}
 	}
@@ -89,8 +92,7 @@ func (s *Storage) SaveUser(ctx context.Context, email string, passHash []byte) (
 			err,
 		)
 	}
-
-	return ctx, id, nil
+	return ctx, uuid, nil
 }
 
 func (s *Storage) GetUser(ctx context.Context, uuid string) (context.Context, models.User, error) {

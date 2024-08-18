@@ -4,11 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	ssov1 "github.com/AlexBlackNn/authloyalty/commands/proto/sso/gen"
 	"github.com/AlexBlackNn/authloyalty/internal/domain/models"
 	"github.com/AlexBlackNn/authloyalty/internal/services/authservice"
 	"github.com/AlexBlackNn/authloyalty/pkg/storage"
-	ssov1 "github.com/AlexBlackNn/authloyalty/protos/proto/sso/gen"
-	"github.com/prometheus/common/log"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -16,6 +15,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+	log "log/slog"
 )
 
 type AuthorizationInterface interface {
@@ -26,7 +26,7 @@ type AuthorizationInterface interface {
 	Register(
 		ctx context.Context,
 		reqData *models.Register,
-	) (userID string, err error)
+	) (ctxOut context.Context, userID string, err error)
 	Logout(
 		ctx context.Context,
 		reqData *models.Logout,
@@ -158,7 +158,7 @@ func (s *serverAPI) Register(
 	if err = validateRegister(req); err != nil {
 		return nil, err
 	}
-	userID, err := s.auth.Register(
+	ctx, userID, err := s.auth.Register(
 		ctx, &models.Register{Email: req.GetEmail(), Password: req.GetPassword()},
 	)
 	if err != nil {

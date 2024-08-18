@@ -4,15 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/AlexBlackNn/authloyalty/commands/proto/registration.v1/registration.v1"
 	"github.com/AlexBlackNn/authloyalty/internal/config"
 	"github.com/AlexBlackNn/authloyalty/internal/domain/models"
 	jwtlib "github.com/AlexBlackNn/authloyalty/internal/lib/jwt"
 	"github.com/AlexBlackNn/authloyalty/pkg/broker"
 	"github.com/AlexBlackNn/authloyalty/pkg/storage"
-	"github.com/AlexBlackNn/authloyalty/protos/proto/registration/registration.v1"
 	"github.com/golang-jwt/jwt/v5"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/metadata"
@@ -22,7 +23,12 @@ import (
 )
 
 type GetResponseChanSender interface {
-	Send(msg proto.Message, topic string, key string) error
+	Send(
+		ctx context.Context,
+		msg proto.Message,
+		topic string,
+		key string,
+	) (context.Context, error)
 	GetResponseChan() chan *broker.Response
 }
 
@@ -220,7 +226,7 @@ func (a *Auth) Refresh(
 func (a *Auth) Register(
 	ctx context.Context,
 	reqData *models.Register,
-) (string, error) {
+) (context.Context, string, error) {
 
 	const op = "SERVICE LAYER: auth_service.RegisterNewUser"
 
@@ -238,31 +244,50 @@ func (a *Auth) Register(
 		[]byte(reqData.Password), bcrypt.DefaultCost,
 	)
 	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
+		span.SetAttributes(attribute.Bool("error", true))
+		span.RecordError(fmt.Errorf("failed to generate password: %w", err))
 		log.Error("failed to generate password hash", "err", err.Error())
-		return "", fmt.Errorf("%s: %w", op, err)
+		return ctx, "", fmt.Errorf("%s: %w", op, err)
 	}
 	// TODO: move to dto and need to add name
 	ctx, uuid, err := a.userStorage.SaveUser(ctx, reqData.Email, passHash)
 	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
+		span.SetAttributes(attribute.Bool("error", true))
+		span.RecordError(fmt.Errorf("failed to save user: %w", err))
 		log.Error("failed to save user", "err", err.Error())
-		return "", fmt.Errorf("%s: %w", op, err)
+		return ctx, "", fmt.Errorf("%s: %w", op, err)
 	}
+	span.AddEvent("user registered", trace.WithAttributes(attribute.String("user-id", uuid)))
 	log.Info("user registered")
 
 	registrationMsg := registration_v1.RegistrationMessage{
 		Email:    reqData.Email,
 		FullName: reqData.Name,
 	}
-	err = a.producer.Send(&registrationMsg, "registration", uuid)
+	//TODO: registration should be got from config
+	ctx, err = a.producer.Send(ctx, &registrationMsg, "registration", uuid)
 	if err != nil {
 		// TODO: determine the err can be faced
 		// No return here with err!!!, we do continue working (so-called soft degradation)
 		// even kafka does not work, server is still able to process users.
-		log.Error("Sending message to broker failed", "err", err.Error())
+		span.SetStatus(codes.Error, err.Error())
+		span.SetAttributes(attribute.Bool("error", true))
+		span.RecordError(fmt.Errorf("sending message to broker failed %w", err))
+		log.Error("sending message to broker failed", "err", err.Error())
 		ctx, err = a.userStorage.UpdateSendStatus(
-			context.Background(), uuid, "failed",
+			ctx, uuid, "failed",
 		)
 		if err != nil {
+			span.SetStatus(codes.Error, err.Error())
+			span.SetAttributes(attribute.Bool("error", true))
+			span.RecordError(
+				fmt.Errorf(
+					"failed to update message status with uuid %v: %w",
+					uuid, err,
+				),
+			)
 			log.Error(
 				"failed to update message status",
 				"err", err.Error(),
@@ -270,7 +295,11 @@ func (a *Auth) Register(
 			)
 		}
 	}
-	return uuid, nil
+	span.AddEvent(
+		"message to broker was sent successfully",
+		trace.WithAttributes(attribute.String("user-id", uuid)),
+	)
+	return ctx, uuid, nil
 }
 
 // IsAdmin checks if user is admin

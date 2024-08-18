@@ -16,8 +16,8 @@ type Cache struct {
 	client *redis.ClusterClient
 }
 
-func New(cfg *config.Config) *Cache {
-	// NewFailoverClusterClient routes readonly commands to slave nodes
+func New(cfg *config.Config) (*Cache, error) {
+	// NewFailoverClusterClient routes readonly commands to slave nodes.
 	redisClient := redis.NewFailoverClusterClient(&redis.FailoverOptions{
 		MasterName: cfg.RedisSentinel.MasterName,
 		SentinelAddrs: []string{
@@ -30,14 +30,14 @@ func New(cfg *config.Config) *Cache {
 
 	// Enable tracing instrumentation.
 	if err := redisotel.InstrumentTracing(redisClient); err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	// Enable metrics instrumentation.
 	if err := redisotel.InstrumentMetrics(redisClient); err != nil {
-		panic(err)
+		return nil, err
 	}
-	return &Cache{client: redisClient}
+	return &Cache{client: redisClient}, nil
 }
 
 var tracer = otel.Tracer("sso service")
@@ -49,7 +49,7 @@ func (s *Cache) SaveToken(
 ) (context.Context, error) {
 	const op = "DATA LAYER: storage.redis.SaveToken"
 
-	ctx, span := tracer.Start(ctx, "data layer RedisSentinel: SaveToken",
+	ctx, span := tracer.Start(ctx, op,
 		trace.WithAttributes(attribute.String("handler", "SaveToken")))
 	defer span.End()
 
@@ -67,7 +67,7 @@ func (s *Cache) GetToken(
 ) (context.Context, string, error) {
 	const op = "DATA LAYER: storage.redis.GetToken"
 
-	ctx, span := tracer.Start(ctx, "data layer RedisSentinel: GetToken",
+	ctx, span := tracer.Start(ctx, op,
 		trace.WithAttributes(attribute.String("handler", "GetToken")))
 	defer span.End()
 
@@ -84,7 +84,7 @@ func (s *Cache) CheckTokenExists(
 ) (context.Context, int64, error) {
 	const op = "DATA LAYER: storage.redis.CheckTokenExists"
 
-	ctx, span := tracer.Start(ctx, "data layer RedisSentinel: CheckTokenExists",
+	ctx, span := tracer.Start(ctx, op,
 		trace.WithAttributes(attribute.String("handler", "CheckTokenExists")))
 	defer span.End()
 

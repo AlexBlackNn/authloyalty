@@ -1,5 +1,6 @@
 version: "3.5"
 services:
+
   redis_master:
     image: bitnami/redis:6.2.10
     ports:
@@ -220,16 +221,20 @@ services:
   ######################
   ##### MONITORING #####
   ######################
-  #  prometheus:
-  #    image: prom/prometheus
-  #    container_name: prometheus
-  #    ports:
-  #      - 9090:9090
-  #    volumes:
-  #      - ../monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
-  #    command:
-  #      - '--config.file=/etc/prometheus/prometheus.yml'
-  #
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    labels:
+      logging: "promtail"
+      logging_jobname: "containerlogs"
+    ports:
+      - 9090:9090
+    volumes:
+      - ../monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    networks:
+      - proxynet
 
   grafana:
     image: grafana/grafana
@@ -293,6 +298,7 @@ services:
       - "14250:14250"
     environment:
       - QUERY_BASE_PATH=/jaeger
+      - QUERY_MAX_CLOCK_SKEW_ADJUSTMENT=1s
     networks:
       - proxynet
 

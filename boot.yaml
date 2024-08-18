@@ -4,4 +4,4 @@ grpc:
     enabled: true                   # Enable grpc entry
     sw:
       enabled: true                 # Enable swagger
-      jsonPath: "protos/proto/sso/gen"        # Provide swagger config file path
+      jsonPath: "commands/proto/sso/gen"        # Provide swagger config file path

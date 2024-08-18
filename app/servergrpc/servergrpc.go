@@ -1,10 +1,10 @@
 package servergrpc
 
 import (
+	authgen "github.com/AlexBlackNn/authloyalty/commands/proto/sso/gen"
 	"github.com/AlexBlackNn/authloyalty/internal/config"
 	"github.com/AlexBlackNn/authloyalty/internal/handlersgrpc/grpc_v1"
 	"github.com/AlexBlackNn/authloyalty/internal/services/authservice"
-	authgen "github.com/AlexBlackNn/authloyalty/protos/proto/sso/gen"
 	rkboot "github.com/rookie-ninja/rk-boot"
 	rkgrpc "github.com/rookie-ninja/rk-grpc/boot"
 	"google.golang.org/grpc"

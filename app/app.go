@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"github.com/AlexBlackNn/authloyalty/app/servergrpc"
 	"github.com/AlexBlackNn/authloyalty/app/serverhttp"
 	"github.com/AlexBlackNn/authloyalty/internal/config"
@@ -9,11 +10,13 @@ import (
 	"github.com/AlexBlackNn/authloyalty/internal/logger"
 	"github.com/AlexBlackNn/authloyalty/internal/services/authservice"
 	"github.com/AlexBlackNn/authloyalty/pkg/broker"
+	"github.com/AlexBlackNn/authloyalty/pkg/storage"
 	"github.com/AlexBlackNn/authloyalty/pkg/storage/patroni"
 	"github.com/AlexBlackNn/authloyalty/pkg/storage/redissentinel"
 	"github.com/AlexBlackNn/authloyalty/pkg/tracing"
-	"github.com/prometheus/common/log"
+	"go.opentelemetry.io/otel/sdk/trace"
 	"google.golang.org/protobuf/proto"
+	log "log/slog"
 	"time"
 )
 
@@ -53,7 +56,12 @@ type HealthChecker interface {
 }
 
 type SendCloser interface {
-	Send(msg proto.Message, topic string, key string) error
+	Send(
+		ctx context.Context,
+		msg proto.Message,
+		topic string,
+		key string,
+	) (context.Context, error)
 	Close()
 }
 
@@ -67,7 +75,7 @@ type App struct {
 	ServerUserStorage   UserStorage
 	ServerTokenStorage  TokenStorage
 	ServerProducer      SendCloser
-	ServerOpenTelemetry Shutdowner
+	ServerOpenTelemetry *trace.TracerProvider
 }
 
 func (a *App) startHttpServer() chan error {
@@ -92,6 +100,8 @@ func (a *App) Start(ctx context.Context) error {
 		return err
 	}
 }
+
+// TODO: close all unexported methods
 
 func (a *App) Stop() error {
 	log.Info("close user storage client")
@@ -122,12 +132,21 @@ func New() (*App, error) {
 
 	userStorage, err := patroni.New(cfg)
 	if err != nil {
+		if !errors.Is(err, storage.ErrConnection) {
+			return nil, err
+		}
+		log.Warn(err.Error())
+	}
+
+	tokenStorage, err := redissentinel.New(cfg)
+	if err != nil {
 		return nil, err
 	}
 
-	tokenStorage := redissentinel.New(cfg)
-
 	producer, err := broker.NewProducer(cfg.Kafka.KafkaURL, cfg.Kafka.SchemaRegistryURL)
+	if err != nil {
+		return nil, err
+	}
 
 	authService := authservice.New(
 		cfg,
@@ -136,6 +155,8 @@ func New() (*App, error) {
 		tokenStorage,
 		producer,
 	)
+
+	// TODO: init in parallel ErrorGroup
 
 	// http server
 	serverHttp, err := serverhttp.New(cfg, log, authService)

@@ -156,7 +156,7 @@ func (a *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 		errors.New("updateMetric timeout"),
 	)
 	defer cancel()
-	_, err = a.auth.Register(ctx, reqData)
+	ctx, _, err = a.auth.Register(ctx, reqData)
 	if err != nil {
 		fmt.Println(err.Error())
 		// TODO change to service error

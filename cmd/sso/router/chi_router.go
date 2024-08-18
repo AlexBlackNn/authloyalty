@@ -9,6 +9,10 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/httprate"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	httpMetrics "github.com/slok/go-http-metrics/metrics/prometheus"
+	httpMetricMiddleware "github.com/slok/go-http-metrics/middleware"
+	"github.com/slok/go-http-metrics/middleware/std"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 	"log/slog"
 	"time"
@@ -20,6 +24,11 @@ func NewChiRouter(
 	authHandlerV1 http_v1.AuthHandlers,
 	healthHandlerV1 http_v1.HealthHandlers,
 ) *chi.Mux {
+
+	mdlw := httpMetricMiddleware.New(httpMetricMiddleware.Config{
+		Recorder: httpMetrics.NewRecorder(httpMetrics.Config{}),
+	})
+
 	router := chi.NewRouter()
 	router.Use(middleware.RequestID)
 	//	Rate limit by IP and URL path (aka endpoint)
@@ -33,6 +42,7 @@ func NewChiRouter(
 	router.Use(middleware.Recoverer)
 
 	router.Route("/auth", func(r chi.Router) {
+		r.Use(std.HandlerProvider("", mdlw))
 		r.Use(customMiddleware.GzipDecompressor(log))
 		r.Use(customMiddleware.GzipCompressor(log, gzip.BestCompression))
 		r.Get("/ready", healthHandlerV1.ReadinessProbe)
@@ -46,6 +56,8 @@ func NewChiRouter(
 		r.Get("/swagger/*", httpSwagger.Handler(
 			httpSwagger.URL("http://localhost:8000/swagger/doc.json"),
 		))
+		r.Get("/metrics", promhttp.Handler().ServeHTTP)
 	})
+
 	return router
 }

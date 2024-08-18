@@ -1,4 +1,4 @@
-package suite
+package common
 
 import "github.com/brianvoe/gofakeit/v6"
 
