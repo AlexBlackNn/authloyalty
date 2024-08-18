@@ -26,6 +26,24 @@ tasks:
   migrate:
     aliases:
       - migrate
-    desc: "Generate code from proto files for kafka"
+    desc: "Make migrations"
     cmds:
       - cd .. && go run ./cmd/migrator/postgres  --p ./migrations -d postgres://postgres:postgres@localhost:5000/postgres?sslmode=disable
+  prepare-db-test:
+    aliases:
+      - prepare-db-test
+    desc: "Make additional migration needed to tests"
+    cmds:
+      - cd .. && go run ./cmd/migrator/postgres  --p ./tests/migrations -d postgres://postgres:postgres@localhost:5000/postgres?sslmode=disable
+  run-local:
+    aliases:
+      - local
+    desc: "run local sso service"
+    cmds:
+      - cd .. && go run ./cmd/sso/main.go --config=./config/local.yaml
+  run-local-consumer:
+    aliases:
+      - consumer
+    desc: "run local kafka consumer for tests"
+    cmds:
+      - cd .. && go run ./kafka_consumer/main.go --config=./config/local.yaml
