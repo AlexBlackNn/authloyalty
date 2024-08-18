@@ -15,7 +15,7 @@ func TestLogin_Login_HappyPath(t *testing.T) {
 	ctx, testSuite := common.New(t)
 
 	respLogin, err := testSuite.AuthClient.Login(ctx, &ssov1.LoginRequest{
-		Email:    "test@test.com",
+		Email:    "user@test.com",
 		Password: "test",
 	})
 	require.NoError(t, err)
@@ -33,7 +33,7 @@ func TestLogin_Login_HappyPath(t *testing.T) {
 	require.True(t, ok)
 
 	// check out token consists correct information
-	assert.Equal(t, "test@test.com", claims["email"].(string))
+	assert.Equal(t, "user@test.com", claims["email"].(string))
 
 	// checking token expiration time might be only approximate
 	const deltaSeconds = 1
