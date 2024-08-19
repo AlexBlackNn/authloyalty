@@ -15,11 +15,9 @@ cd commands && task demo
 ```
 
 ### Тестов
-
-1. Необходимо подготовить БД 
+ 
 ```bash
-cd commands && task prepare-db-test
-cd ../tests && go test *.go
+cd commands && task tests 
 ```
 
 
