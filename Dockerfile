@@ -7,7 +7,7 @@ FROM scratch
 WORKDIR /app
 COPY --from=build /app/main /app/config/demo.yaml /app/
 COPY --from=build  /app/boot.yaml /app/
-COPY --from=build  /app/protos/proto/sso/gen /app/protos/proto/sso/gen
+COPY --from=build  /app/commands/proto/sso/gen /app/commands/proto/sso/gen
 ENV CONFIG_PATH="/app/demo.yaml"
 ENTRYPOINT ["/app/main"]
 

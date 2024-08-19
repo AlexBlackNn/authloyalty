@@ -2,6 +2,19 @@
 
 Единый сервис авторизации (СА) и управления пользователями 
 
+## Запуск
+
+### Локальный  
+```bash
+cd commands && task local
+```
+
+### На Демо стенде
+```bash
+cd commands && task demo
+```
+
+
 ## Swagger grpc доступен по адресу:
 http://localhost:44044/sw/
 
