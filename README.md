@@ -23,6 +23,7 @@ http://localhost:8000/swagger/index.html
 
 ## Grafana
 http://localhost:3000/grafana/
+Для просмотра метрик, в папке monitoring лежит dashboard  - 6671_rev2.json
 
 ## Prometheus
 http://localhost:9090/targets/
