@@ -14,6 +14,14 @@ cd commands && task local
 cd commands && task demo
 ```
 
+### Тестов
+
+1. Необходимо подготовить БД 
+```bash
+cd commands && task prepare-db-test
+cd ../tests && go test *.go
+```
+
 
 ## Swagger grpc доступен по адресу:
 http://localhost:44044/sw/
