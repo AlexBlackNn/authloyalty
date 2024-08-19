@@ -29,12 +29,13 @@ tasks:
     desc: "Make migrations"
     cmds:
       - cd .. && go run ./cmd/migrator/postgres  --p ./migrations -d postgres://postgres:postgres@localhost:5000/postgres?sslmode=disable
-  prepare-db-test:
+  run-tests:
     aliases:
-      - prepare-db-test
-    desc: "Make additional migration needed to tests"
+      - tests
+    desc: "Make additional migration needed to tests and run tests"
     cmds:
       - cd .. && go run ./cmd/migrator/postgres  --p ./tests/migrations -d postgres://postgres:postgres@localhost:5000/postgres?sslmode=disable
+      - cd ../tests && go test *.go -v
   run-local:
     aliases:
       - local
