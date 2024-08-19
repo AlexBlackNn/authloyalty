@@ -41,6 +41,12 @@ tasks:
     desc: "run local sso service"
     cmds:
       - ./run.sso.local.sh
+  run-demo:
+    aliases:
+      - demo
+    desc: "run demo sso service"
+    cmds:
+      - ./run.sso.demo.sh
   run-local-consumer:
     aliases:
       - consumer
