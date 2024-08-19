@@ -9,6 +9,10 @@
 cd commands && task local
 ```
 
+### На Демо стенде
+```bash
+cd commands && task demo
+```
 
 
 ## Swagger grpc доступен по адресу:
