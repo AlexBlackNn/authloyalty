@@ -29,5 +29,5 @@ server_timeout:
 server_handlers_timeouts:
   loginTimeoutMs: 300
   logoutTimeoutMs: 300
-  registerTimeoutMs: 300
+  registerTimeoutMs: 3000
   refreshTimeoutMs: 300

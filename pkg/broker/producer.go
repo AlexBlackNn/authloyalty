@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/AlexBlackNn/authloyalty/internal/config"
 	"github.com/AlexBlackNn/authloyalty/pkg/tracing/otelconfluent"
 	"github.com/confluentinc/confluent-kafka-go/schemaregistry"
 	"github.com/confluentinc/confluent-kafka-go/schemaregistry/serde"
@@ -36,9 +37,9 @@ var tracer = otel.Tracer(
 	trace.WithInstrumentationVersion(contrib.SemVersion()),
 )
 
-// NewProducer returns kafka producer with schema registry
-func NewProducer(kafkaURL, srURL string) (*Broker, error) {
-	confluentProducer, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": kafkaURL})
+// New returns kafka producer with schema registry
+func New(cfg *config.Config) (*Broker, error) {
+	confluentProducer, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": cfg.Kafka.KafkaURL})
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +47,7 @@ func NewProducer(kafkaURL, srURL string) (*Broker, error) {
 		confluentProducer,
 		tracer,
 	)
-	c, err := schemaregistry.NewClient(schemaregistry.NewConfig(srURL))
+	c, err := schemaregistry.NewClient(schemaregistry.NewConfig(cfg.Kafka.SchemaRegistryURL))
 	if err != nil {
 		return nil, err
 	}

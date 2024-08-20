@@ -143,7 +143,7 @@ func New() (*App, error) {
 		return nil, err
 	}
 
-	producer, err := broker.NewProducer(cfg.Kafka.KafkaURL, cfg.Kafka.SchemaRegistryURL)
+	producer, err := broker.New(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -155,8 +155,6 @@ func New() (*App, error) {
 		tokenStorage,
 		producer,
 	)
-
-	// TODO: init in parallel ErrorGroup
 
 	// http server
 	serverHttp, err := serverhttp.New(cfg, log, authService)

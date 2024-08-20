@@ -34,6 +34,9 @@ http://localhost:3000/grafana/
 ## Prometheus
 http://localhost:9090/targets/
 
+## Kafka UI
+http://localhost:8080
+
 ##  metrics
 http://localhost:8000/metrics 
 
