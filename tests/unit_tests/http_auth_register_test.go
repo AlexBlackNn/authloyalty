@@ -9,7 +9,6 @@ import (
 	"github.com/AlexBlackNn/authloyalty/internal/logger"
 	"github.com/AlexBlackNn/authloyalty/internal/services/authservice"
 	"github.com/AlexBlackNn/authloyalty/pkg/broker"
-	"github.com/AlexBlackNn/authloyalty/pkg/storage/redissentinel"
 	"github.com/AlexBlackNn/authloyalty/tests/unit_tests/mocks"
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/golang-jwt/jwt/v5"
@@ -37,13 +36,10 @@ func (ms *AuthSuite) SetupSuite() {
 	cfg := config.MustLoadByPath("../../config/local.yaml")
 	log := logger.New(cfg.Env)
 
-	// создаём контроллер
 	ctrl := gomock.NewController(ms.T())
 	defer ctrl.Finish()
 
-	// создаём объект-заглушку
 	userStorageMock := mocks.NewMockUserStorage(ctrl)
-	// SaveUser(gomock.Any(), "test@test.com", gomock.Any()).
 	userStorageMock.EXPECT().
 		SaveUser(gomock.Any(), gomock.Any(), gomock.Any()).
 		Return(context.Background(), "79d3ac44-5857-4185-ba92-1a224fbacb51", nil).
@@ -69,20 +65,25 @@ func (ms *AuthSuite) SetupSuite() {
 		Return(context.Background(), nil).
 		AnyTimes()
 
-	ms.Suite.NoError(err)
+	brokerMock := mocks.NewMockGetResponseChanSender(ctrl)
 
-	tokenStorage, err := redissentinel.New(cfg)
-	ms.Suite.NoError(err)
+	brokerMock.EXPECT().
+		Send(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(context.Background(), nil).
+		AnyTimes()
 
-	producer, err := broker.New(cfg)
-	ms.Suite.NoError(err)
+	brokerMock.EXPECT().
+		GetResponseChan().
+		Return(make(chan *broker.Response)).
+		AnyTimes()
 
+	tokenStorageMock := mocks.NewMockTokenStorage(ctrl)
 	authService := authservice.New(
 		cfg,
 		log,
 		userStorageMock,
-		tokenStorage,
-		producer,
+		tokenStorageMock,
+		brokerMock,
 	)
 
 	// http server
