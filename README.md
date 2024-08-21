@@ -17,12 +17,16 @@ cd commands && task local
 cd commands && task demo
 ```
 
-### Тестов
+### Тестов интеграционных
  
 ```bash
-cd commands && task tests 
+cd commands && task integration-tests 
 ```
 
+### Юнит Тестов
+```bash
+cd commands && task unit-tests 
+```
 
 ## Swagger grpc доступен по адресу:
 http://localhost:44044/sw/
