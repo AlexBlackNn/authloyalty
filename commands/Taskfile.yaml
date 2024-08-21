@@ -34,8 +34,8 @@ tasks:
       - tests
     desc: "Make additional migration needed to tests and run tests"
     cmds:
-      - cd .. && go run ./cmd/migrator/postgres  --p ./tests/migrations -d postgres://postgres:postgres@localhost:5000/postgres?sslmode=disable
-      - cd ../tests && go test *.go -v
+      - cd .. && go run ./cmd/migrator/postgres  --p ./tests/integragtion_tests/migrations -d postgres://postgres:postgres@localhost:5000/postgres?sslmode=disable
+      - cd ../tests/integragtion_tests && go test *.go -v
   run-local:
     aliases:
       - local
