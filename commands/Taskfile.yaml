@@ -32,9 +32,15 @@ tasks:
   run-integration-tests:
     aliases:
       - integration-tests
-    desc: "Make additional migration needed to tests and run tests"
+    desc: "Run integration tests"
     cmds:
       - ./run.sso.integration.tests.sh
+  run-unit-tests:
+    aliases:
+      - unit-tests
+    desc: "Run unit tests"
+    cmds:
+      - ./run.sso.unit.tests.sh
   run-local:
     aliases:
       - local
@@ -53,3 +59,10 @@ tasks:
     desc: "run local kafka consumer for tests"
     cmds:
       - cd .. && go run ./kafka_consumer/main.go --config=./config/local.yaml
+  create-mocks:
+    aliases:
+      - mocks
+    desc: "create mocks for infra"
+    cmds:
+      - mockgen -source=../internal/services/authservice/auth.go -destination=../tests/unit_tests/mocks/mock_infra.go -package=mocks UserStorage,TokenStorage,HealthChecker,SendCloser
+

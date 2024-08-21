@@ -1,4 +1,4 @@
-package integragtion_tests
+package unit_tests
 
 import (
 	"bytes"
@@ -9,12 +9,14 @@ import (
 	"github.com/AlexBlackNn/authloyalty/internal/logger"
 	"github.com/AlexBlackNn/authloyalty/internal/services/authservice"
 	"github.com/AlexBlackNn/authloyalty/pkg/broker"
-	"github.com/AlexBlackNn/authloyalty/pkg/storage/patroni"
 	"github.com/AlexBlackNn/authloyalty/pkg/storage/redissentinel"
-	"github.com/AlexBlackNn/authloyalty/tests/integragtion_tests/common"
+	"github.com/AlexBlackNn/authloyalty/tests/unit_tests/mocks"
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/suite"
+	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/net/context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -35,7 +37,38 @@ func (ms *AuthSuite) SetupSuite() {
 	cfg := config.MustLoadByPath("../../config/local.yaml")
 	log := logger.New(cfg.Env)
 
-	userStorage, err := patroni.New(cfg)
+	// создаём контроллер
+	ctrl := gomock.NewController(ms.T())
+	defer ctrl.Finish()
+
+	// создаём объект-заглушку
+	userStorageMock := mocks.NewMockUserStorage(ctrl)
+	// SaveUser(gomock.Any(), "test@test.com", gomock.Any()).
+	userStorageMock.EXPECT().
+		SaveUser(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(context.Background(), "79d3ac44-5857-4185-ba92-1a224fbacb51", nil).
+		AnyTimes()
+
+	passHash, err := bcrypt.GenerateFromPassword(
+		[]byte("test"), bcrypt.DefaultCost,
+	)
+
+	user := models.User{
+		ID:       "79d3ac44-5857-4185-ba92-1a224fbacb51",
+		Email:    "test@test.com",
+		PassHash: passHash,
+		IsAdmin:  false,
+	}
+	userStorageMock.EXPECT().
+		GetUserByEmail(gomock.Any(), gomock.Any()).
+		Return(context.Background(), user, nil).
+		AnyTimes()
+
+	userStorageMock.EXPECT().
+		UpdateSendStatus(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(context.Background(), nil).
+		AnyTimes()
+
 	ms.Suite.NoError(err)
 
 	tokenStorage, err := redissentinel.New(cfg)
@@ -47,7 +80,7 @@ func (ms *AuthSuite) SetupSuite() {
 	authService := authservice.New(
 		cfg,
 		log,
-		userStorage,
+		userStorageMock,
 		tokenStorage,
 		producer,
 	)
@@ -84,8 +117,8 @@ func (ms *AuthSuite) TestHttpServerRegisterHappyPath() {
 	}
 
 	regBody := models.Register{
-		Email:    gofakeit.Email(),
-		Password: common.RandomFakePassword(),
+		Email:    "test@test.com",
+		Password: "test",
 		Name:     gofakeit.Name(),
 		Birthday: gofakeit.Date().Format("2006-01-02"),
 	}

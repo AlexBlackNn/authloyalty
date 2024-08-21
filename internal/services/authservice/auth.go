@@ -227,7 +227,6 @@ func (a *Auth) Register(
 	ctx context.Context,
 	reqData *models.Register,
 ) (context.Context, string, error) {
-
 	const op = "SERVICE LAYER: auth_service.RegisterNewUser"
 
 	ctx, span := tracer.Start(ctx, "service layer: register",
@@ -238,7 +237,6 @@ func (a *Auth) Register(
 		slog.String("trace-id", "trace-id"),
 		slog.String("user-id", "user-id"),
 	)
-
 	log.Info("registering user")
 	passHash, err := bcrypt.GenerateFromPassword(
 		[]byte(reqData.Password), bcrypt.DefaultCost,
@@ -259,9 +257,9 @@ func (a *Auth) Register(
 		log.Error("failed to save user", "err", err.Error())
 		return ctx, "", fmt.Errorf("%s: %w", op, err)
 	}
+
 	span.AddEvent("user registered", trace.WithAttributes(attribute.String("user-id", uuid)))
 	log.Info("user registered")
-
 	registrationMsg := registration_v1.RegistrationMessage{
 		Email:    reqData.Email,
 		FullName: reqData.Name,
