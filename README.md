@@ -163,17 +163,47 @@ ok      command-line-arguments  0.739s
 ```bash
 cd commands && task unit-tests 
 ```
+Ожидаемый вывод 
+```
+time=2024-08-21T22:00:47.313+03:00 level=INFO source=/home/alex/Dev/GolandYandex/authloyalty/internal/middleware/logger.go:30 msg="request completed" component=middleware/logger method=POST path=/auth/registration remote_addr=127.0.0.1:44912 user_agent=Go-http-client/1.1 request_id=pc/0kfqBOKjvE-000001 status=201 bytes=365 duration=105.431685ms
+--- PASS: TestSuite (0.16s)
+    --- PASS: TestSuite/TestHttpServerRegisterHappyPath (0.11s)
+        --- PASS: TestSuite/TestHttpServerRegisterHappyPath/user_registration (0.11s)
+PASS
+ok      command-line-arguments  0.178s
+
+```
 
 ### Доступ к UI:
 
 * [Swagger grpc](http://localhost:44044/sw/)
 * [Swagger http](http://localhost:8000/swagger/index.html)
-* [Grafana](http://localhost:3000/grafana/) - для просмотра метрик. В папке `monitoring` лежит dashboard `6671_rev2.json`.
+
+Пример:
+
+![swagger_http.png](docs%2Fswagger_http.png)
+* [Grafana](http://localhost:3000/grafana/) 
+
+Для просмотра метрик. В папке `monitoring` лежит dashboard `6671_rev2.json`.
+
+![metrics.png](docs%2Fmetrics.png)
+
+Логирование. 
+
+![logs.png](docs%2Flogs.png)
+
 * [Prometheus](http://localhost:9090/targets/)
+* [Jaeger](http://localhost:16686/jaeger/search)
+
+Запустить косьмер в другом терминале, чтобы увидеть распростронение трейса между микросервисами
+```bash
+cd commands && task consumer
+```
+![tracing.png](docs%2Ftracing.png)
+
 * [Kafka UI](http://localhost:8080)
 
-
-
+![kafkaui.png](docs%2Fkafkaui.png)
 
 ----------------------------------------------------
 
