@@ -34,7 +34,7 @@ func New(t *testing.T) (context.Context, *Suite) {
 	t.Helper()   // in case of failure in one of tests to form rightly stack trace
 	t.Parallel() //can run test in parallel to increase performance
 
-	cfg := config.MustLoadByPath("/home/alex/Dev/GolandYandex/authloyalty/config/local.yaml")
+	cfg := config.MustLoadByPath("../../config/local.yaml")
 	tp, err := tracing.Init("testing client", cfg)
 	if err != nil {
 		log.Fatal(err)

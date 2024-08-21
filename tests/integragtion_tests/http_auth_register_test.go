@@ -33,8 +33,7 @@ type AuthSuite struct {
 func (ms *AuthSuite) SetupSuite() {
 	var err error
 
-	//cfg := config.MustLoadByPath("../config/1local.yaml")
-	cfg := config.MustLoadByPath("/home/alex/Dev/GolandYandex/authloyalty/config/local.yaml")
+	cfg := config.MustLoadByPath("../../config/local.yaml")
 	log := logger.New(cfg.Env)
 
 	userStorage, err := patroni.New(cfg)
