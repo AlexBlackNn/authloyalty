@@ -145,7 +145,6 @@ func (a *AuthHandlers) Logout(w http.ResponseWriter, r *http.Request) {
 // @Success 201 {object} models.Response "Register successful"
 // @Router /auth/registration [post]
 func (a *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("000000000000000000000000000000000000", a.cfg)
 	reqData, err := ValidateRequest[*models.Register](w, r, &models.Register{})
 	if err != nil {
 		return

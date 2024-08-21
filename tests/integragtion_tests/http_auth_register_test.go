@@ -2,7 +2,6 @@ package integragtion_tests
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/AlexBlackNn/authloyalty/app/serverhttp"
 	"github.com/AlexBlackNn/authloyalty/cmd/sso/router"
 	"github.com/AlexBlackNn/authloyalty/internal/config"
@@ -55,7 +54,6 @@ func (ms *AuthSuite) SetupSuite() {
 
 	// http server
 	ms.application, err = serverhttp.New(cfg, log, authService)
-	fmt.Println("----f-fs-fs-df-sdf-sd-", ms.application.HandlersV1)
 	ms.Suite.NoError(err)
 	ms.client = http.Client{Timeout: 3 * time.Second}
 }
