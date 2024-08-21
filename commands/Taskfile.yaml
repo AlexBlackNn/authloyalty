@@ -34,7 +34,7 @@ tasks:
       - integration-tests
     desc: "Make additional migration needed to tests and run tests"
     cmds:
-      - ./run.sso.local.tests.sh
+      - ./run.sso.integration.tests.sh
   run-local:
     aliases:
       - local
