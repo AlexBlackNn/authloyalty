@@ -1,4 +1,4 @@
-package tests
+package integragtion_tests
 
 import (
 	"bytes"
@@ -12,7 +12,7 @@ import (
 	"github.com/AlexBlackNn/authloyalty/pkg/broker"
 	"github.com/AlexBlackNn/authloyalty/pkg/storage/patroni"
 	"github.com/AlexBlackNn/authloyalty/pkg/storage/redissentinel"
-	"github.com/AlexBlackNn/authloyalty/tests/common"
+	"github.com/AlexBlackNn/authloyalty/tests/integragtion_tests/common"
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/suite"
@@ -79,7 +79,7 @@ func TestSuite(t *testing.T) {
 	suite.Run(t, new(AuthSuite))
 }
 
-func (ms *AuthSuite) TestServerRegisterHappyPath() {
+func (ms *AuthSuite) TestHttpServerRegisterHappyPath() {
 	type Want struct {
 		code        int
 		response    models.Response

@@ -145,17 +145,18 @@ func (a *AuthHandlers) Logout(w http.ResponseWriter, r *http.Request) {
 // @Success 201 {object} models.Response "Register successful"
 // @Router /auth/registration [post]
 func (a *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("000000000000000000000000000000000000", a.cfg)
 	reqData, err := ValidateRequest[*models.Register](w, r, &models.Register{})
 	if err != nil {
 		return
 	}
-
 	ctx, cancel := context.WithTimeoutCause(
 		r.Context(),
 		time.Duration(a.cfg.ServerHandlersTimeouts.RegisterTimeoutMs)*time.Millisecond,
 		errors.New("updateMetric timeout"),
 	)
 	defer cancel()
+
 	ctx, _, err = a.auth.Register(ctx, reqData)
 	if err != nil {
 		fmt.Println(err.Error())

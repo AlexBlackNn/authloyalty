@@ -1,8 +1,8 @@
-package tests
+package integragtion_tests
 
 import (
 	ssov1 "github.com/AlexBlackNn/authloyalty/commands/proto/sso/gen"
-	"github.com/AlexBlackNn/authloyalty/tests/common"
+	"github.com/AlexBlackNn/authloyalty/tests/integragtion_tests/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"

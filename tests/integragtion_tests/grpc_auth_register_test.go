@@ -1,8 +1,8 @@
-package tests
+package integragtion_tests
 
 import (
 	ssov1 "github.com/AlexBlackNn/authloyalty/commands/proto/sso/gen"
-	"github.com/AlexBlackNn/authloyalty/tests/common"
+	common2 "github.com/AlexBlackNn/authloyalty/tests/integragtion_tests/common"
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -10,10 +10,10 @@ import (
 )
 
 func TestRegisterHappyPath(t *testing.T) {
-	ctx, testSuite := common.New(t)
+	ctx, testSuite := common2.New(t)
 
 	email := gofakeit.Email()
-	password := common.RandomFakePassword()
+	password := common2.RandomFakePassword()
 
 	respReg, err := testSuite.AuthClient.Register(ctx, &ssov1.RegisterRequest{
 		Email:    email,
@@ -24,10 +24,10 @@ func TestRegisterHappyPath(t *testing.T) {
 }
 
 func TestDuplicatedRegistration(t *testing.T) {
-	ctx, testCommon := common.New(t)
+	ctx, testCommon := common2.New(t)
 
 	email := gofakeit.Email()
-	pass := common.RandomFakePassword()
+	pass := common2.RandomFakePassword()
 
 	respReg, err := testCommon.AuthClient.Register(ctx, &ssov1.RegisterRequest{
 		Email:    email,
@@ -46,7 +46,7 @@ func TestDuplicatedRegistration(t *testing.T) {
 }
 
 func TestAuthRegisterFailCases(t *testing.T) {
-	ctx, testCommon := common.New(t)
+	ctx, testCommon := common2.New(t)
 
 	tests := []struct {
 		name        string
@@ -63,7 +63,7 @@ func TestAuthRegisterFailCases(t *testing.T) {
 		{
 			name:        "Register with Empty Email",
 			email:       "",
-			password:    common.RandomFakePassword(),
+			password:    common2.RandomFakePassword(),
 			expectedErr: "email is required",
 		},
 		{

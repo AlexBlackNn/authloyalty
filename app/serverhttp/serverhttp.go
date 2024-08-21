@@ -43,8 +43,10 @@ func New(
 		IdleTimeout:  time.Duration(cfg.ServerTimeout.IdleTimeout) * time.Second,
 	}
 	return &App{
-		Cfg: cfg,
-		Log: log,
-		Srv: srv,
+		Cfg:           cfg,
+		Log:           log,
+		Srv:           srv,
+		HandlersV1:    projectHandlersV1,
+		HealthChecker: healthHandlersV1,
 	}, nil
 }
