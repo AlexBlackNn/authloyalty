@@ -149,13 +149,13 @@ func (a *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
-
 	ctx, cancel := context.WithTimeoutCause(
 		r.Context(),
 		time.Duration(a.cfg.ServerHandlersTimeouts.RegisterTimeoutMs)*time.Millisecond,
 		errors.New("updateMetric timeout"),
 	)
 	defer cancel()
+
 	ctx, _, err = a.auth.Register(ctx, reqData)
 	if err != nil {
 		fmt.Println(err.Error())

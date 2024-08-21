@@ -29,13 +29,18 @@ tasks:
     desc: "Make migrations"
     cmds:
       - cd .. && go run ./cmd/migrator/postgres  --p ./migrations -d postgres://postgres:postgres@localhost:5000/postgres?sslmode=disable
-  run-tests:
+  run-integration-tests:
     aliases:
-      - tests
-    desc: "Make additional migration needed to tests and run tests"
+      - integration-tests
+    desc: "Run integration tests"
     cmds:
-      - cd .. && go run ./cmd/migrator/postgres  --p ./tests/migrations -d postgres://postgres:postgres@localhost:5000/postgres?sslmode=disable
-      - cd ../tests && go test *.go -v
+      - ./run.sso.integration.tests.sh
+  run-unit-tests:
+    aliases:
+      - unit-tests
+    desc: "Run unit tests"
+    cmds:
+      - ./run.sso.unit.tests.sh
   run-local:
     aliases:
       - local
@@ -54,3 +59,10 @@ tasks:
     desc: "run local kafka consumer for tests"
     cmds:
       - cd .. && go run ./kafka_consumer/main.go --config=./config/local.yaml
+  create-mocks:
+    aliases:
+      - mocks
+    desc: "create mocks for infra"
+    cmds:
+      - mockgen -source=../internal/services/authservice/auth.go -destination=../tests/unit_tests/mocks/mock_infra.go -package=mocks UserStorage,TokenStorage,HealthChecker,SendCloser
+

@@ -1,8 +1,8 @@
-package tests
+package integragtion_tests
 
 import (
 	ssov1 "github.com/AlexBlackNn/authloyalty/commands/proto/sso/gen"
-	"github.com/AlexBlackNn/authloyalty/tests/common"
+	common2 "github.com/AlexBlackNn/authloyalty/tests/integragtion_tests/common"
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
@@ -12,10 +12,10 @@ import (
 )
 
 func TestRegisterLoginHappyPath(t *testing.T) {
-	ctx, testCommon := common.New(t)
+	ctx, testCommon := common2.New(t)
 
 	email := gofakeit.Email()
-	password := common.RandomFakePassword()
+	password := common2.RandomFakePassword()
 	respReg, err := testCommon.AuthClient.Register(ctx, &ssov1.RegisterRequest{
 		Email:    email,
 		Password: password,
