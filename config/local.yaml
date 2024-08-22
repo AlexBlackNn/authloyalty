@@ -27,7 +27,7 @@ server_timeout:
   writeTimeout: 10
   idleTimeout: 10
 server_handlers_timeouts:
-  loginTimeoutMs: 300
+  loginTimeoutMs: 5000
   logoutTimeoutMs: 300
-  registerTimeoutMs: 3000
+  registerTimeoutMs: 5000
   refreshTimeoutMs: 300

@@ -8,8 +8,9 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/AlexBlackNn/authloyalty/internal/dto"
+
 	"github.com/AlexBlackNn/authloyalty/internal/config"
-	"github.com/AlexBlackNn/authloyalty/internal/domain"
 	"github.com/AlexBlackNn/authloyalty/internal/services/authservice"
 	"github.com/AlexBlackNn/authloyalty/pkg/storage"
 	"github.com/go-playground/validator/v10"
@@ -31,36 +32,45 @@ type EasyJSONUnmarshaler interface {
 	UnmarshalJSON(data []byte) error
 }
 
-// ValidateRequest validates post body. In case of using "err := render.DecodeJSON(r.Body, &reqData)"
-// can be written as ValidateRequest[T Login | Logout | Refresh | Register](...). In case of using easyjson Login,
+// handleBadRequest validates post body. In case of using "err := render.DecodeJSON(r.Body, &reqData)"
+// can be written as handleBadRequest[T Login | Logout | Refresh | Register](...). In case of using easyjson Login,
 // Logout, Refresh, Register have  UnmarshalJSON method after code generation. EasyJSONUnmarshaler must be use here to
 // work with easyjson.
-func ValidateRequest[T EasyJSONUnmarshaler](w http.ResponseWriter, r *http.Request, reqData T) (T, error) {
+func handleBadRequest[T EasyJSONUnmarshaler](w http.ResponseWriter, r *http.Request, reqData T) (T, error) {
 	if r.Method != http.MethodPost {
-		domain.ResponseErrorNowAllowed(w, "only POST method allowed")
+		dto.ResponseErrorNowAllowed(w, "only POST method allowed")
 		return reqData, errors.New("method not allowed")
 	}
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		domain.ResponseErrorBadRequest(w, "failed to read body")
+		dto.ResponseErrorBadRequest(w, "failed to read body")
 		return reqData, errors.New("failed to read body")
 	}
 	err = reqData.UnmarshalJSON(body)
 	if err != nil {
-		domain.ResponseErrorBadRequest(w, "failed to decode request")
+		dto.ResponseErrorBadRequest(w, "failed to decode request")
 		return reqData, errors.New("failed to decode request")
 	}
 	if err = validator.New().Struct(reqData); err != nil {
 		var validateErr validator.ValidationErrors
 		if errors.As(err, &validateErr) {
-			domain.ResponseErrorBadRequest(w, domain.ValidationError(validateErr))
+			dto.ResponseErrorBadRequest(w, dto.ValidationError(validateErr))
 			return reqData, errors.New("validation error")
 		}
-		domain.ResponseErrorBadRequest(w, "bad request")
+		dto.ResponseErrorBadRequest(w, "bad request")
 		return reqData, errors.New("bad request")
 	}
 	return reqData, nil
+}
+
+func ctxWithTimeoutCause(r *http.Request, cfg *config.Config, textError string) (context.Context, context.CancelFunc) {
+	ctx, cancel := context.WithTimeoutCause(
+		r.Context(),
+		time.Duration(cfg.ServerHandlersTimeouts.LoginTimeoutMs)*time.Millisecond,
+		errors.New(textError),
+	)
+	return ctx, cancel
 }
 
 // @Summary Login
@@ -73,28 +83,24 @@ func ValidateRequest[T EasyJSONUnmarshaler](w http.ResponseWriter, r *http.Reque
 // @Router /auth/login [post]
 func (a *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 
-	reqData, err := ValidateRequest[*domain.Login](w, r, &domain.Login{})
+	reqData, err := handleBadRequest[*dto.Login](w, r, &dto.Login{})
 	if err != nil {
 		return
 	}
 
-	ctx, cancel := context.WithTimeoutCause(
-		r.Context(),
-		time.Duration(a.cfg.ServerHandlersTimeouts.LoginTimeoutMs)*time.Millisecond,
-		errors.New("updateMetric timeout"),
-	)
+	ctx, cancel := ctxWithTimeoutCause(r, a.cfg, "login timeout")
 	defer cancel()
 
 	accessToken, refreshToken, err := a.auth.Login(ctx, reqData)
 	if err != nil {
 		if errors.Is(err, authservice.ErrInvalidCredentials) {
-			domain.ResponseErrorNotFound(w, "user not found")
+			dto.ResponseErrorNotFound(w, "user not found")
 			return
 		}
-		domain.ResponseErrorInternal(w, "internal server error")
+		dto.ResponseErrorInternal(w, "internal server error")
 		return
 	}
-	domain.ResponseOKAccessRefresh(w, accessToken, refreshToken)
+	dto.ResponseOKAccessRefresh(w, accessToken, refreshToken)
 }
 
 // @Summary Logout
@@ -106,34 +112,30 @@ func (a *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} models.Response "Logout successful"
 // @Router /auth/logout [post]
 func (a *AuthHandlers) Logout(w http.ResponseWriter, r *http.Request) {
-	reqData, err := ValidateRequest[*domain.Logout](w, r, &domain.Logout{})
+	reqData, err := handleBadRequest[*dto.Logout](w, r, &dto.Logout{})
 	if err != nil {
 		return
 	}
-	ctx, cancel := context.WithTimeoutCause(
-		r.Context(),
-		time.Duration(a.cfg.ServerHandlersTimeouts.LogoutTimeoutMs)*time.Millisecond,
-		errors.New("updateMetric timeout"),
-	)
+	ctx, cancel := ctxWithTimeoutCause(r, a.cfg, "logout timeout")
 	defer cancel()
 
 	_, err = a.auth.Logout(ctx, reqData)
 	if err != nil {
 		switch {
 		case errors.Is(err, authservice.ErrUserNotFound):
-			domain.ResponseErrorNotFound(w, "user not found")
+			dto.ResponseErrorNotFound(w, "user not found")
 		case errors.Is(err, authservice.ErrTokenRevoked):
-			domain.ResponseErrorStatusConflict(w, "token revoked")
+			dto.ResponseErrorStatusConflict(w, "token revoked")
 		case errors.Is(err, authservice.ErrTokenParsing):
-			domain.ResponseErrorBadRequest(w, "token error")
+			dto.ResponseErrorBadRequest(w, "token error")
 		case errors.Is(err, authservice.ErrTokenTTLExpired):
-			domain.ResponseErrorStatusConflict(w, "token ttl expired")
+			dto.ResponseErrorStatusConflict(w, "token ttl expired")
 		default:
-			domain.ResponseErrorInternal(w, "internal server error")
+			dto.ResponseErrorInternal(w, "internal server error")
 		}
 		return
 	}
-	domain.ResponseOK(w)
+	dto.ResponseOK(w)
 }
 
 // @Summary Registration
@@ -145,41 +147,37 @@ func (a *AuthHandlers) Logout(w http.ResponseWriter, r *http.Request) {
 // @Success 201 {object} models.Response "Register successful"
 // @Router /auth/registration [post]
 func (a *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
-	reqData, err := ValidateRequest[*domain.Register](w, r, &domain.Register{})
+	reqData, err := handleBadRequest[*dto.Register](w, r, &dto.Register{})
 	if err != nil {
 		return
 	}
-	ctx, cancel := context.WithTimeoutCause(
-		r.Context(),
-		time.Duration(a.cfg.ServerHandlersTimeouts.RegisterTimeoutMs)*time.Millisecond,
-		errors.New("updateMetric timeout"),
-	)
+	ctx, cancel := ctxWithTimeoutCause(r, a.cfg, "register timeout")
 	defer cancel()
 
 	ctx, _, err = a.auth.Register(ctx, reqData)
 	if err != nil {
 		// TODO change to service error
 		if errors.Is(err, storage.ErrUserExists) {
-			domain.ResponseErrorStatusConflict(w, "user already exists")
+			dto.ResponseErrorStatusConflict(w, "user already exists")
 			return
 		}
-		domain.ResponseErrorInternal(w, "internal server error")
+		dto.ResponseErrorInternal(w, "internal server error")
 		return
 	}
 
 	accessToken, refreshToken, err := a.auth.Login(
-		ctx, &domain.Login{Email: reqData.Email, Password: reqData.Password},
+		ctx, &dto.Login{Email: reqData.Email, Password: reqData.Password},
 	)
 
 	if err != nil {
 		if errors.Is(err, authservice.ErrInvalidCredentials) {
-			domain.ResponseErrorNotFound(w, "user not found")
+			dto.ResponseErrorNotFound(w, "user not found")
 			return
 		}
-		domain.ResponseErrorInternal(w, "internal server error")
+		dto.ResponseErrorInternal(w, "internal server error")
 		return
 	}
-	domain.ResponseOKAccessRefresh(w, accessToken, refreshToken)
+	dto.ResponseOKAccessRefresh(w, accessToken, refreshToken)
 }
 
 // @Summary Refresh
@@ -191,16 +189,12 @@ func (a *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 // @Success 201 {object} models.Response "Refresh successful"
 // @Router /auth/refresh [post]
 func (a *AuthHandlers) Refresh(w http.ResponseWriter, r *http.Request) {
-	reqData, err := ValidateRequest[*domain.Refresh](w, r, &domain.Refresh{})
+	reqData, err := handleBadRequest[*dto.Refresh](w, r, &dto.Refresh{})
 	if err != nil {
 		return
 	}
 
-	ctx, cancel := context.WithTimeoutCause(
-		r.Context(),
-		time.Duration(a.cfg.ServerHandlersTimeouts.RefreshTimeoutMs)*time.Millisecond,
-		errors.New("updateMetric timeout"),
-	)
+	ctx, cancel := ctxWithTimeoutCause(r, a.cfg, "refresh timeout")
 	defer cancel()
 
 	accessToken, refreshToken, err := a.auth.Refresh(ctx, reqData)
@@ -208,19 +202,19 @@ func (a *AuthHandlers) Refresh(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, authservice.ErrUserNotFound):
-			domain.ResponseErrorNotFound(w, "user not found")
+			dto.ResponseErrorNotFound(w, "user not found")
 		case errors.Is(err, authservice.ErrTokenWrongType):
-			domain.ResponseErrorStatusConflict(w, "token wrong type, expected refresh")
+			dto.ResponseErrorStatusConflict(w, "token wrong type, expected refresh")
 		case errors.Is(err, authservice.ErrTokenRevoked):
-			domain.ResponseErrorStatusConflict(w, "token revoked")
+			dto.ResponseErrorStatusConflict(w, "token revoked")
 		case errors.Is(err, authservice.ErrTokenParsing):
-			domain.ResponseErrorBadRequest(w, "token error")
+			dto.ResponseErrorBadRequest(w, "token error")
 		case errors.Is(err, authservice.ErrTokenTTLExpired):
-			domain.ResponseErrorStatusConflict(w, "token ttl expired")
+			dto.ResponseErrorStatusConflict(w, "token ttl expired")
 		default:
-			domain.ResponseErrorInternal(w, "internal server error")
+			dto.ResponseErrorInternal(w, "internal server error")
 		}
 		return
 	}
-	domain.ResponseOKAccessRefresh(w, accessToken, refreshToken)
+	dto.ResponseOKAccessRefresh(w, accessToken, refreshToken)
 }

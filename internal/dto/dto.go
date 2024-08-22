@@ -1,11 +1,12 @@
-package domain
+package dto
 
 import (
 	"fmt"
-	"github.com/go-playground/validator/v10"
-	"github.com/mailru/easyjson"
 	"net/http"
 	"strings"
+
+	"github.com/go-playground/validator/v10"
+	"github.com/mailru/easyjson"
 )
 
 // DTO http and grpc structures.

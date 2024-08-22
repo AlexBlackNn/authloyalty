@@ -7,7 +7,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/AlexBlackNn/authloyalty/internal/domain"
+	"github.com/AlexBlackNn/authloyalty/internal/dto"
+
 	"github.com/AlexBlackNn/authloyalty/internal/services/authservice"
 )
 
@@ -32,7 +33,7 @@ type Request struct {
 // @Router /auth/ready [get]
 func (m *HealthHandlers) ReadinessProbe(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		domain.ResponseErrorNowAllowed(w, "only GET method allowed")
+		dto.ResponseErrorNowAllowed(w, "only GET method allowed")
 		return
 	}
 	ctx, cancel := context.WithTimeoutCause(r.Context(), 300*time.Millisecond, errors.New("readinessProbe timeout"))
@@ -41,10 +42,10 @@ func (m *HealthHandlers) ReadinessProbe(w http.ResponseWriter, r *http.Request) 
 	ctx, err := m.authservice.HealthCheck(ctx)
 
 	if err != nil {
-		domain.ResponseErrorInternal(w, "internal server error")
+		dto.ResponseErrorInternal(w, "internal server error")
 		return
 	}
-	domain.ResponseOK(w)
+	dto.ResponseOK(w)
 }
 
 // @Summary Проверка, что приложение живо
@@ -55,8 +56,8 @@ func (m *HealthHandlers) ReadinessProbe(w http.ResponseWriter, r *http.Request) 
 // @Router /auth/healthz [get]
 func (m *HealthHandlers) LivenessProbe(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		domain.ResponseErrorNowAllowed(w, "only GET method allowed")
+		dto.ResponseErrorNowAllowed(w, "only GET method allowed")
 		return
 	}
-	domain.ResponseOK(w)
+	dto.ResponseOK(w)
 }

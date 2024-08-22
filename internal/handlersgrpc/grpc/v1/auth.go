@@ -6,8 +6,9 @@ import (
 	"fmt"
 	log "log/slog"
 
+	"github.com/AlexBlackNn/authloyalty/internal/dto"
+
 	ssov1 "github.com/AlexBlackNn/authloyalty/commands/proto/sso/gen"
-	"github.com/AlexBlackNn/authloyalty/internal/domain"
 	"github.com/AlexBlackNn/authloyalty/internal/services/authservice"
 	"github.com/AlexBlackNn/authloyalty/pkg/storage"
 	"go.opentelemetry.io/otel"
@@ -22,15 +23,15 @@ import (
 type AuthorizationInterface interface {
 	Login(
 		ctx context.Context,
-		reqData *domain.Login,
+		reqData *dto.Login,
 	) (accessToken string, refreshToken string, err error)
 	Register(
 		ctx context.Context,
-		reqData *domain.Register,
+		reqData *dto.Register,
 	) (ctxOut context.Context, userID string, err error)
 	Logout(
 		ctx context.Context,
-		reqData *domain.Logout,
+		reqData *dto.Logout,
 	) (success bool, err error)
 	IsAdmin(
 		ctx context.Context,
@@ -42,7 +43,7 @@ type AuthorizationInterface interface {
 	) (success bool, err error)
 	Refresh(
 		ctx context.Context,
-		reqData *domain.Refresh,
+		reqData *dto.Refresh,
 	) (accessToken string, refreshToken string, err error)
 }
 
@@ -89,7 +90,7 @@ func (s *serverAPI) Login(
 	}
 
 	accessToken, refreshToken, err := s.auth.Login(
-		ctx, &domain.Login{Email: req.GetEmail(), Password: req.GetPassword()},
+		ctx, &dto.Login{Email: req.GetEmail(), Password: req.GetPassword()},
 	)
 	if err != nil {
 		fmt.Println(err.Error())
@@ -123,7 +124,7 @@ func (s *serverAPI) Refresh(
 	defer span.End()
 
 	accessToken, refreshToken, err := s.auth.Refresh(
-		ctx, &domain.Refresh{Token: req.GetRefreshToken()},
+		ctx, &dto.Refresh{Token: req.GetRefreshToken()},
 	)
 	if err != nil {
 		if errors.Is(err, authservice.ErrTokenWrongType) {
@@ -160,7 +161,7 @@ func (s *serverAPI) Register(
 		return nil, err
 	}
 	ctx, userID, err := s.auth.Register(
-		ctx, &domain.Register{Email: req.GetEmail(), Password: req.GetPassword()},
+		ctx, &dto.Register{Email: req.GetEmail(), Password: req.GetPassword()},
 	)
 	if err != nil {
 		if errors.Is(err, storage.ErrUserExists) {
@@ -199,7 +200,7 @@ func (s *serverAPI) Logout(
 	req *ssov1.LogoutRequest,
 ) (*ssov1.LogoutResponse, error) {
 	success, err := s.auth.Logout(
-		ctx, &domain.Logout{Token: req.GetToken()},
+		ctx, &dto.Logout{Token: req.GetToken()},
 	)
 	if err != nil {
 		// TODO: add error processing depends on the type of error
