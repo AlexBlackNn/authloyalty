@@ -1,14 +1,15 @@
 package servergrpc
 
 import (
+	"log/slog"
+
 	authgen "github.com/AlexBlackNn/authloyalty/commands/proto/sso/gen"
 	"github.com/AlexBlackNn/authloyalty/internal/config"
-	"github.com/AlexBlackNn/authloyalty/internal/handlersgrpc/grpc_v1"
+	v1 "github.com/AlexBlackNn/authloyalty/internal/handlersgrpc/grpc/v1"
 	"github.com/AlexBlackNn/authloyalty/internal/services/authservice"
 	rkboot "github.com/rookie-ninja/rk-boot"
 	rkgrpc "github.com/rookie-ninja/rk-grpc/boot"
 	"google.golang.org/grpc"
-	"log/slog"
 )
 
 // App service consists all entities needed to work.
@@ -37,6 +38,6 @@ func New(
 
 func registerAuthFunc(authService *authservice.Auth) func(server *grpc.Server) {
 	return func(server *grpc.Server) { // Use the provided server
-		grpc_v1.Register(server, authService)
+		v1.Register(server, authService)
 	}
 }

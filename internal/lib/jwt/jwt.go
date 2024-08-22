@@ -2,15 +2,14 @@ package jwt
 
 import (
 	"github.com/AlexBlackNn/authloyalty/internal/config"
+	"github.com/AlexBlackNn/authloyalty/internal/domain"
 	"github.com/golang-jwt/jwt/v5"
 	"time"
-
-	"github.com/AlexBlackNn/authloyalty/internal/domain/models"
 )
 
 // NewToken creates new JWT token for given user and app.
 func NewToken(
-	user models.User,
+	user domain.User,
 	cfg *config.Config,
 	tokenType string,
 ) (string, error) {

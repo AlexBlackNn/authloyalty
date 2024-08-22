@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/AlexBlackNn/authloyalty/commands/proto/registration.v1/registration.v1"
 	"github.com/AlexBlackNn/authloyalty/internal/config"
-	"github.com/AlexBlackNn/authloyalty/internal/domain/models"
+	"github.com/AlexBlackNn/authloyalty/internal/domain"
 	jwtlib "github.com/AlexBlackNn/authloyalty/internal/lib/jwt"
 	"github.com/AlexBlackNn/authloyalty/pkg/broker"
 	"github.com/AlexBlackNn/authloyalty/pkg/storage"
@@ -41,11 +41,11 @@ type UserStorage interface {
 	GetUser(
 		ctx context.Context,
 		uuid string,
-	) (context.Context, models.User, error)
+	) (context.Context, domain.User, error)
 	GetUserByEmail(
 		ctx context.Context,
 		email string,
-	) (context.Context, models.User, error)
+	) (context.Context, domain.User, error)
 	UpdateSendStatus(
 		ctx context.Context,
 		uuid string,
@@ -154,7 +154,7 @@ func (a *Auth) HealthCheck(ctx context.Context) (context.Context, error) {
 // Login logins users.
 func (a *Auth) Login(
 	ctx context.Context,
-	reqData *models.Login,
+	reqData *domain.Login,
 ) (string, string, error) {
 	ctx, span := tracer.Start(ctx, "service layer: login",
 		trace.WithAttributes(attribute.String("handler", "login")))
@@ -184,7 +184,7 @@ func (a *Auth) Login(
 // Refresh creates new access and refresh tokens.
 func (a *Auth) Refresh(
 	ctx context.Context,
-	reqData *models.Refresh,
+	reqData *domain.Refresh,
 ) (string, string, error) {
 	ctx, span := tracer.Start(ctx, "service layer: refresh",
 		trace.WithAttributes(attribute.String("handler", "refresh")))
@@ -225,7 +225,7 @@ func (a *Auth) Refresh(
 // Register registers new users.
 func (a *Auth) Register(
 	ctx context.Context,
-	reqData *models.Register,
+	reqData *domain.Register,
 ) (context.Context, string, error) {
 	const op = "SERVICE LAYER: auth_service.RegisterNewUser"
 
@@ -320,13 +320,13 @@ func (a *Auth) IsAdmin(
 		return false, fmt.Errorf("%s: %w", op, err)
 	}
 	log.Info("user from database extracted")
-	return user.IsUserAmin(), nil
+	return user.IsAdmin, nil
 }
 
 // Logout revokes tokens
 func (a *Auth) Logout(
 	ctx context.Context,
-	reqData *models.Logout,
+	reqData *domain.Logout,
 ) (success bool, err error) {
 
 	log := a.log.With(
@@ -410,7 +410,7 @@ func (a *Auth) validateToken(ctx context.Context, token string) (context.Context
 }
 
 type userWithTokens struct {
-	user         *models.User
+	user         *domain.User
 	accessToken  string
 	refreshToken string
 	err          error

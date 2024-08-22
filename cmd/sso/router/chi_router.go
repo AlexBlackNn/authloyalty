@@ -2,24 +2,27 @@ package router
 
 import (
 	"compress/gzip"
+
+	v1 "github.com/AlexBlackNn/authloyalty/internal/handlershttp/http/v1"
+
 	_ "github.com/AlexBlackNn/authloyalty/cmd/sso/docs"
 	"github.com/AlexBlackNn/authloyalty/internal/config"
-	"github.com/AlexBlackNn/authloyalty/internal/handlershttp/http_v1"
 	customMiddleware "github.com/AlexBlackNn/authloyalty/internal/middleware"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/httprate"
 
-	httpSwagger "github.com/swaggo/http-swagger/v2"
 	"log/slog"
 	"time"
+
+	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
 func NewChiRouter(
 	cfg *config.Config,
 	log *slog.Logger,
-	authHandlerV1 http_v1.AuthHandlers,
-	healthHandlerV1 http_v1.HealthHandlers,
+	authHandlerV1 v1.AuthHandlers,
+	healthHandlerV1 v1.HealthHandlers,
 ) *chi.Mux {
 
 	//mdlw := httpMetricMiddleware.New(httpMetricMiddleware.Config{

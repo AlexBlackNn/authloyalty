@@ -6,7 +6,7 @@ import (
 	"github.com/AlexBlackNn/authloyalty/app/servergrpc"
 	"github.com/AlexBlackNn/authloyalty/app/serverhttp"
 	"github.com/AlexBlackNn/authloyalty/internal/config"
-	"github.com/AlexBlackNn/authloyalty/internal/domain/models"
+	"github.com/AlexBlackNn/authloyalty/internal/domain"
 	"github.com/AlexBlackNn/authloyalty/internal/logger"
 	"github.com/AlexBlackNn/authloyalty/internal/services/authservice"
 	"github.com/AlexBlackNn/authloyalty/pkg/broker"
@@ -29,7 +29,7 @@ type UserStorage interface {
 	GetUser(
 		ctx context.Context,
 		email string,
-	) (context.Context, models.User, error)
+	) (context.Context, domain.User, error)
 	Stop() error
 }
 

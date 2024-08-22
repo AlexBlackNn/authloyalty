@@ -1,11 +1,13 @@
-package grpc_v1
+package v1
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	log "log/slog"
+
 	ssov1 "github.com/AlexBlackNn/authloyalty/commands/proto/sso/gen"
-	"github.com/AlexBlackNn/authloyalty/internal/domain/models"
+	"github.com/AlexBlackNn/authloyalty/internal/domain"
 	"github.com/AlexBlackNn/authloyalty/internal/services/authservice"
 	"github.com/AlexBlackNn/authloyalty/pkg/storage"
 	"go.opentelemetry.io/otel"
@@ -15,21 +17,20 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
-	log "log/slog"
 )
 
 type AuthorizationInterface interface {
 	Login(
 		ctx context.Context,
-		reqData *models.Login,
+		reqData *domain.Login,
 	) (accessToken string, refreshToken string, err error)
 	Register(
 		ctx context.Context,
-		reqData *models.Register,
+		reqData *domain.Register,
 	) (ctxOut context.Context, userID string, err error)
 	Logout(
 		ctx context.Context,
-		reqData *models.Logout,
+		reqData *domain.Logout,
 	) (success bool, err error)
 	IsAdmin(
 		ctx context.Context,
@@ -41,7 +42,7 @@ type AuthorizationInterface interface {
 	) (success bool, err error)
 	Refresh(
 		ctx context.Context,
-		reqData *models.Refresh,
+		reqData *domain.Refresh,
 	) (accessToken string, refreshToken string, err error)
 }
 
@@ -88,7 +89,7 @@ func (s *serverAPI) Login(
 	}
 
 	accessToken, refreshToken, err := s.auth.Login(
-		ctx, &models.Login{Email: req.GetEmail(), Password: req.GetPassword()},
+		ctx, &domain.Login{Email: req.GetEmail(), Password: req.GetPassword()},
 	)
 	if err != nil {
 		fmt.Println(err.Error())
@@ -122,7 +123,7 @@ func (s *serverAPI) Refresh(
 	defer span.End()
 
 	accessToken, refreshToken, err := s.auth.Refresh(
-		ctx, &models.Refresh{Token: req.GetRefreshToken()},
+		ctx, &domain.Refresh{Token: req.GetRefreshToken()},
 	)
 	if err != nil {
 		if errors.Is(err, authservice.ErrTokenWrongType) {
@@ -159,7 +160,7 @@ func (s *serverAPI) Register(
 		return nil, err
 	}
 	ctx, userID, err := s.auth.Register(
-		ctx, &models.Register{Email: req.GetEmail(), Password: req.GetPassword()},
+		ctx, &domain.Register{Email: req.GetEmail(), Password: req.GetPassword()},
 	)
 	if err != nil {
 		if errors.Is(err, storage.ErrUserExists) {
@@ -198,7 +199,7 @@ func (s *serverAPI) Logout(
 	req *ssov1.LogoutRequest,
 ) (*ssov1.LogoutResponse, error) {
 	success, err := s.auth.Logout(
-		ctx, &models.Logout{Token: req.GetToken()},
+		ctx, &domain.Logout{Token: req.GetToken()},
 	)
 	if err != nil {
 		// TODO: add error processing depends on the type of error

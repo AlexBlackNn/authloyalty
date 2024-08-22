@@ -5,7 +5,7 @@ import (
 	"github.com/AlexBlackNn/authloyalty/app/serverhttp"
 	"github.com/AlexBlackNn/authloyalty/cmd/sso/router"
 	"github.com/AlexBlackNn/authloyalty/internal/config"
-	"github.com/AlexBlackNn/authloyalty/internal/domain/models"
+	"github.com/AlexBlackNn/authloyalty/internal/domain"
 	"github.com/AlexBlackNn/authloyalty/internal/logger"
 	"github.com/AlexBlackNn/authloyalty/internal/services/authservice"
 	"github.com/AlexBlackNn/authloyalty/pkg/broker"
@@ -79,11 +79,11 @@ func TestSuite(t *testing.T) {
 func (ms *AuthSuite) TestHttpServerRegisterHappyPath() {
 	type Want struct {
 		code        int
-		response    models.Response
+		response    domain.Response
 		contentType string
 	}
 
-	regBody := models.Register{
+	regBody := domain.Register{
 		Email:    gofakeit.Email(),
 		Password: common.RandomFakePassword(),
 		Name:     gofakeit.Name(),
@@ -104,7 +104,7 @@ func (ms *AuthSuite) TestHttpServerRegisterHappyPath() {
 		want: Want{
 			code:        http.StatusCreated,
 			contentType: "application/json",
-			response:    models.Response{Status: "Success"},
+			response:    domain.Response{Status: "Success"},
 		},
 	}
 	// stop server when tests finished
@@ -121,7 +121,7 @@ func (ms *AuthSuite) TestHttpServerRegisterHappyPath() {
 		body, err := io.ReadAll(res.Body)
 		ms.NoError(err)
 
-		var response models.Response
+		var response domain.Response
 		err = response.UnmarshalJSON(body)
 		ms.NoError(err)
 		ms.Equal(test.want.response.Status, response.Status)
