@@ -1,4 +1,4 @@
-package lib
+package interceptors
 
 import (
 	"context"
@@ -7,11 +7,11 @@ import (
 	"google.golang.org/grpc"
 )
 
-type Interceptor struct {
+type Tracing struct {
 	tracer trace.Tracer
 }
 
-func (i *Interceptor) Unary() grpc.UnaryServerInterceptor {
+func (i *Tracing) GetInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		ctx, span := i.tracer.Start(ctx, "transport layer: "+info.FullMethod)
 		defer span.End()
@@ -20,6 +20,6 @@ func (i *Interceptor) Unary() grpc.UnaryServerInterceptor {
 	}
 }
 
-func NewInterceptor(tracer trace.Tracer) *Interceptor {
-	return &Interceptor{tracer: tracer}
+func NewTracing(tracer trace.Tracer) *Tracing {
+	return &Tracing{tracer: tracer}
 }

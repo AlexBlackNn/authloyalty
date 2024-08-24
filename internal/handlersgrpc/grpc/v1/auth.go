@@ -12,7 +12,6 @@ import (
 	"github.com/AlexBlackNn/authloyalty/internal/services/authservice"
 	"github.com/AlexBlackNn/authloyalty/pkg/storage"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -76,11 +75,6 @@ func (s *serverAPI) Login(
 	if err != nil {
 		log.Warn(err.Error())
 	}
-
-	ctx, span := s.tracer.Start(ctx, "transport layer: login",
-		trace.WithAttributes(attribute.String("handler", "login")))
-	defer span.End()
-
 	if err = validateLogin(req); err != nil {
 		return nil, err
 	}
@@ -111,10 +105,6 @@ func (s *serverAPI) Refresh(
 		log.Warn(err.Error())
 	}
 
-	ctx, span := s.tracer.Start(ctx, "transport layer: refresh",
-		trace.WithAttributes(attribute.String("handler", "refresh")))
-	defer span.End()
-
 	accessToken, refreshToken, err := s.auth.Refresh(
 		ctx, &dto.Refresh{Token: req.GetRefreshToken()},
 	)
@@ -143,9 +133,6 @@ func (s *serverAPI) Register(
 		log.Warn(err.Error())
 	}
 
-	ctx, span := s.tracer.Start(ctx, "transport layer: register",
-		trace.WithAttributes(attribute.String("handler", "register")))
-	defer span.End()
 	if err = validateRegister(req); err != nil {
 		return nil, err
 	}
@@ -169,6 +156,11 @@ func (s *serverAPI) IsAdmin(
 	ctx context.Context,
 	req *ssov1.IsAdminRequest,
 ) (*ssov1.IsAdminResponse, error) {
+	ctx, err := getContextWithTraceId(ctx)
+	if err != nil {
+		log.Warn(err.Error())
+	}
+
 	if err := validateIsAdmin(req); err != nil {
 		return nil, err
 	}
@@ -188,6 +180,10 @@ func (s *serverAPI) Logout(
 	ctx context.Context,
 	req *ssov1.LogoutRequest,
 ) (*ssov1.LogoutResponse, error) {
+	ctx, err := getContextWithTraceId(ctx)
+	if err != nil {
+		log.Warn(err.Error())
+	}
 	success, err := s.auth.Logout(
 		ctx, &dto.Logout{Token: req.GetToken()},
 	)
@@ -202,6 +198,10 @@ func (s *serverAPI) Validate(
 	ctx context.Context,
 	req *ssov1.ValidateRequest,
 ) (*ssov1.ValidateResponse, error) {
+	ctx, err := getContextWithTraceId(ctx)
+	if err != nil {
+		log.Warn(err.Error())
+	}
 	success, err := s.auth.Validate(ctx, req.GetToken())
 	if err != nil {
 		// TODO: add error processing depends on the type of error
