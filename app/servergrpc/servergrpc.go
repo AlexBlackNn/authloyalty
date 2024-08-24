@@ -6,9 +6,11 @@ import (
 	authgen "github.com/AlexBlackNn/authloyalty/commands/proto/sso/gen"
 	"github.com/AlexBlackNn/authloyalty/internal/config"
 	v1 "github.com/AlexBlackNn/authloyalty/internal/handlersgrpc/grpc/v1"
+	"github.com/AlexBlackNn/authloyalty/internal/lib"
 	"github.com/AlexBlackNn/authloyalty/internal/services/authservice"
 	rkboot "github.com/rookie-ninja/rk-boot"
 	rkgrpc "github.com/rookie-ninja/rk-grpc/boot"
+	"go.opentelemetry.io/otel"
 	"google.golang.org/grpc"
 )
 
@@ -27,6 +29,8 @@ func New(
 	boot := rkboot.NewBoot()
 	// Get grpc entry with name
 	grpcEntry := boot.GetEntry("sso").(*rkgrpc.GrpcEntry)
+	interceptor := lib.NewInterceptor(otel.Tracer("sso service"))
+	grpcEntry.AddUnaryInterceptors(interceptor.Unary())
 	// Register grpc registration function
 	registerAuth := registerAuthFunc(authService)
 	grpcEntry.AddRegFuncGrpc(registerAuth)
