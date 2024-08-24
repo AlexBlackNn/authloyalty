@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
+	"time"
+
 	registrationv1 "github.com/AlexBlackNn/authloyalty/commands/proto/registration.v1/registration.v1"
 	"github.com/AlexBlackNn/authloyalty/internal/config"
 	"github.com/AlexBlackNn/authloyalty/internal/domain"
@@ -19,11 +22,9 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
-	"log/slog"
-	"time"
 )
 
-type GetResponseChanSender interface {
+type getResponseChanSender interface {
 	Send(
 		ctx context.Context,
 		msg proto.Message,
@@ -33,7 +34,7 @@ type GetResponseChanSender interface {
 	GetResponseChan() chan *broker.Response
 }
 
-type UserStorage interface {
+type userStorage interface {
 	SaveUser(
 		ctx context.Context,
 		email string,
@@ -57,7 +58,7 @@ type UserStorage interface {
 	) (context.Context, error)
 }
 
-type TokenStorage interface {
+type tokenStorage interface {
 	SaveToken(
 		ctx context.Context,
 		token string,
@@ -75,9 +76,9 @@ type TokenStorage interface {
 
 type Auth struct {
 	log          *slog.Logger
-	userStorage  UserStorage
-	tokenStorage TokenStorage
-	producer     GetResponseChanSender
+	userStorage  userStorage
+	tokenStorage tokenStorage
+	producer     getResponseChanSender
 	cfg          *config.Config
 }
 
@@ -85,9 +86,9 @@ type Auth struct {
 func New(
 	cfg *config.Config,
 	log *slog.Logger,
-	userStorage UserStorage,
-	tokenStorage TokenStorage,
-	producer GetResponseChanSender,
+	userStorage userStorage,
+	tokenStorage tokenStorage,
+	producer getResponseChanSender,
 ) *Auth {
 	// Channel that is used by kafka to return sent message status.
 	brokerRespChan := producer.GetResponseChan()

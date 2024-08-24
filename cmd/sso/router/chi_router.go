@@ -2,6 +2,8 @@ package router
 
 import (
 	"compress/gzip"
+	"log/slog"
+	"time"
 
 	v1 "github.com/AlexBlackNn/authloyalty/internal/handlershttp/http/v1"
 
@@ -11,9 +13,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/httprate"
-
-	"log/slog"
-	"time"
 
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 )

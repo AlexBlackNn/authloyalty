@@ -3,6 +3,12 @@ package common
 import (
 	"context"
 	"fmt"
+	"log"
+	"net"
+	"strconv"
+	"testing"
+	"time"
+
 	ssov1 "github.com/AlexBlackNn/authloyalty/commands/proto/sso/gen"
 	"github.com/AlexBlackNn/authloyalty/internal/config"
 	"github.com/AlexBlackNn/authloyalty/pkg/tracing"
@@ -11,11 +17,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
-	"log"
-	"net"
-	"strconv"
-	"testing"
-	"time"
 )
 
 const (

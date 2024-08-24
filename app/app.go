@@ -3,6 +3,9 @@ package app
 import (
 	"context"
 	"errors"
+	log "log/slog"
+	"time"
+
 	"github.com/AlexBlackNn/authloyalty/app/servergrpc"
 	"github.com/AlexBlackNn/authloyalty/app/serverhttp"
 	"github.com/AlexBlackNn/authloyalty/internal/config"
@@ -16,11 +19,9 @@ import (
 	"github.com/AlexBlackNn/authloyalty/pkg/tracing"
 	"go.opentelemetry.io/otel/sdk/trace"
 	"google.golang.org/protobuf/proto"
-	log "log/slog"
-	"time"
 )
 
-type UserStorage interface {
+type userStorage interface {
 	SaveUser(
 		ctx context.Context,
 		email string,
@@ -33,7 +34,7 @@ type UserStorage interface {
 	Stop() error
 }
 
-type TokenStorage interface {
+type tokenStorage interface {
 	SaveToken(
 		ctx context.Context,
 		token string,
@@ -49,13 +50,7 @@ type TokenStorage interface {
 	) (context.Context, int64, error)
 }
 
-type HealthChecker interface {
-	HealthCheck(
-		ctx context.Context,
-	) (context.Context, error)
-}
-
-type SendCloser interface {
+type sendCloser interface {
 	Send(
 		ctx context.Context,
 		msg proto.Message,
@@ -65,16 +60,12 @@ type SendCloser interface {
 	Close()
 }
 
-type Shutdowner interface {
-	Shutdown(ctx context.Context) error
-}
-
 type App struct {
 	ServerHttp          *serverhttp.App
 	ServerGrpc          *servergrpc.App
-	ServerUserStorage   UserStorage
-	ServerTokenStorage  TokenStorage
-	ServerProducer      SendCloser
+	ServerUserStorage   userStorage
+	ServerTokenStorage  tokenStorage
+	ServerProducer      sendCloser
 	ServerOpenTelemetry *trace.TracerProvider
 }
 
@@ -102,7 +93,6 @@ func (a *App) Start(ctx context.Context) error {
 }
 
 // TODO: close all unexported methods
-
 func (a *App) Stop() error {
 	log.Info("close user storage client")
 	err := a.ServerUserStorage.Stop()
@@ -130,7 +120,7 @@ func New() (*App, error) {
 	cfg := config.New()
 	log := logger.New(cfg.Env)
 
-	userStorage, err := patroni.New(cfg)
+	usrStorage, err := patroni.New(cfg)
 	if err != nil {
 		if !errors.Is(err, storage.ErrConnection) {
 			return nil, err
@@ -138,7 +128,7 @@ func New() (*App, error) {
 		log.Warn(err.Error())
 	}
 
-	tokenStorage, err := redissentinel.New(cfg)
+	tknStorage, err := redissentinel.New(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -151,8 +141,8 @@ func New() (*App, error) {
 	authService := authservice.New(
 		cfg,
 		log,
-		userStorage,
-		tokenStorage,
+		usrStorage,
+		tknStorage,
 		producer,
 	)
 
@@ -177,8 +167,8 @@ func New() (*App, error) {
 	return &App{
 		ServerHttp:          serverHttp,
 		ServerGrpc:          serverGrpc,
-		ServerUserStorage:   userStorage,
-		ServerTokenStorage:  tokenStorage,
+		ServerUserStorage:   usrStorage,
+		ServerTokenStorage:  tknStorage,
 		ServerProducer:      producer,
 		ServerOpenTelemetry: tp,
 	}, nil

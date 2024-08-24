@@ -20,7 +20,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type AuthorizationInterface interface {
+type grpcAuthorization interface {
 	Login(
 		ctx context.Context,
 		reqData *dto.Login,
@@ -52,11 +52,11 @@ type serverAPI struct {
 	// provides ability to work even without service interface realisation
 	ssov1.UnimplementedAuthServer
 	// service layer
-	auth   AuthorizationInterface
+	auth   grpcAuthorization
 	tracer trace.Tracer
 }
 
-func Register(gRPC *grpc.Server, auth AuthorizationInterface) {
+func Register(gRPC *grpc.Server, auth grpcAuthorization) {
 	ssov1.RegisterAuthServer(gRPC, &serverAPI{auth: auth, tracer: otel.Tracer("sso service")})
 }
 
@@ -75,10 +75,6 @@ func (s *serverAPI) Login(
 	ctx, err := getContextWithTraceId(ctx)
 	if err != nil {
 		log.Warn(err.Error())
-	}
-	_, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
-		log.Warn("metadata is absent in request")
 	}
 
 	ctx, span := s.tracer.Start(ctx, "transport layer: login",
@@ -114,10 +110,6 @@ func (s *serverAPI) Refresh(
 	if err != nil {
 		log.Warn(err.Error())
 	}
-	_, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
-		log.Warn("metadata is absent in request")
-	}
 
 	ctx, span := s.tracer.Start(ctx, "transport layer: refresh",
 		trace.WithAttributes(attribute.String("handler", "refresh")))
@@ -150,10 +142,7 @@ func (s *serverAPI) Register(
 	if err != nil {
 		log.Warn(err.Error())
 	}
-	_, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
-		log.Warn("metadata is absent in request")
-	}
+
 	ctx, span := s.tracer.Start(ctx, "transport layer: register",
 		trace.WithAttributes(attribute.String("handler", "register")))
 	defer span.End()
@@ -252,19 +241,20 @@ func validateIsAdmin(req *ssov1.IsAdminRequest) error {
 }
 
 func getContextWithTraceId(ctx context.Context) (context.Context, error) {
-
-	md, _ := metadata.FromIncomingContext(ctx)
-	traceIdString := md["x-trace-id"]
-	if len(traceIdString) != 0 {
-		traceId, err := trace.TraceIDFromHex(traceIdString[0])
-		if err != nil {
-			return context.Background(), err
-		}
-
-		spanContext := trace.NewSpanContext(trace.SpanContextConfig{
-			TraceID: traceId,
-		})
-		return trace.ContextWithSpanContext(ctx, spanContext), nil
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return ctx, errors.New("metadata is absent in request")
 	}
-	return context.Background(), nil
+	traceIdString, ok := md["x-trace-id"]
+	if !ok {
+		return ctx, errors.New("x-trace-id is absent")
+	}
+	traceId, err := trace.TraceIDFromHex(traceIdString[0])
+	if err != nil {
+		return ctx, err
+	}
+	spanContext := trace.NewSpanContext(trace.SpanContextConfig{
+		TraceID: traceId,
+	})
+	return trace.ContextWithSpanContext(ctx, spanContext), nil
 }

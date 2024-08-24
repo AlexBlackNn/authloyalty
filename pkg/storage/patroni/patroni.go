@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+
 	"github.com/AlexBlackNn/authloyalty/internal/config"
 	"github.com/AlexBlackNn/authloyalty/internal/domain"
 	"github.com/AlexBlackNn/authloyalty/pkg/storage"
@@ -81,8 +82,9 @@ func (s *Storage) SaveUser(ctx context.Context, email string, passHash []byte) (
 	query := "INSERT INTO users(email, pass_hash) VALUES($1, $2) RETURNING uuid"
 	err := s.dbWrite.QueryRowContext(ctx, query, email, passHash).Scan(&uuid)
 	// https://www.postgresql.org/docs/11/protocol-error-fields.html
-	if err, ok := err.(*pgconn.PgError); ok {
-		if err.Code == UniqueViolation {
+	var pgerr *pgconn.PgError
+	if errors.As(err, &pgerr) {
+		if pgerr.Code == UniqueViolation {
 			return ctx, "", storage.ErrUserExists
 		}
 	}

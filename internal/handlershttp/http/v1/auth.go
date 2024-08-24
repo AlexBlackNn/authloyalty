@@ -2,6 +2,7 @@ package v1
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"log/slog"
@@ -16,27 +17,42 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
+type httpAuthorization interface {
+	Login(
+		ctx context.Context,
+		reqData *dto.Login,
+	) (accessToken string, refreshToken string, err error)
+	Register(
+		ctx context.Context,
+		reqData *dto.Register,
+	) (ctxOut context.Context, userID string, err error)
+	Logout(
+		ctx context.Context,
+		reqData *dto.Logout,
+	) (success bool, err error)
+	Refresh(
+		ctx context.Context,
+		reqData *dto.Refresh,
+	) (accessToken string, refreshToken string, err error)
+}
+
 type AuthHandlers struct {
 	log  *slog.Logger
-	auth *authservice.Auth
+	auth httpAuthorization
 	cfg  *config.Config
 }
 
-func New(log *slog.Logger, cfg *config.Config, authService *authservice.Auth) AuthHandlers {
+func New(log *slog.Logger, cfg *config.Config, authService httpAuthorization) AuthHandlers {
 	return AuthHandlers{log: log, cfg: cfg, auth: authService}
 }
 
-// EasyJSONUnmarshaler provides ability easyjson lib to work with generic type.
-// In case of using "err := render.DecodeJSON(r.Body, &reqData)" it can be deleted.
-type EasyJSONUnmarshaler interface {
-	UnmarshalJSON(data []byte) error
-}
-
-// handleBadRequest validates post body. In case of using "err := render.DecodeJSON(r.Body, &reqData)"
+// handleBadRequest validates post body and writes messages to client. In case of using "err := render.DecodeJSON(r.Body, &reqData)"
 // can be written as handleBadRequest[T Login | Logout | Refresh | Register](...). In case of using easyjson Login,
-// Logout, Refresh, Register have  UnmarshalJSON method after code generation. EasyJSONUnmarshaler must be use here to
+// Logout, Refresh, Register have  UnmarshalJSON method after code generation. json.Unmarshaler must be use here to
 // work with easyjson.
-func handleBadRequest[T EasyJSONUnmarshaler](w http.ResponseWriter, r *http.Request, reqData T) (T, error) {
+// Unmarshaler provides ability easyjson lib to work with generic type.
+// In case of using "err := render.DecodeJSON(r.Body, &reqData)" it can be deleted.
+func handleBadRequest[T json.Unmarshaler](w http.ResponseWriter, r *http.Request, reqData T) (T, error) {
 	if r.Method != http.MethodPost {
 		dto.ResponseErrorNowAllowed(w, "only POST method allowed")
 		return reqData, errors.New("method not allowed")

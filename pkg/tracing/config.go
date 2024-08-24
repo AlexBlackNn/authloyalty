@@ -2,6 +2,7 @@ package tracing
 
 import (
 	"context"
+
 	"github.com/AlexBlackNn/authloyalty/internal/config"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"

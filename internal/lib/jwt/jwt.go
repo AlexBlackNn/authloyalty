@@ -1,10 +1,11 @@
 package jwt
 
 import (
+	"time"
+
 	"github.com/AlexBlackNn/authloyalty/internal/config"
 	"github.com/AlexBlackNn/authloyalty/internal/domain"
 	"github.com/golang-jwt/jwt/v5"
-	"time"
 )
 
 // NewToken creates new JWT token for given user and app.
