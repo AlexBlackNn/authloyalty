@@ -1,5 +1,44 @@
 version: "3.5"
 services:
+  nginx:
+    container_name: nginx
+    image: nginx:latest
+    labels:
+      logging: "promtail"
+      logging_jobname: "containerlogs"
+    volumes:
+      - ../nginx/.htpasswd:/etc/nginx/.htpasswd:ro
+      - ../nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ../nginx/configs:/etc/nginx/conf.d:ro
+      - ../nginx/key.pem:/root/ssl/key.pem
+      - ../nginx/cert.pem:/root/ssl/cert.pem
+      - ./data:/data/:ro
+    ports:
+      - "443:443"
+    depends_on:
+      - sso_loadbalancer
+      - sso
+    networks:
+      - proxynet
+
+
+  sso_loadbalancer:
+    image: nginxproxy/nginx-proxy
+    labels:
+      logging: "promtail"
+      logging_jobname: "containerlogs"
+    ports:
+      - 8090:80
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ../nginx_balancer/sso_nginx.tmpl:/app/nginx.tmpl
+    environment:
+      - DEFAULT_HOST=sso-loadbalancer
+    depends_on:
+      - sso
+    networks:
+      - proxynet
+
   sso:
     build:
       context: ../.
