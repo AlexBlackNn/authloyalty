@@ -7,18 +7,18 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/AlexBlackNn/authloyalty/sso/internal/dto"
+	"github.com/AlexBlackNn/authloyalty/loyalty/internal/dto"
 
-	"github.com/AlexBlackNn/authloyalty/sso/internal/services/authservice"
+	"github.com/AlexBlackNn/authloyalty/loyalty/internal/services/loyaltyservice"
 )
 
 type HealthHandlers struct {
-	log         *slog.Logger
-	authservice *authservice.Auth
+	log            *slog.Logger
+	loyaltyService *loyaltyservice.Loyalty
 }
 
-func NewHealth(log *slog.Logger, authservice *authservice.Auth) HealthHandlers {
-	return HealthHandlers{log: log, authservice: authservice}
+func NewHealth(log *slog.Logger, loyaltyService *loyaltyservice.Loyalty) HealthHandlers {
+	return HealthHandlers{log: log, loyaltyService: loyaltyService}
 }
 
 type Request struct {
@@ -39,7 +39,7 @@ func (m *HealthHandlers) ReadinessProbe(w http.ResponseWriter, r *http.Request) 
 	ctx, cancel := context.WithTimeoutCause(r.Context(), 300*time.Millisecond, errors.New("readinessProbe timeout"))
 	defer cancel()
 
-	ctx, err := m.authservice.HealthCheck(ctx)
+	ctx, err := m.loyaltyService.HealthCheck(ctx)
 
 	if err != nil {
 		dto.ResponseErrorInternal(w, "internal server error")

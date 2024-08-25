@@ -11,8 +11,8 @@ import (
 	"time"
 
 	registrationv1 "github.com/AlexBlackNn/authloyalty/commands/proto/registration.v1/registration.v1"
-	"github.com/AlexBlackNn/authloyalty/sso/internal/config"
-	"github.com/AlexBlackNn/authloyalty/sso/pkg/tracing"
+	"github.com/AlexBlackNn/authloyalty/loyalty/internal/config"
+	"github.com/AlexBlackNn/authloyalty/loyalty/pkg/tracing"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/confluentinc/confluent-kafka-go/v2/schemaregistry"
 	"github.com/confluentinc/confluent-kafka-go/v2/schemaregistry/serde"

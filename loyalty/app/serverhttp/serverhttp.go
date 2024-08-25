@@ -2,6 +2,7 @@ package serverhttp
 
 import (
 	"fmt"
+	"github.com/AlexBlackNn/authloyalty/loyalty/internal/services/loyaltyservice"
 	"log/slog"
 	"net/http"
 	"time"
@@ -13,23 +14,23 @@ import (
 
 // App service consists all entities needed to work.
 type App struct {
-	Cfg           *config.Config
-	Log           *slog.Logger
-	Srv           *http.Server
-	authService   *loyaltyservice.Auth
-	HandlersV1    v1.AuthHandlers
-	HealthChecker v1.HealthHandlers
+	Cfg            *config.Config
+	Log            *slog.Logger
+	Srv            *http.Server
+	loyaltyService *loyaltyservice.Loyalty
+	HandlersV1     v1.AuthHandlers
+	HealthChecker  v1.HealthHandlers
 }
 
 // New creates App collecting handlers and server
 func New(
 	cfg *config.Config,
 	log *slog.Logger,
-	authService *loyaltyservice.Auth,
+	loyaltyService *loyaltyservice.Loyalty,
 ) (*App, error) {
 
-	projectHandlersV1 := v1.New(log, cfg, authService)
-	healthHandlersV1 := v1.NewHealth(log, authService)
+	projectHandlersV1 := v1.New(log, cfg, loyaltyService)
+	healthHandlersV1 := v1.NewHealth(log, loyaltyService)
 	srv := &http.Server{
 		Addr: fmt.Sprintf(cfg.Address),
 		Handler: router.NewChiRouter(

@@ -9,35 +9,20 @@ import (
 	"github.com/mailru/easyjson"
 )
 
-// DTO http and grpc structures.
+// Input
 
-type Login struct {
-	Email    string `json:"email" validate:"email"`
-	Password string `json:"password"`
+type UserLoyalty struct {
+	UUID  string `json:"uuid" validate:"uuid"`
+	Value int    `json:"value"`
 }
 
-type Register struct {
-	Email    string `json:"email" validate:"email"`
-	Password string `json:"password" validate:"required"`
-	Name     string `json:"name"`
-	Birthday string `json:"birthday"`
-}
-
-type Refresh struct {
-	Token string `json:"token" validate:"jwt"`
-}
-
-type Logout struct {
-	Token string `json:"token" validate:"jwt"`
-}
-
-// Output http structures.
+// Output
 
 type Response struct {
-	Status       string `json:"status"`
-	Error        string `json:"error,omitempty"`
-	AccessToken  string `json:"access_token,omitempty"`
-	RefreshToken string `json:"refresh_token,omitempty"`
+	Status string `json:"status"`
+	Error  string `json:"error,omitempty"`
+	UUID   string `json:"uuid,omitempty"`
+	Value  int    `json:"value,omitempty"`
 }
 
 const StatusError = "Error"
@@ -117,16 +102,16 @@ func ResponseOK(w http.ResponseWriter) {
 	sendJSON(w, http.StatusOK, dataMarshal)
 }
 
-func ResponseOKAccessRefresh(
+func ResponseOKLoyalty(
 	w http.ResponseWriter,
-	accessToken string,
-	refreshToken string,
+	uuid string,
+	value int,
 ) {
 	dataMarshal, _ := easyjson.Marshal(
 		Response{
-			Status:       StatusSuccess,
-			AccessToken:  accessToken,
-			RefreshToken: refreshToken,
+			Status: StatusSuccess,
+			UUID:   uuid,
+			Value:  value,
 		},
 	)
 	sendJSON(w, http.StatusCreated, dataMarshal)

@@ -146,7 +146,7 @@ var tracer = otel.Tracer("sso service")
 // HealthCheck returns service health check.
 func (a *Auth) HealthCheck(ctx context.Context) (context.Context, error) {
 	log := a.log.With(
-		slog.String("info", "SERVICE LAYER: metrics_service.HealthCheck"),
+		slog.String("info", "SERVICE LAYER: HealthCheck"),
 	)
 	log.Info("starts getting health check")
 	defer log.Info("finish getting health check")

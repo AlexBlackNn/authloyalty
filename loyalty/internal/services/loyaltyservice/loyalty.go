@@ -2,154 +2,77 @@ package loyaltyservice
 
 import (
 	"context"
-	"errors"
-	"log/slog"
-	"time"
-
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/config"
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/domain"
-	"github.com/AlexBlackNn/authloyalty/sso/pkg/broker"
 	"go.opentelemetry.io/otel"
-	"google.golang.org/protobuf/proto"
+	"log/slog"
 )
 
-type getResponseChanSender interface {
-	Send(
+type loyaltyStorage interface {
+	AddLoyalty(
 		ctx context.Context,
-		msg proto.Message,
-		topic string,
-		key string,
-	) (context.Context, error)
-	GetResponseChan() chan *broker.Response
+		loyalty domain.UserLoyalty,
+	) (context.Context, domain.UserLoyalty, error)
+	SubLoyalty(
+		ctx context.Context,
+		loyalty domain.UserLoyalty,
+	) (context.Context, domain.UserLoyalty, error)
+	GetLoyalty(
+		ctx context.Context,
+		loyalty domain.UserLoyalty,
+	) (context.Context, domain.UserLoyalty, error)
+	HealthCheck(context.Context) (context.Context, error)
+	Stop() error
 }
 
-type userStorage interface {
-	SaveUser(
-		ctx context.Context,
-		email string,
-		passHash []byte,
-	) (context.Context, string, error)
-	GetUser(
-		ctx context.Context,
-		uuid string,
-	) (context.Context, domain.User, error)
-	GetUserByEmail(
-		ctx context.Context,
-		email string,
-	) (context.Context, domain.User, error)
-	UpdateSendStatus(
-		ctx context.Context,
-		uuid string,
-		status string,
-	) (context.Context, error)
-	HealthCheck(
-		ctx context.Context,
-	) (context.Context, error)
-}
-
-type tokenStorage interface {
-	SaveToken(
-		ctx context.Context,
-		token string,
-		ttl time.Duration,
-	) (context.Context, error)
-	GetToken(
-		ctx context.Context,
-		token string,
-	) (context.Context, string, error)
-	CheckTokenExists(
-		ctx context.Context,
-		token string,
-	) (context.Context, int64, error)
-}
-
-type Auth struct {
-	log          *slog.Logger
-	userStorage  userStorage
-	tokenStorage tokenStorage
-	producer     getResponseChanSender
+type Loyalty struct {
 	cfg          *config.Config
+	log          *slog.Logger
+	loyalStorage loyaltyStorage
 }
 
 // New returns a new instance of Auth service
 func New(
 	cfg *config.Config,
 	log *slog.Logger,
-	userStorage userStorage,
-	tokenStorage tokenStorage,
-	producer getResponseChanSender,
-) *Auth {
-	// Channel that is used by kafka to return sent message status.
-	brokerRespChan := producer.GetResponseChan()
-	// Getting status (async) from channel to determine if a message was sent successfully.
-	go func() {
-		for brokerResponse := range brokerRespChan {
-			if brokerResponse.Err != nil {
-				if errors.Is(brokerResponse.Err, broker.KafkaError) {
-					log.Error("broker error", "err", brokerResponse.Err)
-					continue
-				}
-				log.Error(
-					"broker response error on message",
-					"err", brokerResponse.Err,
-					"uuid", brokerResponse.UserUUID,
-				)
-				_, err := userStorage.UpdateSendStatus(
-					context.Background(), brokerResponse.UserUUID, "failed",
-				)
-				if err != nil {
-					log.Error(
-						"failed to update message status",
-						"err", err.Error(),
-						"uuid", brokerResponse.UserUUID,
-					)
-				}
-				continue
-			}
-			_, err := userStorage.UpdateSendStatus(
-				context.Background(),
-				brokerResponse.UserUUID,
-				"successful",
-			)
-			if err != nil {
-				log.Error("failed to update message status", "err", err.Error())
-			}
-		}
-	}()
-
-	return &Auth{
-		log:          log,
-		userStorage:  userStorage,
-		tokenStorage: tokenStorage,
-		producer:     producer,
+	loyalStorage loyaltyStorage,
+) *Loyalty {
+	return &Loyalty{
 		cfg:          cfg,
+		log:          log,
+		loyalStorage: loyalStorage,
 	}
 }
 
 var tracer = otel.Tracer("sso service")
 
 // HealthCheck returns service health check.
-func (a *Auth) HealthCheck(ctx context.Context) (context.Context, error) {
-	log := a.log.With(
-		slog.String("info", "SERVICE LAYER: metrics_service.HealthCheck"),
+func (l *Loyalty) HealthCheck(ctx context.Context) (context.Context, error) {
+	log := l.log.With(
+		slog.String("info", "SERVICE LAYER: HealthCheck"),
 	)
 	log.Info("starts getting health check")
 	defer log.Info("finish getting health check")
-	return a.userStorage.HealthCheck(ctx)
+	return l.loyalStorage.HealthCheck(ctx)
 }
 
-// Logout revokes tokens
-func (a *Auth) Logout(
+func (l *Loyalty) GetLoyalty(
 	ctx context.Context,
-	,
-) (success bool, err error) {
-
+	userLoyalty domain.UserLoyalty,
+) (domain.UserLoyalty, error) {
+	return domain.UserLoyalty{UUID: "e1d07926-0dda-4b1c-a284-1919da8da752", Value: 100}, nil
 }
 
-// Validate validates tokens
-func (a *Auth) Validate(
+func (l *Loyalty) AddGetLoyalty(
 	ctx context.Context,
-	token string,
-) (success bool, err error) {
+	userLoyalty domain.UserLoyalty,
+) (domain.UserLoyalty, error) {
+	return domain.UserLoyalty{UUID: "e1d07926-0dda-4b1c-a284-1919da8da752", Value: 100}, nil
+}
 
+func (l *Loyalty) SubLoyalty(
+	ctx context.Context,
+	userLoyalty domain.UserLoyalty,
+) (domain.UserLoyalty, error) {
+	return domain.UserLoyalty{UUID: "e1d07926-0dda-4b1c-a284-1919da8da752", Value: 100}, nil
 }

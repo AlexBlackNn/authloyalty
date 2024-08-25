@@ -8,7 +8,6 @@ import (
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/domain"
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/logger"
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/services/loyaltyservice"
-	"github.com/AlexBlackNn/authloyalty/loyalty/pkg/broker"
 	"github.com/AlexBlackNn/authloyalty/loyalty/pkg/storage"
 	"github.com/AlexBlackNn/authloyalty/loyalty/pkg/storage/patroni"
 	"github.com/AlexBlackNn/authloyalty/loyalty/pkg/tracing"
@@ -18,17 +17,17 @@ import (
 )
 
 type loyaltyStorage interface {
-	AddLoyaly(
+	AddLoyalty(
 		ctx context.Context,
-		loyalty domain.UserLoyalty,
+		userLoyalty domain.UserLoyalty,
 	) (context.Context, domain.UserLoyalty, error)
 	SubLoyalty(
 		ctx context.Context,
-		loyalty domain.UserLoyalty,
+		userLoyalty domain.UserLoyalty,
 	) (context.Context, domain.UserLoyalty, error)
 	GetLoyalty(
 		ctx context.Context,
-		loyalty domain.UserLoyalty,
+		userLoyalty domain.UserLoyalty,
 	) (context.Context, domain.UserLoyalty, error)
 	Stop() error
 }
@@ -52,17 +51,10 @@ func New() (*App, error) {
 		log.Warn(err.Error())
 	}
 
-	// must be a consumer
-	producer, err := broker.New(cfg)
-	if err != nil {
-		return nil, err
-	}
-
 	authService := loyaltyservice.New(
 		cfg,
 		log,
 		loyalStorage,
-		producer,
 	)
 
 	// http server
@@ -79,8 +71,7 @@ func New() (*App, error) {
 
 	return &App{
 		ServerHttp:           serverHttp,
-		ServerLoyaltyStorage: loyaltyStorage(),
-		ServerProducer:       producer,
+		ServerLoyaltyStorage: loyalStorage,
 		ServerOpenTelemetry:  tp,
 	}, nil
 }
@@ -109,12 +100,10 @@ func (a *App) Start(ctx context.Context) error {
 // TODO: close all unexported methods
 func (a *App) Stop() error {
 	log.Info("close user storage client")
-	err := a.ServerUserStorage.Stop()
+	err := a.ServerLoyaltyStorage.Stop()
 	if err != nil {
 		return err
 	}
-	log.Info("close information bus client")
-	a.ServerProducer.Close()
 
 	log.Info("close http server")
 	err = a.ServerHttp.Srv.Close()
