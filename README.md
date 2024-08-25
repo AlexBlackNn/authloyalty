@@ -299,3 +299,20 @@ https://www.youtube.com/watch?v=UEwkn0iHDzA&list=PLNxnp_rzlqf6z1cC0IkIwp6yjsBboX
 
 ### nginx balancer
 grpc https://www.vinsguru.com/grpc-load-balancing-with-nginx/ 
+
+```bash
+curl -k --header "Content-Type: application/json" --request POST --data '{"email":"test@test.com","type":"test"}' https://localhost:443/auth/login/ 
+```
+
+```bash
+curl -k --header "Content-Type: application/json" --request GET http://localhost:8090/auth/ready
+```
+
+
+```bash
+curl -k --header "Content-Type: application/json" --request POST --data '{"email":"test@test.com","password":"test"}' http://localhost:8090/auth/registration
+```
+
+```bash
+curl -k --header "Content-Type: application/json" --request POST --data '{"email":"test@test.com","password":"test"}' http://localhost:8090/auth/login
+```
