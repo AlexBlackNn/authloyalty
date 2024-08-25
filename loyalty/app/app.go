@@ -3,78 +3,48 @@ package app
 import (
 	"context"
 	"errors"
-	log "log/slog"
-	"time"
-
+	"github.com/AlexBlackNn/authloyalty/loyalty/app/serverhttp"
+	"github.com/AlexBlackNn/authloyalty/loyalty/internal/config"
+	"github.com/AlexBlackNn/authloyalty/loyalty/internal/domain"
+	"github.com/AlexBlackNn/authloyalty/loyalty/internal/logger"
+	"github.com/AlexBlackNn/authloyalty/loyalty/internal/services/loyaltyservice"
+	"github.com/AlexBlackNn/authloyalty/loyalty/pkg/broker"
+	"github.com/AlexBlackNn/authloyalty/loyalty/pkg/storage"
+	"github.com/AlexBlackNn/authloyalty/loyalty/pkg/storage/patroni"
+	"github.com/AlexBlackNn/authloyalty/loyalty/pkg/tracing"
 	"github.com/AlexBlackNn/authloyalty/sso/app/servergrpc"
-	"github.com/AlexBlackNn/authloyalty/sso/app/serverhttp"
-	"github.com/AlexBlackNn/authloyalty/sso/internal/config"
-	"github.com/AlexBlackNn/authloyalty/sso/internal/domain"
-	"github.com/AlexBlackNn/authloyalty/sso/internal/logger"
-	"github.com/AlexBlackNn/authloyalty/sso/internal/services/authservice"
-	"github.com/AlexBlackNn/authloyalty/sso/pkg/broker"
-	"github.com/AlexBlackNn/authloyalty/sso/pkg/storage"
-	"github.com/AlexBlackNn/authloyalty/sso/pkg/storage/patroni"
-	"github.com/AlexBlackNn/authloyalty/sso/pkg/storage/redissentinel"
-	"github.com/AlexBlackNn/authloyalty/sso/pkg/tracing"
 	"go.opentelemetry.io/otel/sdk/trace"
-	"google.golang.org/protobuf/proto"
+	log "log/slog"
 )
 
-type userStorage interface {
-	SaveUser(
+type loyaltyStorage interface {
+	AddLoyaly(
 		ctx context.Context,
-		email string,
-		passHash []byte,
-	) (context.Context, string, error)
-	GetUser(
+		loyalty domain.UserLoyalty,
+	) (context.Context, domain.UserLoyalty, error)
+	SubLoyalty(
 		ctx context.Context,
-		email string,
-	) (context.Context, domain.User, error)
+		loyalty domain.UserLoyalty,
+	) (context.Context, domain.UserLoyalty, error)
+	GetLoyalty(
+		ctx context.Context,
+		loyalty domain.UserLoyalty,
+	) (context.Context, domain.UserLoyalty, error)
 	Stop() error
 }
 
-type tokenStorage interface {
-	SaveToken(
-		ctx context.Context,
-		token string,
-		ttl time.Duration,
-	) (context.Context, error)
-	GetToken(
-		ctx context.Context,
-		token string,
-	) (context.Context, string, error)
-	CheckTokenExists(
-		ctx context.Context,
-		token string,
-	) (context.Context, int64, error)
-}
-
-type sendCloser interface {
-	Send(
-		ctx context.Context,
-		msg proto.Message,
-		topic string,
-		key string,
-	) (context.Context, error)
-	Close()
-}
-
 type App struct {
-	ServerHttp          *serverhttp.App
-	ServerGrpc          *servergrpc.App
-	ServerUserStorage   userStorage
-	ServerTokenStorage  tokenStorage
-	ServerProducer      sendCloser
-	ServerOpenTelemetry *trace.TracerProvider
+	ServerHttp           *serverhttp.App
+	ServerGrpc           *servergrpc.App
+	ServerLoyaltyStorage loyaltyStorage
+	ServerOpenTelemetry  *trace.TracerProvider
 }
 
 func New() (*App, error) {
-
 	cfg := config.New()
 	log := logger.New(cfg.Env)
 
-	usrStorage, err := patroni.New(cfg)
+	loyalStorage, err := patroni.New(cfg)
 	if err != nil {
 		if !errors.Is(err, storage.ErrConnection) {
 			return nil, err
@@ -82,32 +52,21 @@ func New() (*App, error) {
 		log.Warn(err.Error())
 	}
 
-	tknStorage, err := redissentinel.New(cfg)
-	if err != nil {
-		return nil, err
-	}
-
+	// must be a consumer
 	producer, err := broker.New(cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	authService := authservice.New(
+	authService := loyaltyservice.New(
 		cfg,
 		log,
-		usrStorage,
-		tknStorage,
+		loyalStorage,
 		producer,
 	)
 
 	// http server
 	serverHttp, err := serverhttp.New(cfg, log, authService)
-	if err != nil {
-		return nil, err
-	}
-
-	// grpc server
-	serverGrpc, err := servergrpc.New(cfg, log, authService)
 	if err != nil {
 		return nil, err
 	}
@@ -119,12 +78,10 @@ func New() (*App, error) {
 	}
 
 	return &App{
-		ServerHttp:          serverHttp,
-		ServerGrpc:          serverGrpc,
-		ServerUserStorage:   usrStorage,
-		ServerTokenStorage:  tknStorage,
-		ServerProducer:      producer,
-		ServerOpenTelemetry: tp,
+		ServerHttp:           serverHttp,
+		ServerLoyaltyStorage: loyaltyStorage(),
+		ServerProducer:       producer,
+		ServerOpenTelemetry:  tp,
 	}, nil
 }
 
@@ -138,19 +95,7 @@ func (a *App) startHTTPServer() chan error {
 	return errChan
 }
 
-func (a *App) startGRPCServer() chan error {
-	errChan := make(chan error)
-	go func() {
-		if err := a.ServerGrpc.Start(); err != nil {
-			errChan <- err
-		}
-	}()
-	return errChan
-}
-
 func (a *App) Start(ctx context.Context) error {
-	log.Info("grpc server starting")
-	errGRPCChan := a.startGRPCServer()
 	log.Info("http server starting")
 	errHTTPChan := a.startHTTPServer()
 	select {
@@ -158,8 +103,6 @@ func (a *App) Start(ctx context.Context) error {
 		return a.Stop()
 	case httpErr := <-errHTTPChan:
 		return httpErr
-	case grpcErr := <-errGRPCChan:
-		return grpcErr
 	}
 }
 
@@ -178,9 +121,6 @@ func (a *App) Stop() error {
 	if err != nil {
 		return err
 	}
-
-	log.Info("close grpc server")
-	a.ServerGrpc.Server.Stop()
 
 	log.Info("close open telemetry client")
 	err = a.ServerOpenTelemetry.Shutdown(context.Background())

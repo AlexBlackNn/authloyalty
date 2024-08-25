@@ -3,7 +3,7 @@ package tracing
 import (
 	"context"
 
-	"github.com/AlexBlackNn/authloyalty/sso/internal/config"
+	"github.com/AlexBlackNn/authloyalty/loyalty/internal/config"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/jaeger"

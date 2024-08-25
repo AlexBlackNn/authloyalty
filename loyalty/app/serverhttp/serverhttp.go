@@ -6,10 +6,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/AlexBlackNn/authloyalty/sso/cmd/sso/router"
-	"github.com/AlexBlackNn/authloyalty/sso/internal/config"
-	"github.com/AlexBlackNn/authloyalty/sso/internal/handlershttp/http/v1"
-	"github.com/AlexBlackNn/authloyalty/sso/internal/services/authservice"
+	"github.com/AlexBlackNn/authloyalty/loyalty/cmd/sso/router"
+	"github.com/AlexBlackNn/authloyalty/loyalty/internal/config"
+	"github.com/AlexBlackNn/authloyalty/loyalty/internal/handlershttp/http/v1"
 )
 
 // App service consists all entities needed to work.
@@ -17,7 +16,7 @@ type App struct {
 	Cfg           *config.Config
 	Log           *slog.Logger
 	Srv           *http.Server
-	authService   *authservice.Auth
+	authService   *loyaltyservice.Auth
 	HandlersV1    v1.AuthHandlers
 	HealthChecker v1.HealthHandlers
 }
@@ -26,7 +25,7 @@ type App struct {
 func New(
 	cfg *config.Config,
 	log *slog.Logger,
-	authService *authservice.Auth,
+	authService *loyaltyservice.Auth,
 ) (*App, error) {
 
 	projectHandlersV1 := v1.New(log, cfg, authService)

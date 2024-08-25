@@ -20,7 +20,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/AlexBlackNn/authloyalty/sso/pkg/tracing/otelconfluent/internal"
+	"github.com/AlexBlackNn/authloyalty/loyalty/pkg/tracing/otelconfluent/internal"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 
 	"go.opentelemetry.io/contrib"
