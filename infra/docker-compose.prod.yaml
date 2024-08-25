@@ -16,13 +16,13 @@ services:
     ports:
       - "443:443"
     depends_on:
-      - sso_loadbalancer
+      - sso_http_loadbalancer
       - sso
     networks:
       - proxynet
 
 
-  sso_loadbalancer:
+  sso_http_loadbalancer:
     image: nginxproxy/nginx-proxy
     labels:
       logging: "promtail"
@@ -31,9 +31,26 @@ services:
       - 8090:80
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ../nginx_balancer/sso_nginx.tmpl:/app/nginx.tmpl
+      - ../nginx_balancer/sso_http_nginx.tmpl:/app/nginx.tmpl
     environment:
-      - DEFAULT_HOST=sso-loadbalancer
+      - DEFAULT_HOST=sso-http-loadbalancer
+    depends_on:
+      - sso
+    networks:
+      - proxynet
+
+  sso_grpc_loadbalancer:
+    image: nginxproxy/nginx-proxy
+    labels:
+      logging: "promtail"
+      logging_jobname: "containerlogs"
+    ports:
+      - 8091:80
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ../nginx_balancer/sso_grpc_nginx.tmpl:/app/nginx.tmpl
+    environment:
+      - DEFAULT_HOST=sso-grpc-loadbalancer
     depends_on:
       - sso
     networks:
@@ -50,7 +67,7 @@ services:
       logging: "promtail"
       logging_jobname: "containerlogs"
     environment:
-      - VIRTUAL_HOST=sso-loadbalancer
+      - VIRTUAL_HOST=sso-http-loadbalancer,sso-grpc-loadbalancer
     depends_on:
       - jaeger
       - loki
