@@ -1,6 +1,5 @@
 version: "3.5"
 services:
-
   redis_master:
     image: bitnami/redis:6.2.10
     ports:

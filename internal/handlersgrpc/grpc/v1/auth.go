@@ -1,35 +1,36 @@
-package grpc_v1
+package v1
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	log "log/slog"
+
+	"github.com/AlexBlackNn/authloyalty/internal/dto"
+
 	ssov1 "github.com/AlexBlackNn/authloyalty/commands/proto/sso/gen"
-	"github.com/AlexBlackNn/authloyalty/internal/domain/models"
 	"github.com/AlexBlackNn/authloyalty/internal/services/authservice"
 	"github.com/AlexBlackNn/authloyalty/pkg/storage"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
-	log "log/slog"
 )
 
-type AuthorizationInterface interface {
+type grpcAuthorization interface {
 	Login(
 		ctx context.Context,
-		reqData *models.Login,
+		reqData *dto.Login,
 	) (accessToken string, refreshToken string, err error)
 	Register(
 		ctx context.Context,
-		reqData *models.Register,
+		reqData *dto.Register,
 	) (ctxOut context.Context, userID string, err error)
 	Logout(
 		ctx context.Context,
-		reqData *models.Logout,
+		reqData *dto.Logout,
 	) (success bool, err error)
 	IsAdmin(
 		ctx context.Context,
@@ -41,7 +42,7 @@ type AuthorizationInterface interface {
 	) (success bool, err error)
 	Refresh(
 		ctx context.Context,
-		reqData *models.Refresh,
+		reqData *dto.Refresh,
 	) (accessToken string, refreshToken string, err error)
 }
 
@@ -50,11 +51,11 @@ type serverAPI struct {
 	// provides ability to work even without service interface realisation
 	ssov1.UnimplementedAuthServer
 	// service layer
-	auth   AuthorizationInterface
+	auth   grpcAuthorization
 	tracer trace.Tracer
 }
 
-func Register(gRPC *grpc.Server, auth AuthorizationInterface) {
+func Register(gRPC *grpc.Server, auth grpcAuthorization) {
 	ssov1.RegisterAuthServer(gRPC, &serverAPI{auth: auth, tracer: otel.Tracer("sso service")})
 }
 
@@ -74,21 +75,12 @@ func (s *serverAPI) Login(
 	if err != nil {
 		log.Warn(err.Error())
 	}
-	_, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
-		log.Warn("metadata is absent in request")
-	}
-
-	ctx, span := s.tracer.Start(ctx, "transport layer: login",
-		trace.WithAttributes(attribute.String("handler", "login")))
-	defer span.End()
-
 	if err = validateLogin(req); err != nil {
 		return nil, err
 	}
 
 	accessToken, refreshToken, err := s.auth.Login(
-		ctx, &models.Login{Email: req.GetEmail(), Password: req.GetPassword()},
+		ctx, &dto.Login{Email: req.GetEmail(), Password: req.GetPassword()},
 	)
 	if err != nil {
 		fmt.Println(err.Error())
@@ -112,17 +104,9 @@ func (s *serverAPI) Refresh(
 	if err != nil {
 		log.Warn(err.Error())
 	}
-	_, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
-		log.Warn("metadata is absent in request")
-	}
-
-	ctx, span := s.tracer.Start(ctx, "transport layer: refresh",
-		trace.WithAttributes(attribute.String("handler", "refresh")))
-	defer span.End()
 
 	accessToken, refreshToken, err := s.auth.Refresh(
-		ctx, &models.Refresh{Token: req.GetRefreshToken()},
+		ctx, &dto.Refresh{Token: req.GetRefreshToken()},
 	)
 	if err != nil {
 		if errors.Is(err, authservice.ErrTokenWrongType) {
@@ -148,18 +132,12 @@ func (s *serverAPI) Register(
 	if err != nil {
 		log.Warn(err.Error())
 	}
-	_, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
-		log.Warn("metadata is absent in request")
-	}
-	ctx, span := s.tracer.Start(ctx, "transport layer: register",
-		trace.WithAttributes(attribute.String("handler", "register")))
-	defer span.End()
+
 	if err = validateRegister(req); err != nil {
 		return nil, err
 	}
 	ctx, userID, err := s.auth.Register(
-		ctx, &models.Register{Email: req.GetEmail(), Password: req.GetPassword()},
+		ctx, &dto.Register{Email: req.GetEmail(), Password: req.GetPassword()},
 	)
 	if err != nil {
 		if errors.Is(err, storage.ErrUserExists) {
@@ -178,6 +156,11 @@ func (s *serverAPI) IsAdmin(
 	ctx context.Context,
 	req *ssov1.IsAdminRequest,
 ) (*ssov1.IsAdminResponse, error) {
+	ctx, err := getContextWithTraceId(ctx)
+	if err != nil {
+		log.Warn(err.Error())
+	}
+
 	if err := validateIsAdmin(req); err != nil {
 		return nil, err
 	}
@@ -197,8 +180,12 @@ func (s *serverAPI) Logout(
 	ctx context.Context,
 	req *ssov1.LogoutRequest,
 ) (*ssov1.LogoutResponse, error) {
+	ctx, err := getContextWithTraceId(ctx)
+	if err != nil {
+		log.Warn(err.Error())
+	}
 	success, err := s.auth.Logout(
-		ctx, &models.Logout{Token: req.GetToken()},
+		ctx, &dto.Logout{Token: req.GetToken()},
 	)
 	if err != nil {
 		// TODO: add error processing depends on the type of error
@@ -211,6 +198,10 @@ func (s *serverAPI) Validate(
 	ctx context.Context,
 	req *ssov1.ValidateRequest,
 ) (*ssov1.ValidateResponse, error) {
+	ctx, err := getContextWithTraceId(ctx)
+	if err != nil {
+		log.Warn(err.Error())
+	}
 	success, err := s.auth.Validate(ctx, req.GetToken())
 	if err != nil {
 		// TODO: add error processing depends on the type of error
@@ -250,19 +241,20 @@ func validateIsAdmin(req *ssov1.IsAdminRequest) error {
 }
 
 func getContextWithTraceId(ctx context.Context) (context.Context, error) {
-
-	md, _ := metadata.FromIncomingContext(ctx)
-	traceIdString := md["x-trace-id"]
-	if len(traceIdString) != 0 {
-		traceId, err := trace.TraceIDFromHex(traceIdString[0])
-		if err != nil {
-			return context.Background(), err
-		}
-
-		spanContext := trace.NewSpanContext(trace.SpanContextConfig{
-			TraceID: traceId,
-		})
-		return trace.ContextWithSpanContext(ctx, spanContext), nil
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return ctx, errors.New("metadata is absent in request")
 	}
-	return context.Background(), nil
+	traceIdString, ok := md["x-trace-id"]
+	if !ok {
+		return ctx, errors.New("x-trace-id is absent")
+	}
+	traceId, err := trace.TraceIDFromHex(traceIdString[0])
+	if err != nil {
+		return ctx, err
+	}
+	spanContext := trace.NewSpanContext(trace.SpanContextConfig{
+		TraceID: traceId,
+	})
+	return trace.ContextWithSpanContext(ctx, spanContext), nil
 }

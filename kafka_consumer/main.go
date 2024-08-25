@@ -6,7 +6,11 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/AlexBlackNn/authloyalty/commands/proto/registration.v1/registration.v1"
+	log "log/slog"
+	"os"
+	"time"
+
+	registration_v1 "github.com/AlexBlackNn/authloyalty/commands/proto/registration.v1/registration.v1"
 	"github.com/AlexBlackNn/authloyalty/internal/config"
 	"github.com/AlexBlackNn/authloyalty/pkg/tracing"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
@@ -18,9 +22,6 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	"go.opentelemetry.io/otel/trace"
-	log "log/slog"
-	"os"
-	"time"
 )
 
 type OTelInterceptor struct {

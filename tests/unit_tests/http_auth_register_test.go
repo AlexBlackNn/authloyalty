@@ -2,10 +2,17 @@ package unit_tests
 
 import (
 	"bytes"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+
 	"github.com/AlexBlackNn/authloyalty/app/serverhttp"
 	"github.com/AlexBlackNn/authloyalty/cmd/sso/router"
 	"github.com/AlexBlackNn/authloyalty/internal/config"
-	"github.com/AlexBlackNn/authloyalty/internal/domain/models"
+	"github.com/AlexBlackNn/authloyalty/internal/domain"
+	"github.com/AlexBlackNn/authloyalty/internal/dto"
 	"github.com/AlexBlackNn/authloyalty/internal/logger"
 	"github.com/AlexBlackNn/authloyalty/internal/services/authservice"
 	"github.com/AlexBlackNn/authloyalty/pkg/broker"
@@ -16,11 +23,6 @@ import (
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/net/context"
-	"io"
-	"net/http"
-	"net/http/httptest"
-	"testing"
-	"time"
 )
 
 type AuthSuite struct {
@@ -49,7 +51,7 @@ func (ms *AuthSuite) SetupSuite() {
 		[]byte("test"), bcrypt.DefaultCost,
 	)
 
-	user := models.User{
+	user := domain.User{
 		ID:       "79d3ac44-5857-4185-ba92-1a224fbacb51",
 		Email:    "test@test.com",
 		PassHash: passHash,
@@ -113,11 +115,11 @@ func TestSuite(t *testing.T) {
 func (ms *AuthSuite) TestHttpServerRegisterHappyPath() {
 	type Want struct {
 		code        int
-		response    models.Response
+		response    dto.Response
 		contentType string
 	}
 
-	regBody := models.Register{
+	regBody := dto.Register{
 		Email:    "test@test.com",
 		Password: "test",
 		Name:     gofakeit.Name(),
@@ -138,7 +140,7 @@ func (ms *AuthSuite) TestHttpServerRegisterHappyPath() {
 		want: Want{
 			code:        http.StatusCreated,
 			contentType: "application/json",
-			response:    models.Response{Status: "Success"},
+			response:    dto.Response{Status: "Success"},
 		},
 	}
 	// stop server when tests finished
@@ -155,7 +157,7 @@ func (ms *AuthSuite) TestHttpServerRegisterHappyPath() {
 		body, err := io.ReadAll(res.Body)
 		ms.NoError(err)
 
-		var response models.Response
+		var response dto.Response
 		err = response.UnmarshalJSON(body)
 		ms.NoError(err)
 		ms.Equal(test.want.response.Status, response.Status)

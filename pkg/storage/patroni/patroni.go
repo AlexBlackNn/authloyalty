@@ -5,8 +5,9 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+
 	"github.com/AlexBlackNn/authloyalty/internal/config"
-	"github.com/AlexBlackNn/authloyalty/internal/domain/models"
+	"github.com/AlexBlackNn/authloyalty/internal/domain"
 	"github.com/AlexBlackNn/authloyalty/pkg/storage"
 	"github.com/XSAM/otelsql"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -81,8 +82,9 @@ func (s *Storage) SaveUser(ctx context.Context, email string, passHash []byte) (
 	query := "INSERT INTO users(email, pass_hash) VALUES($1, $2) RETURNING uuid"
 	err := s.dbWrite.QueryRowContext(ctx, query, email, passHash).Scan(&uuid)
 	// https://www.postgresql.org/docs/11/protocol-error-fields.html
-	if err, ok := err.(*pgconn.PgError); ok {
-		if err.Code == UniqueViolation {
+	var pgerr *pgconn.PgError
+	if errors.As(err, &pgerr) {
+		if pgerr.Code == UniqueViolation {
 			return ctx, "", storage.ErrUserExists
 		}
 	}
@@ -95,7 +97,7 @@ func (s *Storage) SaveUser(ctx context.Context, email string, passHash []byte) (
 	return ctx, uuid, nil
 }
 
-func (s *Storage) GetUser(ctx context.Context, uuid string) (context.Context, models.User, error) {
+func (s *Storage) GetUser(ctx context.Context, uuid string) (context.Context, domain.User, error) {
 	ctx, span := tracer.Start(ctx, "data layer Patroni: GetUser",
 		trace.WithAttributes(attribute.String("handler", "GetUser")))
 	defer span.End()
@@ -103,16 +105,16 @@ func (s *Storage) GetUser(ctx context.Context, uuid string) (context.Context, mo
 	query := "SELECT uuid, email, pass_hash, is_admin FROM users WHERE (uuid = $1);"
 	row := s.dbRead.QueryRowContext(ctx, query, uuid)
 
-	var user models.User
+	var user domain.User
 	err := row.Scan(&user.ID, &user.Email, &user.PassHash, &user.IsAdmin)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return ctx, models.User{}, fmt.Errorf(
+			return ctx, domain.User{}, fmt.Errorf(
 				"DATA LAYER: storage.postgres.GetUser: %w",
 				storage.ErrUserNotFound,
 			)
 		}
-		return ctx, models.User{}, fmt.Errorf(
+		return ctx, domain.User{}, fmt.Errorf(
 			"DATA LAYER: storage.postgres.GetUser: %w",
 			err,
 		)
@@ -120,7 +122,7 @@ func (s *Storage) GetUser(ctx context.Context, uuid string) (context.Context, mo
 	return ctx, user, nil
 }
 
-func (s *Storage) GetUserByEmail(ctx context.Context, email string) (context.Context, models.User, error) {
+func (s *Storage) GetUserByEmail(ctx context.Context, email string) (context.Context, domain.User, error) {
 	ctx, span := tracer.Start(ctx, "data layer Patroni: GetUser",
 		trace.WithAttributes(attribute.String("handler", "GetUser")))
 	defer span.End()
@@ -128,16 +130,16 @@ func (s *Storage) GetUserByEmail(ctx context.Context, email string) (context.Con
 	query := "SELECT uuid, email, pass_hash, is_admin FROM users WHERE (email = $1);"
 	row := s.dbRead.QueryRowContext(ctx, query, email)
 
-	var user models.User
+	var user domain.User
 	err := row.Scan(&user.ID, &user.Email, &user.PassHash, &user.IsAdmin)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return ctx, models.User{}, fmt.Errorf(
+			return ctx, domain.User{}, fmt.Errorf(
 				"DATA LAYER: storage.postgres.GetUser: %w",
 				storage.ErrUserNotFound,
 			)
 		}
-		return ctx, models.User{}, fmt.Errorf(
+		return ctx, domain.User{}, fmt.Errorf(
 			"DATA LAYER: storage.postgres.GetUser: %w",
 			err,
 		)

@@ -1,14 +1,15 @@
 package integragtion_tests
 
 import (
+	"testing"
+	"time"
+
 	ssov1 "github.com/AlexBlackNn/authloyalty/commands/proto/sso/gen"
 	common2 "github.com/AlexBlackNn/authloyalty/tests/integragtion_tests/common"
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
-	"time"
 )
 
 func TestLoginHappyPath(t *testing.T) {

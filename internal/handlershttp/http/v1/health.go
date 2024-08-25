@@ -1,13 +1,15 @@
-package http_v1
+package v1
 
 import (
 	"context"
 	"errors"
-	"github.com/AlexBlackNn/authloyalty/internal/domain/models"
-	"github.com/AlexBlackNn/authloyalty/internal/services/authservice"
 	"log/slog"
 	"net/http"
 	"time"
+
+	"github.com/AlexBlackNn/authloyalty/internal/dto"
+
+	"github.com/AlexBlackNn/authloyalty/internal/services/authservice"
 )
 
 type HealthHandlers struct {
@@ -31,7 +33,7 @@ type Request struct {
 // @Router /auth/ready [get]
 func (m *HealthHandlers) ReadinessProbe(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		models.ResponseErrorNowAllowed(w, "only GET method allowed")
+		dto.ResponseErrorNowAllowed(w, "only GET method allowed")
 		return
 	}
 	ctx, cancel := context.WithTimeoutCause(r.Context(), 300*time.Millisecond, errors.New("readinessProbe timeout"))
@@ -40,10 +42,10 @@ func (m *HealthHandlers) ReadinessProbe(w http.ResponseWriter, r *http.Request) 
 	ctx, err := m.authservice.HealthCheck(ctx)
 
 	if err != nil {
-		models.ResponseErrorInternal(w, "internal server error")
+		dto.ResponseErrorInternal(w, "internal server error")
 		return
 	}
-	models.ResponseOK(w)
+	dto.ResponseOK(w)
 }
 
 // @Summary Проверка, что приложение живо
@@ -54,8 +56,8 @@ func (m *HealthHandlers) ReadinessProbe(w http.ResponseWriter, r *http.Request) 
 // @Router /auth/healthz [get]
 func (m *HealthHandlers) LivenessProbe(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		models.ResponseErrorNowAllowed(w, "only GET method allowed")
+		dto.ResponseErrorNowAllowed(w, "only GET method allowed")
 		return
 	}
-	models.ResponseOK(w)
+	dto.ResponseOK(w)
 }

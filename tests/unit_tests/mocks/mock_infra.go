@@ -6,10 +6,10 @@ package mocks
 
 import (
 	context "context"
+	models "github.com/AlexBlackNn/authloyalty/internal/domain"
 	reflect "reflect"
 	time "time"
 
-	models "github.com/AlexBlackNn/authloyalty/internal/domain/models"
 	broker "github.com/AlexBlackNn/authloyalty/pkg/broker"
 	gomock "github.com/golang/mock/gomock"
 	proto "google.golang.org/protobuf/proto"

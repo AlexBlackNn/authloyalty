@@ -4,9 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/AlexBlackNn/authloyalty/commands/proto/registration.v1/registration.v1"
+	"log/slog"
+	"time"
+
+	registrationv1 "github.com/AlexBlackNn/authloyalty/commands/proto/registration.v1/registration.v1"
 	"github.com/AlexBlackNn/authloyalty/internal/config"
-	"github.com/AlexBlackNn/authloyalty/internal/domain/models"
+	"github.com/AlexBlackNn/authloyalty/internal/domain"
+	"github.com/AlexBlackNn/authloyalty/internal/dto"
 	jwtlib "github.com/AlexBlackNn/authloyalty/internal/lib/jwt"
 	"github.com/AlexBlackNn/authloyalty/pkg/broker"
 	"github.com/AlexBlackNn/authloyalty/pkg/storage"
@@ -18,11 +22,9 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
-	"log/slog"
-	"time"
 )
 
-type GetResponseChanSender interface {
+type getResponseChanSender interface {
 	Send(
 		ctx context.Context,
 		msg proto.Message,
@@ -32,7 +34,7 @@ type GetResponseChanSender interface {
 	GetResponseChan() chan *broker.Response
 }
 
-type UserStorage interface {
+type userStorage interface {
 	SaveUser(
 		ctx context.Context,
 		email string,
@@ -41,11 +43,11 @@ type UserStorage interface {
 	GetUser(
 		ctx context.Context,
 		uuid string,
-	) (context.Context, models.User, error)
+	) (context.Context, domain.User, error)
 	GetUserByEmail(
 		ctx context.Context,
 		email string,
-	) (context.Context, models.User, error)
+	) (context.Context, domain.User, error)
 	UpdateSendStatus(
 		ctx context.Context,
 		uuid string,
@@ -56,7 +58,7 @@ type UserStorage interface {
 	) (context.Context, error)
 }
 
-type TokenStorage interface {
+type tokenStorage interface {
 	SaveToken(
 		ctx context.Context,
 		token string,
@@ -74,9 +76,9 @@ type TokenStorage interface {
 
 type Auth struct {
 	log          *slog.Logger
-	userStorage  UserStorage
-	tokenStorage TokenStorage
-	producer     GetResponseChanSender
+	userStorage  userStorage
+	tokenStorage tokenStorage
+	producer     getResponseChanSender
 	cfg          *config.Config
 }
 
@@ -84,9 +86,9 @@ type Auth struct {
 func New(
 	cfg *config.Config,
 	log *slog.Logger,
-	userStorage UserStorage,
-	tokenStorage TokenStorage,
-	producer GetResponseChanSender,
+	userStorage userStorage,
+	tokenStorage tokenStorage,
+	producer getResponseChanSender,
 ) *Auth {
 	// Channel that is used by kafka to return sent message status.
 	brokerRespChan := producer.GetResponseChan()
@@ -154,7 +156,7 @@ func (a *Auth) HealthCheck(ctx context.Context) (context.Context, error) {
 // Login logins users.
 func (a *Auth) Login(
 	ctx context.Context,
-	reqData *models.Login,
+	reqData *dto.Login,
 ) (string, string, error) {
 	ctx, span := tracer.Start(ctx, "service layer: login",
 		trace.WithAttributes(attribute.String("handler", "login")))
@@ -184,7 +186,7 @@ func (a *Auth) Login(
 // Refresh creates new access and refresh tokens.
 func (a *Auth) Refresh(
 	ctx context.Context,
-	reqData *models.Refresh,
+	reqData *dto.Refresh,
 ) (string, string, error) {
 	ctx, span := tracer.Start(ctx, "service layer: refresh",
 		trace.WithAttributes(attribute.String("handler", "refresh")))
@@ -225,7 +227,7 @@ func (a *Auth) Refresh(
 // Register registers new users.
 func (a *Auth) Register(
 	ctx context.Context,
-	reqData *models.Register,
+	reqData *dto.Register,
 ) (context.Context, string, error) {
 	const op = "SERVICE LAYER: auth_service.RegisterNewUser"
 
@@ -260,7 +262,7 @@ func (a *Auth) Register(
 
 	span.AddEvent("user registered", trace.WithAttributes(attribute.String("user-id", uuid)))
 	log.Info("user registered")
-	registrationMsg := registration_v1.RegistrationMessage{
+	registrationMsg := registrationv1.RegistrationMessage{
 		Email:    reqData.Email,
 		FullName: reqData.Name,
 	}
@@ -320,13 +322,13 @@ func (a *Auth) IsAdmin(
 		return false, fmt.Errorf("%s: %w", op, err)
 	}
 	log.Info("user from database extracted")
-	return user.IsUserAmin(), nil
+	return user.IsAdmin, nil
 }
 
 // Logout revokes tokens
 func (a *Auth) Logout(
 	ctx context.Context,
-	reqData *models.Logout,
+	reqData *dto.Logout,
 ) (success bool, err error) {
 
 	log := a.log.With(
@@ -410,7 +412,7 @@ func (a *Auth) validateToken(ctx context.Context, token string) (context.Context
 }
 
 type userWithTokens struct {
-	user         *models.User
+	user         *domain.User
 	accessToken  string
 	refreshToken string
 	err          error

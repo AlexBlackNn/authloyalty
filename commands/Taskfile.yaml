@@ -65,4 +65,10 @@ tasks:
     desc: "create mocks for infra"
     cmds:
       - mockgen -source=../internal/services/authservice/auth.go -destination=../tests/unit_tests/mocks/mock_infra.go -package=mocks UserStorage,TokenStorage,HealthChecker,SendCloser
+  run-demo-sso-scale:
+    aliases:
+      - demo-sso-scale
+    desc: "run demo 2 sso service"
+    cmds:
+      - ./run.sso.demo.scale.sh
 

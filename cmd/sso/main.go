@@ -2,10 +2,11 @@ package main
 
 import (
 	"context"
-	"github.com/AlexBlackNn/authloyalty/app"
 	"log"
 	"os/signal"
 	"syscall"
+
+	"github.com/AlexBlackNn/authloyalty/app"
 )
 
 // @title           Swagger API

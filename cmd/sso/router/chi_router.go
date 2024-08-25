@@ -2,24 +2,27 @@ package router
 
 import (
 	"compress/gzip"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"log/slog"
+	"time"
+
+	v1 "github.com/AlexBlackNn/authloyalty/internal/handlershttp/http/v1"
+
 	_ "github.com/AlexBlackNn/authloyalty/cmd/sso/docs"
 	"github.com/AlexBlackNn/authloyalty/internal/config"
-	"github.com/AlexBlackNn/authloyalty/internal/handlershttp/http_v1"
 	customMiddleware "github.com/AlexBlackNn/authloyalty/internal/middleware"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/httprate"
 
 	httpSwagger "github.com/swaggo/http-swagger/v2"
-	"log/slog"
-	"time"
 )
 
 func NewChiRouter(
 	cfg *config.Config,
 	log *slog.Logger,
-	authHandlerV1 http_v1.AuthHandlers,
-	healthHandlerV1 http_v1.HealthHandlers,
+	authHandlerV1 v1.AuthHandlers,
+	healthHandlerV1 v1.HealthHandlers,
 ) *chi.Mux {
 
 	//mdlw := httpMetricMiddleware.New(httpMetricMiddleware.Config{
@@ -53,7 +56,7 @@ func NewChiRouter(
 		r.Get("/swagger/*", httpSwagger.Handler(
 			httpSwagger.URL("http://localhost:8000/swagger/doc.json"),
 		))
-		//r.Get("/metrics", promhttp.Handler().ServeHTTP)
+		r.Get("/metrics", promhttp.Handler().ServeHTTP)
 	})
 
 	return router
