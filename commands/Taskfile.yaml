@@ -58,7 +58,7 @@ tasks:
       - consumer
     desc: "run local kafka consumer for tests"
     cmds:
-      - cd .. && go run ./kafka_consumer/main.go --config=./config/local.yaml
+      - cd .. && go run ./sso/kafka_consumer/main.go --config=./sso/config/local.yaml
   create-mocks:
     aliases:
       - mocks
