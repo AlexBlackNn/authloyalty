@@ -2,6 +2,7 @@ package router
 
 import (
 	"compress/gzip"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"log/slog"
 	"time"
 
@@ -55,7 +56,7 @@ func NewChiRouter(
 		r.Get("/swagger/*", httpSwagger.Handler(
 			httpSwagger.URL("http://localhost:8000/swagger/doc.json"),
 		))
-		//r.Get("/metrics", promhttp.Handler().ServeHTTP)
+		r.Get("/metrics", promhttp.Handler().ServeHTTP)
 	})
 
 	return router

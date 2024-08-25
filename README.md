@@ -205,6 +205,13 @@ cd commands && task consumer
 
 ![kafkaui.png](docs%2Fkafkaui.png)
 
+## Использование Postman 
+
+Регистрация 
+![registration_grpc.png](docs%2Fregistration_grpc.png)
+
+Логин
+![login_grpc.png](docs%2Flogin_grpc.png)
 ----------------------------------------------------
 
 ## Архитектурные решения 
@@ -290,74 +297,5 @@ https://www.youtube.com/watch?v=5rjTdA6BM1E
 https://www.youtube.com/watch?v=UEwkn0iHDzA&list=PLNxnp_rzlqf6z1cC0IkIwp6yjsBboX945&index=1
 
 
-Задачи
-Обратил внимание, чот не везде импорты осортированы согласно goimports(config.go,auth.go...), мелочь, но впечатление портит.
-
-Довольно странно выгдялит вложенный в domain пакет models, обычно используют либо одно, либо другое. Вместе я их ниразу не видел. Обычно в пакете domain просто лежат модели по файликам в котрых расписана бизнес-логика.
-Еще пара моментов по моделям:
--  в User есть метод IsUserAmin() при этом поле IsAdmin публичное, это скорее Java-way, в Go не принято делать гетеры для публичных полей
-- вопросы вызывает dto внутри domain/model, задача dto дотачщить данные из внешего мира до сущности придметной обаласти приложения, плюс работа с  json указывает на abstraction leak в с транспортного уровня в модели
-
-Компилятор жалуется на
-pkg/tracing/otelconfluent/producer_test.go:39:37: not enough arguments in call to NewProducerWithTracing
-have (kafka.Producer)
-want (kafka.Producer, "go.opentelemetry.io/otel/trace".Tracer, ...Option)
-мелоч, но впечатление портит
-
-
-Имена пакетов c версиями grpc_v1, http_v1 выглядят странно, обычно используют grpc/v1, как мне кажется, просто потому, что если есть несколько версий v1,v2,v3 то можно избежать одинаковых префиксов
-
-есть сущьности, которые сделаны экспортируемыми, но используются только внутри одного пакета
-http_v1/auth.go.ValidateRequest
-http_v1/auth.go.EasyJSONUnmarshaler - этот кстати лишний, есть json.Unmarshaler
-
-http_v1/auth.go.ValidateRequest не только занимается валидацией, но и пишет сообщения об ошибках клиенту, что не вполне соотвествует названию, возможно лучше было назвать ф-ю handleBadRequest, но это не точно)
-
-логивать при помощи fmt это дурной тон
-http_v1/auth.go:162
-grpc_v1/auth.go:94
-
-код повторяется 4 раза, хороший кандидат на helper-ф-ю
-
-http_v1/auth.go
-
-ctx, cancel := context.WithTimeoutCause(
-r.Context(),
-XXX,
-errors.New("updateMetric timeout"),
-)
-
-
-
-grpc_v1/auth.go.AuthorizationInterface не самое лучше имя, потому что экспортруемое и содержит постфикс типа, в Go так обычно не далают
-
-в 4 местах ест вот такое, но перед этим дергается getContextWithTraceId который, наборот, игноритует второй bool а исользует md, может лучше перенести логирование туда?
-
-grpc_v1/auth.go
-_, ok := metadata.FromIncomingContext(ctx)
-if !ok {
-log.Warn("metadata is absent in request")
-}
-
-
-вот это выглядит так, что можно сделать grpc interceptor а в качестве аргументов использовать имена методов
-
-ctx, span := s.tracer.Start(ctx, "transport layer: refresh",
-trace.WithAttributes(attribute.String("handler", "refresh")))
-defer span.End()
-
-
-
-Довольно странно, что http хендлеры работают с реализацией сервиса а grpc c интерфейсом AuthorizationInterface
-
-Использование metadata.FromIncomingContext(ctx) внутр и authservice намекает на то, что сервис авторизации что-то знает про то как пришел запрос(absctraction leak), второй вопрос, почему http хнедлер не запоняет данные для трейсинга.
-
-authservice/auth.go:205-210 насчитал несколько небезопасных type assert, не рекомедую так делать, просто потому, что когда-нибудь это приведет к панике на проде.
-
-GetResponseChanSender, UserStorage, TokenStorage сделаны публичными, хотя смысла в этом нет.
-
-не вполне понял зачем storage убран в pkg, туда обычно кладут то, что должно быть доступно клиентам сервиса как внешняя либа.
-
-func (s Storage) Stop() можно было разделить на две горутины, что бы закрывать конекты одновременно.
-
-вот для таких конструкций есть errors.As `if err, ok := err.(pgconn.PgError); ok`
+### nginx balancer
+grpc https://www.vinsguru.com/grpc-load-balancing-with-nginx/ 
