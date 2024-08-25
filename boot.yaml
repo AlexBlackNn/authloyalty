@@ -1,7 +1,0 @@
-grpc:
-  - name: sso                   # Name of grpc entry
-    port: 44044                      # Port of grpc entry
-    enabled: true                   # Enable grpc entry
-    sw:
-      enabled: true                 # Enable swagger
-      jsonPath: "commands/proto/sso/gen"        # Provide swagger config file path

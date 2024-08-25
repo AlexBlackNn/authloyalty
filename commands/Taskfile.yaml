@@ -58,7 +58,7 @@ tasks:
       - consumer
     desc: "run local kafka consumer for tests"
     cmds:
-      - cd .. && go run ./kafka_consumer/main.go --config=./config/local.yaml
+      - cd .. && go run ./sso/kafka_consumer/main.go --config=./sso/config/local.yaml
   create-mocks:
     aliases:
       - mocks
@@ -67,7 +67,7 @@ tasks:
       - mockgen -source=../internal/services/authservice/auth.go -destination=../tests/unit_tests/mocks/mock_infra.go -package=mocks UserStorage,TokenStorage,HealthChecker,SendCloser
   run-demo-sso-scale:
     aliases:
-      - demo-sso-scale
+      - demo-scale
     desc: "run demo 2 sso service"
     cmds:
       - ./run.sso.demo.scale.sh
