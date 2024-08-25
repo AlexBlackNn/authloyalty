@@ -316,3 +316,13 @@ curl -k --header "Content-Type: application/json" --request POST --data '{"email
 ```bash
 curl -k --header "Content-Type: application/json" --request POST --data '{"email":"test@test.com","password":"test"}' http://localhost:8090/auth/login
 ```
+
+
+```bash
+curl -k --header "Content-Type: application/json" --request POST --data '{"email":"test1@test.com","password":"test"}' https://localhost/auth/registration
+```
+
+
+```bash
+curl -k --header "Content-Type: application/json" --request POST --data '{"email":"test@test.com","password":"test"}' https://localhost/auth/login
+```
