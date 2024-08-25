@@ -308,6 +308,9 @@ curl -k --header "Content-Type: application/json" --request POST --data '{"email
 curl -k --header "Content-Type: application/json" --request GET http://localhost:8090/auth/ready
 ```
 
+```bash
+curl -k --header "Content-Type: application/json" --request GET http://localhost:8090/auth/healthz
+```
 
 ```bash
 curl -k --header "Content-Type: application/json" --request POST --data '{"email":"test@test.com","password":"test"}' http://localhost:8090/auth/registration
