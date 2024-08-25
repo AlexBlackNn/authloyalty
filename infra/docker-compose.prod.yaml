@@ -49,6 +49,8 @@ services:
     labels:
       logging: "promtail"
       logging_jobname: "containerlogs"
+    environment:
+      - VIRTUAL_HOST=sso-loadbalancer
     depends_on:
       - jaeger
       - loki

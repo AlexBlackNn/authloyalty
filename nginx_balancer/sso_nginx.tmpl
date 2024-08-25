@@ -20,7 +20,7 @@ server {
     proxy_pass http://sso:8000;
   }
 
-  location /auth {
+  location /api {
     proxy_pass http://{{ $host }};
   }
 
