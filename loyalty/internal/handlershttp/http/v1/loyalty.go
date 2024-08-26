@@ -13,6 +13,7 @@ import (
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/dto"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 	jsoniter "github.com/json-iterator/go"
 
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/config"
@@ -20,10 +21,6 @@ import (
 
 type loyaltyService interface {
 	AddLoyalty(
-		ctx context.Context,
-		reqData *domain.UserLoyalty,
-	) (domain.UserLoyalty, error)
-	SubLoyalty(
 		ctx context.Context,
 		reqData *domain.UserLoyalty,
 	) (domain.UserLoyalty, error)
@@ -39,11 +36,23 @@ type LoyaltyHandlers struct {
 	cfg     *config.Config
 }
 
-func New(log *slog.Logger, cfg *config.Config, loyalty loyaltyService) LoyaltyHandlers {
-	return LoyaltyHandlers{log: log, cfg: cfg, loyalty: loyalty}
+func New(
+	log *slog.Logger,
+	cfg *config.Config,
+	loyalty loyaltyService,
+) LoyaltyHandlers {
+	return LoyaltyHandlers{
+		log:     log,
+		cfg:     cfg,
+		loyalty: loyalty,
+	}
 }
 
-func ctxWithTimeoutCause(r *http.Request, cfg *config.Config, textError string) (context.Context, context.CancelFunc) {
+func ctxWithTimeoutCause(
+	r *http.Request,
+	cfg *config.Config,
+	textError string,
+) (context.Context, context.CancelFunc) {
 	ctx, cancel := context.WithTimeoutCause(
 		r.Context(),
 		time.Duration(cfg.ServerHandlersTimeouts.LoginTimeoutMs)*time.Millisecond,
@@ -62,34 +71,13 @@ func ctxWithTimeoutCause(r *http.Request, cfg *config.Config, textError string) 
 // @Router /loyalty [post]
 // @Security BearerAuth
 func (l *LoyaltyHandlers) AddLoyalty(w http.ResponseWriter, r *http.Request) {
-
-	ctx, cancel := ctxWithTimeoutCause(r, l.cfg, "login timeout")
-	defer cancel()
-
-	if r.Method != http.MethodPost {
-		dto.ResponseErrorNowAllowed(w, "only POST method allowed")
-	}
-
-	body, err := io.ReadAll(r.Body)
+	reqData, err := handleAddLoyaltyBadRequest(w, r, &dto.UserLoyalty{})
 	if err != nil {
-		dto.ResponseErrorBadRequest(w, "failed to read body")
-	}
-	reqData := &dto.UserLoyalty{}
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
-	err = json.Unmarshal(body, reqData)
-	if err != nil {
-		fmt.Println(reqData)
-		dto.ResponseErrorBadRequest(w, "failed to decode body")
 		return
 	}
 
-	if err = validator.New().Struct(reqData); err != nil {
-		var validateErr validator.ValidationErrors
-		if errors.As(err, &validateErr) {
-			dto.ResponseErrorBadRequest(w, dto.ValidationError(validateErr))
-		}
-		dto.ResponseErrorBadRequest(w, "bad request")
-	}
+	ctx, cancel := ctxWithTimeoutCause(r, l.cfg, "login timeout")
+	defer cancel()
 
 	loyalty, err := l.loyalty.AddLoyalty(ctx, &domain.UserLoyalty{UUID: reqData.UUID, Value: reqData.Value})
 	if err != nil {
@@ -109,20 +97,58 @@ func (l *LoyaltyHandlers) AddLoyalty(w http.ResponseWriter, r *http.Request) {
 // @Router /loyalty [get]
 // @Security BearerAuth
 func (l *LoyaltyHandlers) GetLoyalty(w http.ResponseWriter, r *http.Request) {
-
+	userLoyalty, err := handleGetLoyaltyBadRequest(w, r)
 	ctx, cancel := ctxWithTimeoutCause(r, l.cfg, "login timeout")
 	defer cancel()
-
-	if r.Method != http.MethodGet {
-		dto.ResponseErrorNowAllowed(w, "only POST method allowed")
-	}
-
-	currentUuid := chi.URLParam(r, "uuid")
-
-	loyalty, err := l.loyalty.GetLoyalty(ctx, &domain.UserLoyalty{UUID: currentUuid, Value: 0})
+	loyalty, err := l.loyalty.GetLoyalty(ctx, userLoyalty)
 	if err != nil {
 		dto.ResponseErrorInternal(w, "internal server error")
 		return
 	}
 	dto.ResponseOKLoyalty(w, loyalty.UUID, loyalty.Value)
+}
+
+func handleAddLoyaltyBadRequest(w http.ResponseWriter, r *http.Request, reqData *dto.UserLoyalty) (*dto.UserLoyalty, error) {
+	if r.Method != http.MethodPost {
+		dto.ResponseErrorNowAllowed(w, "only POST method allowed")
+		return nil, errors.New("method not allowed")
+	}
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		dto.ResponseErrorBadRequest(w, "failed to read body")
+		return nil, errors.New("failed to read body")
+	}
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
+	err = json.Unmarshal(body, reqData)
+	if err != nil {
+		fmt.Println(reqData)
+		dto.ResponseErrorBadRequest(w, "failed to decode body")
+		return nil, errors.New("failed to decode request")
+	}
+
+	if err = validator.New().Struct(reqData); err != nil {
+		var validateErr validator.ValidationErrors
+		if errors.As(err, &validateErr) {
+			dto.ResponseErrorBadRequest(w, dto.ValidationError(validateErr))
+			return nil, errors.New("validation error")
+		}
+		dto.ResponseErrorBadRequest(w, "bad request")
+		return nil, errors.New("bad request")
+	}
+	return reqData, nil
+}
+
+func handleGetLoyaltyBadRequest(w http.ResponseWriter, r *http.Request) (*domain.UserLoyalty, error) {
+	if r.Method != http.MethodGet {
+		dto.ResponseErrorNowAllowed(w, "only Get method allowed")
+		return nil, errors.New("method not allowed")
+	}
+	currentUUID := chi.URLParam(r, "uuid")
+	_, err := uuid.Parse(currentUUID)
+	if err != nil {
+		dto.ResponseErrorNowAllowed(w, "invalid uuid")
+		return nil, errors.New("invalid uuid")
+	}
+	return &domain.UserLoyalty{UUID: currentUUID}, nil
 }

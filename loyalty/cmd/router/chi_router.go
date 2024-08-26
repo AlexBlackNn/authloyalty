@@ -35,15 +35,13 @@ func NewChiRouter(
 		httprate.WithKeyFuncs(httprate.KeyByIP, httprate.KeyByEndpoint),
 	))
 	router.Use(customMiddleware.Logger(log))
-
 	router.Use(middleware.Recoverer)
 
 	router.Route("/loyalty", func(r chi.Router) {
-		//r.Use(std.HandlerProvider("", mdlw))
 		r.Use(customMiddleware.GzipDecompressor(log))
 		r.Use(customMiddleware.GzipCompressor(log, gzip.BestCompression))
-		r.Post("/", loyaltyhHandlerV1.AddLoyalty)
 		r.Get("/{uuid}", loyaltyhHandlerV1.GetLoyalty)
+		r.Post("/", loyaltyhHandlerV1.AddLoyalty)
 		r.Get("/ready", healthHandlerV1.ReadinessProbe)
 		r.Get("/healthz", healthHandlerV1.LivenessProbe)
 

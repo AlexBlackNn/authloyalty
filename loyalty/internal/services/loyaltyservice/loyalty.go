@@ -14,10 +14,6 @@ type loyaltyStorage interface {
 		ctx context.Context,
 		loyalty domain.UserLoyalty,
 	) (context.Context, domain.UserLoyalty, error)
-	SubLoyalty(
-		ctx context.Context,
-		loyalty domain.UserLoyalty,
-	) (context.Context, domain.UserLoyalty, error)
 	GetLoyalty(
 		ctx context.Context,
 		loyalty domain.UserLoyalty,

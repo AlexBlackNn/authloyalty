@@ -23,10 +23,6 @@ type loyaltyStorage interface {
 		ctx context.Context,
 		userLoyalty domain.UserLoyalty,
 	) (context.Context, domain.UserLoyalty, error)
-	SubLoyalty(
-		ctx context.Context,
-		userLoyalty domain.UserLoyalty,
-	) (context.Context, domain.UserLoyalty, error)
 	GetLoyalty(
 		ctx context.Context,
 		userLoyalty domain.UserLoyalty,
@@ -64,7 +60,6 @@ func New() (*App, error) {
 		loyalStorage,
 	)
 
-	// http server
 	serverHttp, err := serverhttp.New(cfg, log, loyalService)
 	if err != nil {
 		return nil, err
