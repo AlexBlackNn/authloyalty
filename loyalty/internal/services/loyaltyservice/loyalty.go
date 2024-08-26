@@ -2,10 +2,11 @@ package loyaltyservice
 
 import (
 	"context"
+	"log/slog"
+
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/config"
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/domain"
 	"go.opentelemetry.io/otel"
-	"log/slog"
 )
 
 type loyaltyStorage interface {
@@ -58,21 +59,21 @@ func (l *Loyalty) HealthCheck(ctx context.Context) (context.Context, error) {
 
 func (l *Loyalty) GetLoyalty(
 	ctx context.Context,
-	userLoyalty domain.UserLoyalty,
+	userLoyalty *domain.UserLoyalty,
 ) (domain.UserLoyalty, error) {
 	return domain.UserLoyalty{UUID: "e1d07926-0dda-4b1c-a284-1919da8da752", Value: 100}, nil
 }
 
-func (l *Loyalty) AddGetLoyalty(
+func (l *Loyalty) AddLoyalty(
 	ctx context.Context,
-	userLoyalty domain.UserLoyalty,
+	userLoyalty *domain.UserLoyalty,
 ) (domain.UserLoyalty, error) {
 	return domain.UserLoyalty{UUID: "e1d07926-0dda-4b1c-a284-1919da8da752", Value: 100}, nil
 }
 
 func (l *Loyalty) SubLoyalty(
 	ctx context.Context,
-	userLoyalty domain.UserLoyalty,
+	userLoyalty *domain.UserLoyalty,
 ) (domain.UserLoyalty, error) {
 	return domain.UserLoyalty{UUID: "e1d07926-0dda-4b1c-a284-1919da8da752", Value: 100}, nil
 }

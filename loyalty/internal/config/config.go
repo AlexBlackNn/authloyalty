@@ -8,19 +8,6 @@ import (
 	"github.com/ilyakaznacheev/cleanenv"
 )
 
-type GRPCConfig struct {
-	Port    int           `yaml:"port" env-required:"true"`
-	Timeout time.Duration `yaml:"timeout" env-required:"true"`
-}
-
-type RedisSentinelConfig struct {
-	MasterName     string `yaml:"masterName"`
-	SentinelAddrs1 string `yaml:"sentinelAddrs1"`
-	SentinelAddrs2 string `yaml:"sentinelAddrs2"`
-	SentinelAddrs3 string `yaml:"sentinelAddrs3"`
-	Password       string `yaml:"password"`
-}
-
 type StoragePatroniConfig struct {
 	Master string `yaml:"master"`
 	Slave  string `yaml:"slave"`
@@ -55,8 +42,6 @@ type Config struct {
 	ServiceSecret          string                       `yaml:"service_secret" env-required:"true"`
 	ServerTimeout          ServerTimeoutConfig          `yaml:"server_timeout"`
 	ServerHandlersTimeouts ServerHandlersTimeoutsCongig `yaml:"server_handlers_timeouts"`
-	GRPC                   GRPCConfig                   `yaml:"grpc"`
-	RedisSentinel          RedisSentinelConfig          `yaml:"redis_sentinel"`
 	StoragePatroni         StoragePatroniConfig         `yaml:"storage_patroni"`
 	Kafka                  KafkaConfig                  `yaml:"kafka"`
 	JaegerUrl              string                       `yaml:"jaeger_url"`

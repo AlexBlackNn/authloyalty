@@ -6,19 +6,19 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/AlexBlackNn/authloyalty/sso/app"
+	"github.com/AlexBlackNn/authloyalty/loyalty/app"
 )
 
 // @title           Swagger API
 // @version         1.0
-// @description     sso service.
+// @description     loyalty service.
 // @contact.name   API Support
 // @license.name  Apache 2.0
 // @license.calculation   http://www.apache.org/licenses/LICENSE-2.0.html
-// @host      localhost:8000
+// @host      localhost:8001
 // @securityDefinitions.apikey BearerAuth
 // @in header
-// @name Authorization
+// @name Loyalty
 //
 //go:generate go run github.com/swaggo/swag/cmd/swag init
 func main() {

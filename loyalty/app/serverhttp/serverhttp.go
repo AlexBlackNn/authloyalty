@@ -2,12 +2,13 @@ package serverhttp
 
 import (
 	"fmt"
-	"github.com/AlexBlackNn/authloyalty/loyalty/internal/services/loyaltyservice"
 	"log/slog"
 	"net/http"
 	"time"
 
-	"github.com/AlexBlackNn/authloyalty/loyalty/cmd/sso/router"
+	"github.com/AlexBlackNn/authloyalty/loyalty/internal/services/loyaltyservice"
+
+	"github.com/AlexBlackNn/authloyalty/loyalty/cmd/router"
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/config"
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/handlershttp/http/v1"
 )
@@ -18,7 +19,7 @@ type App struct {
 	Log            *slog.Logger
 	Srv            *http.Server
 	loyaltyService *loyaltyservice.Loyalty
-	HandlersV1     v1.AuthHandlers
+	HandlersV1     v1.LoyaltyHandlers
 	HealthChecker  v1.HealthHandlers
 }
 

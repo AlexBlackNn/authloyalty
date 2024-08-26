@@ -2,15 +2,16 @@ package router
 
 import (
 	"compress/gzip"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"log/slog"
 	"time"
 
-	v1 "github.com/AlexBlackNn/authloyalty/sso/internal/handlershttp/http/v1"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
-	_ "github.com/AlexBlackNn/authloyalty/sso/cmd/sso/docs"
-	"github.com/AlexBlackNn/authloyalty/sso/internal/config"
-	customMiddleware "github.com/AlexBlackNn/authloyalty/sso/internal/middleware"
+	v1 "github.com/AlexBlackNn/authloyalty/loyalty/internal/handlershttp/http/v1"
+
+	_ "github.com/AlexBlackNn/authloyalty/loyalty/cmd/docs"
+	"github.com/AlexBlackNn/authloyalty/loyalty/internal/config"
+	customMiddleware "github.com/AlexBlackNn/authloyalty/loyalty/internal/middleware"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/httprate"
@@ -21,13 +22,9 @@ import (
 func NewChiRouter(
 	cfg *config.Config,
 	log *slog.Logger,
-	authHandlerV1 v1.AuthHandlers,
+	loyaltyhHandlerV1 v1.LoyaltyHandlers,
 	healthHandlerV1 v1.HealthHandlers,
 ) *chi.Mux {
-
-	//mdlw := httpMetricMiddleware.New(httpMetricMiddleware.Config{
-	//	Recorder: httpMetrics.NewRecorder(httpMetrics.Config{}),
-	//})
 
 	router := chi.NewRouter()
 	router.Use(middleware.RequestID)
@@ -41,20 +38,19 @@ func NewChiRouter(
 
 	router.Use(middleware.Recoverer)
 
-	router.Route("/auth", func(r chi.Router) {
+	router.Route("/loyalty", func(r chi.Router) {
 		//r.Use(std.HandlerProvider("", mdlw))
 		r.Use(customMiddleware.GzipDecompressor(log))
 		r.Use(customMiddleware.GzipCompressor(log, gzip.BestCompression))
 		r.Get("/ready", healthHandlerV1.ReadinessProbe)
 		r.Get("/healthz", healthHandlerV1.LivenessProbe)
-		r.Post("/login", authHandlerV1.Login)
-		r.Post("/logout", authHandlerV1.Logout)
-		r.Post("/registration", authHandlerV1.Register)
-		r.Post("/refresh", authHandlerV1.Refresh)
+
+		r.Post("/loyalty", loyaltyhHandlerV1.AddLoyalty)
+		r.Get("/loyalty/{uuid}", loyaltyhHandlerV1.GetLoyalty)
 	})
 	router.Route("/", func(r chi.Router) {
 		r.Get("/swagger/*", httpSwagger.Handler(
-			httpSwagger.URL("http://localhost:8000/swagger/doc.json"),
+			httpSwagger.URL("http://localhost:8001/swagger/doc.json"),
 		))
 		r.Get("/metrics", promhttp.Handler().ServeHTTP)
 	})

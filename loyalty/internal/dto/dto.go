@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/mailru/easyjson"
+	jsoniter "github.com/json-iterator/go"
 )
 
 // Input
@@ -28,6 +28,8 @@ type Response struct {
 const StatusError = "Error"
 const StatusSuccess = "Success"
 
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
+
 func sendJSON(w http.ResponseWriter, statusCode int, data []byte) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
@@ -40,7 +42,7 @@ func ResponseErrorNotFound(
 	w http.ResponseWriter,
 	message string,
 ) {
-	dataMarshal, _ := easyjson.Marshal(Response{
+	dataMarshal, _ := json.Marshal(Response{
 		Status: StatusError,
 		Error:  message,
 	})
@@ -51,7 +53,7 @@ func ResponseErrorInternal(
 	w http.ResponseWriter,
 	message string,
 ) {
-	dataMarshal, _ := easyjson.Marshal(Response{
+	dataMarshal, _ := json.Marshal(Response{
 		Status: StatusError,
 		Error:  message,
 	})
@@ -62,7 +64,7 @@ func ResponseErrorNowAllowed(
 	w http.ResponseWriter,
 	message string,
 ) {
-	dataMarshal, _ := easyjson.Marshal(Response{
+	dataMarshal, _ := json.Marshal(Response{
 		Status: StatusError,
 		Error:  message,
 	})
@@ -73,7 +75,7 @@ func ResponseErrorStatusConflict(
 	w http.ResponseWriter,
 	message string,
 ) {
-	dataMarshal, _ := easyjson.Marshal(Response{
+	dataMarshal, _ := json.Marshal(Response{
 		Status: StatusError,
 		Error:  message,
 	})
@@ -84,7 +86,7 @@ func ResponseErrorBadRequest(
 	w http.ResponseWriter,
 	message string,
 ) {
-	dataMarshal, _ := easyjson.Marshal(Response{
+	dataMarshal, _ := json.Marshal(Response{
 		Status: StatusError,
 		Error:  message,
 	})
@@ -94,7 +96,7 @@ func ResponseErrorBadRequest(
 // OK.
 
 func ResponseOK(w http.ResponseWriter) {
-	dataMarshal, _ := easyjson.Marshal(
+	dataMarshal, _ := json.Marshal(
 		Response{
 			Status: StatusSuccess,
 		},
@@ -107,7 +109,7 @@ func ResponseOKLoyalty(
 	uuid string,
 	value int,
 ) {
-	dataMarshal, _ := easyjson.Marshal(
+	dataMarshal, _ := json.Marshal(
 		Response{
 			Status: StatusSuccess,
 			UUID:   uuid,

@@ -3,17 +3,19 @@ package app
 import (
 	"context"
 	"errors"
+	"io"
+	log "log/slog"
+
 	"github.com/AlexBlackNn/authloyalty/loyalty/app/serverhttp"
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/config"
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/domain"
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/logger"
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/services/loyaltyservice"
+	"github.com/AlexBlackNn/authloyalty/loyalty/pkg/broker"
 	"github.com/AlexBlackNn/authloyalty/loyalty/pkg/storage"
 	"github.com/AlexBlackNn/authloyalty/loyalty/pkg/storage/patroni"
 	"github.com/AlexBlackNn/authloyalty/loyalty/pkg/tracing"
-	"github.com/AlexBlackNn/authloyalty/sso/app/servergrpc"
 	"go.opentelemetry.io/otel/sdk/trace"
-	log "log/slog"
 )
 
 type loyaltyStorage interface {
@@ -34,8 +36,8 @@ type loyaltyStorage interface {
 
 type App struct {
 	ServerHttp           *serverhttp.App
-	ServerGrpc           *servergrpc.App
 	ServerLoyaltyStorage loyaltyStorage
+	ServerConsumer       io.Closer
 	ServerOpenTelemetry  *trace.TracerProvider
 }
 
@@ -51,6 +53,11 @@ func New() (*App, error) {
 		log.Warn(err.Error())
 	}
 
+	consumer, err := broker.New(cfg)
+	if err != nil {
+		return nil, err
+	}
+
 	authService := loyaltyservice.New(
 		cfg,
 		log,
@@ -63,7 +70,7 @@ func New() (*App, error) {
 		return nil, err
 	}
 
-	tp, err := tracing.Init("sso service", cfg)
+	tp, err := tracing.Init("loyalty service", cfg)
 	if err != nil {
 		log.Error(err.Error())
 		return nil, err
@@ -72,6 +79,7 @@ func New() (*App, error) {
 	return &App{
 		ServerHttp:           serverHttp,
 		ServerLoyaltyStorage: loyalStorage,
+		ServerConsumer:       consumer,
 		ServerOpenTelemetry:  tp,
 	}, nil
 }
