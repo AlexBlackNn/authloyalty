@@ -2,6 +2,5 @@ Loyalty - сервис начисления и списания балов ло�
 
 
 ```bash
-curl -k  --header "Content-Type: application/json" --request POST --data '{"email":"test3@test.com","password":"test"}' https://localhost/auth/registration
-curl -k --header "Content-Type: application/json" --request POST --data '{"email":"test3@test.com","password":"test"}' https://localhost/auth/login
+curl --header "Content-Type: application/json" --request POST --data '{"uuid":"ea12bd7b-5d6d-4aa4-986c-64719186f742","value":100}' http://localhost:8001/loyalty/
 ```

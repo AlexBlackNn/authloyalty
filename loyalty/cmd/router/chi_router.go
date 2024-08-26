@@ -42,11 +42,11 @@ func NewChiRouter(
 		//r.Use(std.HandlerProvider("", mdlw))
 		r.Use(customMiddleware.GzipDecompressor(log))
 		r.Use(customMiddleware.GzipCompressor(log, gzip.BestCompression))
+		r.Post("/", loyaltyhHandlerV1.AddLoyalty)
+		r.Get("/{uuid}", loyaltyhHandlerV1.GetLoyalty)
 		r.Get("/ready", healthHandlerV1.ReadinessProbe)
 		r.Get("/healthz", healthHandlerV1.LivenessProbe)
 
-		r.Post("/loyalty", loyaltyhHandlerV1.AddLoyalty)
-		r.Get("/loyalty/{uuid}", loyaltyhHandlerV1.GetLoyalty)
 	})
 	router.Route("/", func(r chi.Router) {
 		r.Get("/swagger/*", httpSwagger.Handler(

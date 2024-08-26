@@ -58,14 +58,14 @@ func New() (*App, error) {
 		return nil, err
 	}
 
-	authService := loyaltyservice.New(
+	loyalService := loyaltyservice.New(
 		cfg,
 		log,
 		loyalStorage,
 	)
 
 	// http server
-	serverHttp, err := serverhttp.New(cfg, log, authService)
+	serverHttp, err := serverhttp.New(cfg, log, loyalService)
 	if err != nil {
 		return nil, err
 	}

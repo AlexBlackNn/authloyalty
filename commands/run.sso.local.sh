@@ -5,5 +5,5 @@ timeout 90s bash -c "until docker exec patroni1 pg_isready ; do sleep 5 ; done"
 cd .. && go run ./sso/cmd/migrator/postgres  --p ./sso/migrations -d postgres://postgres:postgres@localhost:5000/postgres?sslmode=disable
 cd ..
 cd sso
-go run ./cmd/sso/main.go --config=./config/local.yaml
+#go run ./cmd/sso/main.go --config=./config/local.yaml
 #go run ./cmd/main.go --config=./config/local.yaml

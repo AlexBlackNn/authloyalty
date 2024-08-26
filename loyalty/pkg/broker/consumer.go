@@ -74,7 +74,7 @@ func New(cfg *config.Config) (*Broker, error) {
 		deserializer: deser,
 		MessageChan:  MessageChan,
 	}
-	broker.Consume()
+	go broker.Consume()
 	return broker, nil
 
 }

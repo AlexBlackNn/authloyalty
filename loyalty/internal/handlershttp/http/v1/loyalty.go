@@ -3,6 +3,7 @@ package v1
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -74,11 +75,12 @@ func (l *LoyaltyHandlers) AddLoyalty(w http.ResponseWriter, r *http.Request) {
 		dto.ResponseErrorBadRequest(w, "failed to read body")
 	}
 	reqData := &dto.UserLoyalty{}
-
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	err = json.Unmarshal(body, reqData)
 	if err != nil {
+		fmt.Println(reqData)
 		dto.ResponseErrorBadRequest(w, "failed to decode body")
+		return
 	}
 
 	if err = validator.New().Struct(reqData); err != nil {
