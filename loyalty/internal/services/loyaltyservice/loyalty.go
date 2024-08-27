@@ -107,7 +107,7 @@ func (l *Loyalty) AddLoyalty(
 	)
 	log.Info("getting loyalty for user")
 
-	ctx, userLoyalty, err := l.loyalStorage.GetLoyalty(ctx, userLoyalty)
+	ctx, userLoyalty, err := l.loyalStorage.AddLoyalty(ctx, userLoyalty)
 	if err != nil {
 		span.SetStatus(codes.Error, err.Error())
 		span.SetAttributes(attribute.Bool("error", true))

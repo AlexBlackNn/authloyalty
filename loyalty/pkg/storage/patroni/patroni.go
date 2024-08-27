@@ -9,6 +9,7 @@ import (
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/domain"
 	"github.com/AlexBlackNn/authloyalty/loyalty/pkg/storage"
 	"github.com/XSAM/otelsql"
+	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -38,6 +39,8 @@ type loyaltyStorage interface {
 }
 
 var tracer = otel.Tracer("sso service")
+
+const CheckViolationErr = "23514"
 
 func New(cfg *config.Config) (*Storage, error) {
 	dbWrite, err := otelsql.Open("pgx", cfg.StoragePatroni.Master)
@@ -115,11 +118,70 @@ func (s *Storage) AddLoyalty(
 	userLoyalty *domain.UserLoyalty,
 ) (context.Context, *domain.UserLoyalty, error) {
 	ctx, span := tracer.Start(
-		ctx, "data layer Patroni: SaveUser",
-		trace.WithAttributes(attribute.String("handler", "SaveUser")),
+		ctx, "data layer Patroni: AddLoyalty",
+		trace.WithAttributes(attribute.String("handler", "AddLoyalty")),
 	)
 	defer span.End()
-	return ctx, userLoyalty, nil
+
+	//1. Open transaction
+	tx, err := s.dbWrite.Begin()
+	if err != nil {
+		return ctx, nil, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	//2. Block required row and get row info
+	query := "SELECT uuid, balance FROM loyalty_app.accounts WHERE uuid = $1 FOR UPDATE;"
+	err = tx.QueryRowContext(ctx, query, userLoyalty.UUID).Scan(&userLoyalty.Balance)
+
+	if err != nil {
+		//3. If no row is selected
+		if errors.Is(err, sql.ErrNoRows) {
+			// 3.1 and balance more than zero, create new row in "accounts" and "loyalty_transactions" tables
+			if userLoyalty.Balance > 0 {
+				query = "INSERT INTO loyalty_app.accounts (uuid, balance) VALUES ($1, $2) RETURNING uuid"
+				err = tx.QueryRowContext(ctx, query, userLoyalty.UUID, userLoyalty.Balance).Scan(&userLoyalty.UUID, &userLoyalty.Balance)
+				if err != nil {
+					return ctx, nil, tx.Commit()
+				}
+
+				query = "INSERT INTO loyalty_app.loyalty_transactions (account_uuid, transaction_amount, transaction_type, comment) VALUES ($1, $2, $3, $4);"
+				// TODO: transaction_type and comment should be extracted from userLoyalty
+				_, err = tx.ExecContext(ctx, query, userLoyalty.UUID, userLoyalty.Balance, "d", "registration")
+				if err != nil {
+					return ctx, nil, err
+				}
+			}
+			// 3.2 balance less than zero
+			return ctx, nil, storage.ErrUserNotFound
+		}
+
+		return ctx, nil, fmt.Errorf(
+			"DATA LAYER: storage.postgres.AddLoyalty: %w",
+			err,
+		)
+	}
+	// 4. if row exists try to update accounts
+	//TODO: take into consideration withdraw operation!!!
+	query = "UPDATE loyalty_app.accounts SET balance = balance + $1 WHERE uuid = $2;"
+	_, err = tx.ExecContext(ctx, query, userLoyalty.Balance, userLoyalty.UUID)
+
+	// https://www.postgresql.org/docs/16/errcodes-appendix.html
+	var pgerr *pgconn.PgError
+	if errors.As(err, &pgerr) {
+		if pgerr.Code == CheckViolationErr {
+			return ctx, nil, errors.New("check violation error, balance can't be less than 0")
+		}
+	}
+	if err != nil {
+		return ctx, nil, fmt.Errorf(
+			"DATA LAYER: storage.postgres.AddLoyalty: couldn't change balance  %w",
+			err,
+		)
+	}
+
+	//TODO: 5. Write data to account_transaction
+	return ctx, userLoyalty, tx.Commit()
 }
 
 func (s *Storage) HealthCheck(ctx context.Context) (context.Context, error) {
