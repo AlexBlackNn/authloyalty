@@ -167,9 +167,9 @@ func (s *Storage) AddLoyalty(
 	// 4. if row exists try to update accounts
 	//TODO: take into consideration withdraw operation!!!
 	fmt.Println("1111111111111111111111111111111111111111111111111111111111111111111111111111", userLoyalty.Balance)
-	query = "UPDATE loyalty_app.accounts SET balance = $1 WHERE uuid = $2;"
+	query = "UPDATE loyalty_app.accounts SET balance = balance + $1 WHERE uuid = $2;"
 	fmt.Println(query, userLoyalty.UUID, userLoyalty.Balance)
-	_, err = tx.ExecContext(ctx, query, userLoyalty.Balance+balance, userLoyalty.UUID)
+	_, err = tx.ExecContext(ctx, query, balance, userLoyalty.UUID)
 
 	fmt.Println()
 
