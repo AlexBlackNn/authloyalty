@@ -105,7 +105,7 @@ func (l *Loyalty) AddLoyalty(
 		slog.String("trace-id", "trace-id"),
 		slog.String("user-id", "user-id"),
 	)
-	log.Info("getting loyalty for user")
+	log.Info("add loyalty to user")
 
 	ctx, userLoyalty, err := l.loyalStorage.AddLoyalty(ctx, userLoyalty)
 	if err != nil {
@@ -115,6 +115,8 @@ func (l *Loyalty) AddLoyalty(
 		log.Error("failed to get loyalty", "err", err.Error())
 		return ctx, nil, fmt.Errorf("%s: %w", op, err)
 	}
+
+	fmt.Println("------------------", userLoyalty)
 	span.AddEvent(
 		"user loyalty extracted",
 		trace.WithAttributes(
