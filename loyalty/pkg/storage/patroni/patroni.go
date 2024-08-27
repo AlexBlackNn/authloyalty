@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/config"
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/domain"
 	"github.com/AlexBlackNn/authloyalty/loyalty/pkg/storage"
@@ -88,10 +87,26 @@ func (s *Storage) GetLoyalty(
 	userLoyalty *domain.UserLoyalty,
 ) (context.Context, *domain.UserLoyalty, error) {
 	ctx, span := tracer.Start(
-		ctx, "data layer Patroni: SaveUser",
-		trace.WithAttributes(attribute.String("handler", "SaveUser")),
+		ctx, "data layer Patroni: GetLoyalty",
+		trace.WithAttributes(attribute.String("handler", "GetLoyalty")),
 	)
 	defer span.End()
+
+	query := "SELECT balance FROM loyalty_app.accounts WHERE uuid = $1;"
+	err := s.dbRead.QueryRowContext(ctx, query, userLoyalty.UUID).Scan(&userLoyalty.Balance)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ctx, nil, fmt.Errorf(
+				"DATA LAYER: storage.postgres.GetLoyalty: %w",
+				storage.ErrUserNotFound,
+			)
+		}
+		return ctx, nil, fmt.Errorf(
+			"DATA LAYER: storage.postgres.GetLoyalty: %w",
+			err,
+		)
+	}
 	return ctx, userLoyalty, nil
 }
 

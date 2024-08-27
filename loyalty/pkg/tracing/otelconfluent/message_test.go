@@ -35,7 +35,7 @@ func TestMessageCarrier_Get(t *testing.T) {
 			expected: "",
 		},
 		{
-			name: "Value is absent",
+			name: "Balance is absent",
 			msg: &kafka.Message{
 				Headers: []kafka.Header{},
 			},
@@ -43,7 +43,7 @@ func TestMessageCarrier_Get(t *testing.T) {
 			expected: "",
 		},
 		{
-			name: "Value is present",
+			name: "Balance is present",
 			msg: &kafka.Message{
 				Headers: []kafka.Header{
 					{Key: "traceparent", Value: []byte("123456789123456789123456789123-1234567891234567")},

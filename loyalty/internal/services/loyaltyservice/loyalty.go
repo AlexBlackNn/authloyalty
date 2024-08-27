@@ -85,7 +85,7 @@ func (l *Loyalty) GetLoyalty(
 		"user loyalty extracted",
 		trace.WithAttributes(
 			attribute.String("user-id", userLoyalty.UUID),
-			attribute.Int("user-id", userLoyalty.Value),
+			attribute.Int("user-id", userLoyalty.Balance),
 		))
 
 	return ctx, userLoyalty, nil
@@ -119,7 +119,7 @@ func (l *Loyalty) AddLoyalty(
 		"user loyalty extracted",
 		trace.WithAttributes(
 			attribute.String("user-id", userLoyalty.UUID),
-			attribute.Int("user-id", userLoyalty.Value),
+			attribute.Int("user-id", userLoyalty.Balance),
 		))
 
 	return ctx, userLoyalty, nil
