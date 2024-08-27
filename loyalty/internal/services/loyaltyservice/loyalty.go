@@ -94,7 +94,7 @@ func (l *Loyalty) GetLoyalty(
 func (l *Loyalty) AddLoyalty(
 	ctx context.Context,
 	userLoyalty *domain.UserLoyalty,
-) (domain.UserLoyalty, error) {
+) (context.Context, *domain.UserLoyalty, error) {
 	const op = "SERVICE LAYER: auth_service.RegisterNewUser"
 
 	ctx, span := tracer.Start(ctx, "service layer: AddLoyalty",
@@ -123,11 +123,4 @@ func (l *Loyalty) AddLoyalty(
 		))
 
 	return ctx, userLoyalty, nil
-}
-
-func (l *Loyalty) SubLoyalty(
-	ctx context.Context,
-	userLoyalty *domain.UserLoyalty,
-) (domain.UserLoyalty, error) {
-	return domain.UserLoyalty{UUID: "e1d07926-0dda-4b1c-a284-1919da8da752", Value: 100}, nil
 }

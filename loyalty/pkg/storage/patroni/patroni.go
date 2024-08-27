@@ -85,26 +85,26 @@ func (s *Storage) Stop() error {
 
 func (s *Storage) GetLoyalty(
 	ctx context.Context,
-	userLoyalty domain.UserLoyalty,
-) (context.Context, domain.UserLoyalty, error) {
+	userLoyalty *domain.UserLoyalty,
+) (context.Context, *domain.UserLoyalty, error) {
 	ctx, span := tracer.Start(
 		ctx, "data layer Patroni: SaveUser",
 		trace.WithAttributes(attribute.String("handler", "SaveUser")),
 	)
 	defer span.End()
-	return ctx, domain.UserLoyalty{UUID: "e1d07926-0dda-4b1c-a284-1919da8da752", Value: 100}, nil
+	return ctx, userLoyalty, nil
 }
 
 func (s *Storage) AddLoyalty(
 	ctx context.Context,
-	userLoyalty domain.UserLoyalty,
-) (context.Context, domain.UserLoyalty, error) {
+	userLoyalty *domain.UserLoyalty,
+) (context.Context, *domain.UserLoyalty, error) {
 	ctx, span := tracer.Start(
 		ctx, "data layer Patroni: SaveUser",
 		trace.WithAttributes(attribute.String("handler", "SaveUser")),
 	)
 	defer span.End()
-	return ctx, domain.UserLoyalty{UUID: "e1d07926-0dda-4b1c-a284-1919da8da752", Value: 100}, nil
+	return ctx, userLoyalty, nil
 }
 
 func (s *Storage) HealthCheck(ctx context.Context) (context.Context, error) {

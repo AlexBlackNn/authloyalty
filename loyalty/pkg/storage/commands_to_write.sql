@@ -42,6 +42,7 @@ VALUES
 ------------------------
 
 -- withdraw
+BEGIN;
 UPDATE loyalty_app.accounts
 SET balance = balance - 500,
     modified = CURRENT_TIMESTAMP
@@ -51,4 +52,4 @@ INSERT INTO loyalty_app.loyalty_transactions
 (loyalty_uuid, transaction_amount, transaction_type, comment, created_at)
 VALUES
     ('e9d31ff1-e0f0-4eda-b52c-a68e2ab3eae7', 500.00, 'w', 'purchase', '2023-05-30 00:00:00');
-
+COMMIT;

@@ -17,11 +17,11 @@ type loyaltyService interface {
 	AddLoyalty(
 		ctx context.Context,
 		reqData *domain.UserLoyalty,
-	) (domain.UserLoyalty, error)
+	) (context.Context, *domain.UserLoyalty, error)
 	GetLoyalty(
 		ctx context.Context,
 		reqData *domain.UserLoyalty,
-	) (domain.UserLoyalty, error)
+	) (context.Context, *domain.UserLoyalty, error)
 }
 
 type LoyaltyHandlers struct {
@@ -73,7 +73,7 @@ func (l *LoyaltyHandlers) AddLoyalty(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := ctxWithTimeoutCause(r, l.cfg, "login timeout")
 	defer cancel()
 
-	loyalty, err := l.loyalty.AddLoyalty(ctx, &domain.UserLoyalty{UUID: reqData.UUID, Value: reqData.Value})
+	ctx, loyalty, err := l.loyalty.AddLoyalty(ctx, &domain.UserLoyalty{UUID: reqData.UUID, Value: reqData.Value})
 	if err != nil {
 		dto.ResponseErrorInternal(w, "internal server error")
 		return
@@ -94,7 +94,7 @@ func (l *LoyaltyHandlers) GetLoyalty(w http.ResponseWriter, r *http.Request) {
 	userLoyalty, err := handleGetLoyaltyBadRequest(w, r)
 	ctx, cancel := ctxWithTimeoutCause(r, l.cfg, "login timeout")
 	defer cancel()
-	loyalty, err := l.loyalty.GetLoyalty(ctx, userLoyalty)
+	ctx, loyalty, err := l.loyalty.GetLoyalty(ctx, userLoyalty)
 	if err != nil {
 		dto.ResponseErrorInternal(w, "internal server error")
 		return
