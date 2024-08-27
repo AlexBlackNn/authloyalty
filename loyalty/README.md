@@ -2,12 +2,12 @@ Loyalty - сервис начисления и списания балов ло�
 
 //addloyalty
 ```bash
-curl --header "Content-Type: application/json" --request POST --data '{"uuid":"e9d31ff1-e0f0-4eda-b52c-a68e2ab3eae7","value":1}' http://localhost:8001/loyalty/
+curl --header "Content-Type: application/json" --request POST --data '{"uuid":"39d31ff1-e1f0-4eda-b52c-a68e2ab3eae7","value":10}' http://localhost:8001/loyalty/
 ```
 
 //getloyalty
 ```bash
-curl http://localhost:8001/loyalty/e9d31ff1-e0f0-4eda-b52c-a68e2ab3eae7
+curl http://localhost:8001/loyalty/39d31ff1-e1f0-4eda-b52c-a68e2ab3eae7
 ```
 
 ```bash
