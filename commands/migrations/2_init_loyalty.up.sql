@@ -17,7 +17,7 @@ balance DECIMAL(12,0) CONSTRAINT not_negative_loyalty_value CHECK (balance >= 0)
 -- но может быть равным нулю, а loyalty_amount должны быть положительными.
 CREATE TABLE IF NOT EXISTS loyalty_app.loyalty_transactions (
 id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-loyalty_uuid uuid REFERENCES loyalty_app.accounts(uuid), -- номер счета (uuid пользователя)
+account_uuid uuid REFERENCES loyalty_app.accounts(uuid), -- номер счета (uuid пользователя)
 transaction_amount integer NOT NULL CHECK (transaction_amount > 0), -- сумма операции
 transaction_type operation_type NOT NULL,
 comment text NOT NULL,

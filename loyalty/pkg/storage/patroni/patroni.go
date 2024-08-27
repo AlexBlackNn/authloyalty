@@ -142,10 +142,11 @@ func (s *Storage) AddLoyalty(
 		if errors.Is(err, sql.ErrNoRows) {
 			// 3.1 and balance more than zero, create new row in "accounts" and "loyalty_transactions" tables
 			if userLoyalty.Balance > 0 {
+				fmt.Println("2222222222222222222222222222")
 				query = "INSERT INTO loyalty_app.accounts (uuid, balance) VALUES ($1, $2) RETURNING uuid"
 				err = tx.QueryRowContext(ctx, query, userLoyalty.UUID, userLoyalty.Balance).Scan(&userLoyalty.UUID)
 				if err != nil {
-					return ctx, nil, tx.Commit()
+					return ctx, nil, err
 				}
 
 				query = "INSERT INTO loyalty_app.loyalty_transactions (account_uuid, transaction_amount, transaction_type, comment) VALUES ($1, $2, $3, $4);"
@@ -154,6 +155,7 @@ func (s *Storage) AddLoyalty(
 				if err != nil {
 					return ctx, nil, err
 				}
+				return ctx, nil, tx.Commit()
 			}
 			// 3.2 balance less than zero
 			return ctx, nil, storage.ErrUserNotFound
@@ -166,12 +168,13 @@ func (s *Storage) AddLoyalty(
 	}
 	// 4. if row exists try to update accounts
 	//TODO: take into consideration withdraw operation!!!
-	fmt.Println("1111111111111111111111111111111111111111111111111111111111111111111111111111", userLoyalty.Balance)
-	query = "UPDATE loyalty_app.accounts SET balance = balance + $1 WHERE uuid = $2;"
-	fmt.Println(query, userLoyalty.UUID, userLoyalty.Balance)
-	_, err = tx.ExecContext(ctx, query, balance, userLoyalty.UUID)
-
-	fmt.Println()
+	query = "UPDATE loyalty_app.accounts SET balance = balance + $1 WHERE uuid = $2 RETURNING balance;"
+	fmt.Println("44444444444444444444", balance, userLoyalty.Balance)
+	err = tx.QueryRowContext(ctx, query, balance, userLoyalty.UUID).Scan(&userLoyalty.Balance)
+	fmt.Println("5555555555555555555", balance, userLoyalty.Balance)
+	if err != nil {
+		return ctx, nil, tx.Commit()
+	}
 
 	// https://www.postgresql.org/docs/16/errcodes-appendix.html
 	var pgerr *pgconn.PgError
