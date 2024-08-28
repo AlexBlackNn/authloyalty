@@ -166,9 +166,7 @@ func (s *Storage) AddLoyalty(
 	// 4. if row exists try to update accounts
 	//TODO: take into consideration withdraw operation!!!
 	query = "UPDATE loyalty_app.accounts SET balance = balance + $1 WHERE uuid = $2 RETURNING balance;"
-	fmt.Println("44444444444444444444", balance, userLoyalty.Balance)
 	err = tx.QueryRowContext(ctx, query, balance, userLoyalty.UUID).Scan(&userLoyalty.Balance)
-	fmt.Println("5555555555555555555", balance, userLoyalty.Balance)
 	// https://www.postgresql.org/docs/16/errcodes-appendix.html
 	var pgerr *pgconn.PgError
 	if errors.As(err, &pgerr) {

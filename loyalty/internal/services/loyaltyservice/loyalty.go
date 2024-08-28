@@ -115,6 +115,10 @@ func (l *Loyalty) AddLoyalty(
 	ctx, userLoyalty, err := l.loyalStorage.AddLoyalty(ctx, userLoyalty)
 	if err != nil {
 		if errors.Is(err, storage.ErrNegativeBalance) {
+			span.SetStatus(codes.Error, err.Error())
+			span.SetAttributes(attribute.Bool("error", true))
+			span.RecordError(fmt.Errorf("%s: withdraw might lead to negative balance: %w", op, err))
+			log.Error("withdraw might lead to negative balance", "err", err.Error())
 			return ctx, nil, ErrNegativeBalance
 		}
 		span.SetStatus(codes.Error, err.Error())
@@ -123,8 +127,6 @@ func (l *Loyalty) AddLoyalty(
 		log.Error("failed to get loyalty", "err", err.Error())
 		return ctx, nil, fmt.Errorf("%s: %w", op, err)
 	}
-
-	fmt.Println("------------------", userLoyalty)
 	span.AddEvent(
 		"user loyalty extracted",
 		trace.WithAttributes(
