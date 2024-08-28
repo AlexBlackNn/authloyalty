@@ -22,24 +22,7 @@ type Storage struct {
 	dbWrite *sql.DB
 }
 
-type loyaltyStorage interface {
-	AddLoyaly(
-		ctx context.Context,
-		loyalty domain.UserLoyalty,
-	) (context.Context, domain.UserLoyalty, error)
-	SubLoyalty(
-		ctx context.Context,
-		loyalty domain.UserLoyalty,
-	) (context.Context, domain.UserLoyalty, error)
-	GetLoyalty(
-		ctx context.Context,
-		loyalty domain.UserLoyalty,
-	) (context.Context, domain.UserLoyalty, error)
-	HealthCheck(context.Context) (context.Context, error)
-	Stop() error
-}
-
-var tracer = otel.Tracer("sso service")
+var tracer = otel.Tracer("loyalty service")
 
 const CheckViolationErr = "23514"
 

@@ -40,6 +40,8 @@ type Loyalty struct {
 	loyalStorage loyaltyStorage
 }
 
+var tracer = otel.Tracer("loyalty service")
+
 // New returns a new instance of Auth service
 func New(
 	cfg *config.Config,
@@ -51,7 +53,27 @@ func New(
 	msgChan := loyalBroker.GetMessageChan()
 	go func() {
 		for msg := range msgChan {
-			fmt.Println("ppppppppp", msg)
+			userLoyalty := &domain.UserLoyalty{UUID: msg.Msg.UUID, Balance: msg.Msg.Balance}
+
+			ctx, span := tracer.Start(msg.Ctx, "service layer: GetMessageChan",
+				trace.WithAttributes(attribute.String("handler", "GetMessageChan")))
+			ctx, userLoyalty, err := loyalStorage.AddLoyalty(ctx, userLoyalty)
+			if err != nil {
+				log.Error(err.Error(), "userLoyalty", userLoyalty)
+				span.SetStatus(codes.Error, err.Error())
+				span.SetAttributes(attribute.Bool("error", true))
+				span.RecordError(fmt.Errorf("%s: failed to get loyalty: %w", "GetMessageChan", err))
+				continue
+			}
+			log.Info("GetMessageChan: userLoyalty", userLoyalty)
+			span.AddEvent(
+				"user loyalty extracted from broker message",
+				trace.WithAttributes(
+					attribute.String("user-id", userLoyalty.UUID),
+					attribute.Int("user-id", userLoyalty.Balance),
+				),
+			)
+			span.End()
 		}
 	}()
 
@@ -61,8 +83,6 @@ func New(
 		loyalStorage: loyalStorage,
 	}
 }
-
-var tracer = otel.Tracer("loyalty service")
 
 // HealthCheck returns service health check.
 func (l *Loyalty) HealthCheck(ctx context.Context) (context.Context, error) {
