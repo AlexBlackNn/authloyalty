@@ -19,9 +19,16 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+type Message struct {
+	UUID    string
+	Balance int
+	Comment string
+}
+
 type MessageReceived struct {
-	Message *kafka.Message
-	Err     error
+	Msg Message
+	Ctx context.Context
+	Err error
 }
 
 type Broker struct {
@@ -79,7 +86,7 @@ func New(cfg *config.Config) (*Broker, error) {
 
 }
 
-// GetResponseChan returns channel to get messages send status
+// GetMessageChan returns channel to get messages
 func (b *Broker) GetMessageChan() chan *MessageReceived {
 	return b.MessageChan
 }
@@ -135,8 +142,11 @@ func (b *Broker) Consume() {
 						semconv.MessagingDestinationName("registration"),
 					),
 				)
-				span.End()
+				defer span.End()
 			}
+			// TODO: Balance migt be transmitted from sso and extracted from protobuf, Err - take a look at docs to find out.
+			b.MessageChan <- &MessageReceived{Msg: Message{UUID: string(e.Key), Balance: 100, Comment: "registration"}, Ctx: ctx, Err: nil}
+
 		case kafka.Error:
 			// Errors should generally be considered
 			// informational, the client will try to

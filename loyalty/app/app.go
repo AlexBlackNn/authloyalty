@@ -57,6 +57,7 @@ func New() (*App, error) {
 	loyalService := loyaltyservice.New(
 		cfg,
 		log,
+		consumer,
 		loyalStorage,
 	)
 

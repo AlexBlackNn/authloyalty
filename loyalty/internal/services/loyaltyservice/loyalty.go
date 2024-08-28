@@ -8,12 +8,17 @@ import (
 
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/config"
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/domain"
+	"github.com/AlexBlackNn/authloyalty/loyalty/pkg/broker"
 	"github.com/AlexBlackNn/authloyalty/loyalty/pkg/storage"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 )
+
+type loyaltyBroker interface {
+	GetMessageChan() chan *broker.MessageReceived
+}
 
 type loyaltyStorage interface {
 	AddLoyalty(
@@ -31,6 +36,7 @@ type loyaltyStorage interface {
 type Loyalty struct {
 	cfg          *config.Config
 	log          *slog.Logger
+	loyalBroker  loyaltyBroker
 	loyalStorage loyaltyStorage
 }
 
@@ -38,8 +44,17 @@ type Loyalty struct {
 func New(
 	cfg *config.Config,
 	log *slog.Logger,
+	loyalBroker *broker.Broker,
 	loyalStorage loyaltyStorage,
 ) *Loyalty {
+
+	msgChan := loyalBroker.GetMessageChan()
+	go func() {
+		for msg := range msgChan {
+			fmt.Println("ppppppppp", msg)
+		}
+	}()
+
 	return &Loyalty{
 		cfg:          cfg,
 		log:          log,
