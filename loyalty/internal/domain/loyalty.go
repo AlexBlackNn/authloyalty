@@ -1,6 +1,8 @@
 package domain
 
 type UserLoyalty struct {
-	UUID    string
-	Balance int
+	UUID      string
+	Operation string
+	Comment   string
+	Balance   int
 }

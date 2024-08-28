@@ -122,7 +122,7 @@ func (s *Storage) AddLoyalty(
 		//3. If no row is selected
 		if errors.Is(err, sql.ErrNoRows) {
 			// 3.1 and balance more than zero, create new row in "accounts" and "loyalty_transactions" tables
-			if userLoyalty.Balance > 0 {
+			if userLoyalty.Operation == "d" {
 				query = "INSERT INTO loyalty_app.accounts (uuid, balance) VALUES ($1, $2) RETURNING uuid"
 				err = tx.QueryRowContext(ctx, query, userLoyalty.UUID, userLoyalty.Balance).Scan(&userLoyalty.UUID)
 				if err != nil {
@@ -131,7 +131,8 @@ func (s *Storage) AddLoyalty(
 
 				query = "INSERT INTO loyalty_app.loyalty_transactions (account_uuid, transaction_amount, transaction_type, comment) VALUES ($1, $2, $3, $4);"
 				// TODO: transaction_type and comment should be extracted from userLoyalty
-				_, err = tx.ExecContext(ctx, query, userLoyalty.UUID, userLoyalty.Balance, "d", "registration")
+				_, err = tx.ExecContext(
+					ctx, query, userLoyalty.UUID, userLoyalty.Balance, userLoyalty.Operation, userLoyalty.Comment)
 				if err != nil {
 					return ctx, nil, err
 				}
@@ -148,7 +149,11 @@ func (s *Storage) AddLoyalty(
 	}
 	// 4. if row exists try to update accounts
 	//TODO: take into consideration withdraw operation!!!
-	query = "UPDATE loyalty_app.accounts SET balance = balance + $1 WHERE uuid = $2 RETURNING balance;"
+	if userLoyalty.Operation == "d" {
+		query = "UPDATE loyalty_app.accounts SET balance = balance + $1 WHERE uuid = $2 RETURNING balance;"
+	} else {
+		query = "UPDATE loyalty_app.accounts SET balance = balance - $1 WHERE uuid = $2 RETURNING balance;"
+	}
 	err = tx.QueryRowContext(ctx, query, balance, userLoyalty.UUID).Scan(&userLoyalty.Balance)
 	// https://www.postgresql.org/docs/16/errcodes-appendix.html
 	var pgerr *pgconn.PgError
@@ -163,8 +168,13 @@ func (s *Storage) AddLoyalty(
 			err,
 		)
 	}
-
-	//TODO: 5. Write data to account_transaction
+	// 5. Write data to account_transaction
+	query = "INSERT INTO loyalty_app.loyalty_transactions (account_uuid, transaction_amount, transaction_type, comment) VALUES ($1, $2, $3, $4);"
+	// TODO: transaction_type and comment should be extracted from userLoyalty
+	_, err = tx.ExecContext(ctx, query, userLoyalty.UUID, balance, userLoyalty.Operation, userLoyalty.Comment)
+	if err != nil {
+		return ctx, nil, err
+	}
 	return ctx, userLoyalty, tx.Commit()
 }
 

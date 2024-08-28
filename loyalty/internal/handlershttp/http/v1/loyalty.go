@@ -74,7 +74,14 @@ func (l *LoyaltyHandlers) AddLoyalty(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := ctxWithTimeoutCause(r, l.cfg, "login timeout")
 	defer cancel()
 
-	ctx, loyalty, err := l.loyalty.AddLoyalty(ctx, &domain.UserLoyalty{UUID: reqData.UUID, Balance: reqData.Value})
+	ctx, loyalty, err := l.loyalty.AddLoyalty(
+		ctx,
+		&domain.UserLoyalty{
+			UUID:      reqData.UUID,
+			Operation: reqData.Operation,
+			Comment:   reqData.Comment,
+			Balance:   reqData.Balance,
+		})
 	if err != nil {
 		if errors.Is(err, loyaltyservice.ErrNegativeBalance) {
 			dto.ResponseErrorBadRequest(w, "withdrew such amount of loyalty leads to negative balance")

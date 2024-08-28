@@ -12,8 +12,10 @@ import (
 // Input
 
 type UserLoyalty struct {
-	UUID  string `json:"uuid" validate:"uuid"`
-	Value int    `json:"value"`
+	UUID      string `json:"uuid" validate:"uuid"`
+	Operation string `json:"operation" validate:"required"`
+	Comment   string `json:"comment" validate:"required"`
+	Balance   int    `json:"balance" validate:"required"`
 }
 
 // Output
