@@ -9,6 +9,7 @@ import (
 
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/domain"
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/dto"
+	"github.com/AlexBlackNn/authloyalty/loyalty/internal/services/loyaltyservice"
 
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/config"
 )
@@ -96,6 +97,10 @@ func (l *LoyaltyHandlers) GetLoyalty(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	ctx, loyalty, err := l.loyalty.GetLoyalty(ctx, userLoyalty)
 	if err != nil {
+		if errors.Is(err, loyaltyservice.ErrUserNotFound) {
+			dto.ResponseErrorNotFound(w, "user not found")
+			return
+		}
 		dto.ResponseErrorInternal(w, "internal server error")
 		return
 	}

@@ -2,11 +2,13 @@ package loyaltyservice
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/config"
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/domain"
+	"github.com/AlexBlackNn/authloyalty/loyalty/pkg/storage"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -75,6 +77,9 @@ func (l *Loyalty) GetLoyalty(
 
 	ctx, userLoyalty, err := l.loyalStorage.GetLoyalty(ctx, userLoyalty)
 	if err != nil {
+		if errors.Is(err, storage.ErrUserNotFound) {
+			return ctx, nil, ErrUserNotFound
+		}
 		span.SetStatus(codes.Error, err.Error())
 		span.SetAttributes(attribute.Bool("error", true))
 		span.RecordError(fmt.Errorf("%s: failed to get loyalty: %w", op, err))

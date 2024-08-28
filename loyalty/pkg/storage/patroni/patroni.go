@@ -155,7 +155,7 @@ func (s *Storage) AddLoyalty(
 				if err != nil {
 					return ctx, nil, err
 				}
-				return ctx, nil, tx.Commit()
+				return ctx, userLoyalty, tx.Commit()
 			}
 			// 3.2 balance less than zero
 			return ctx, nil, storage.ErrUserNotFound
