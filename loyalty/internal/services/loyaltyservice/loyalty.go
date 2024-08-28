@@ -114,6 +114,9 @@ func (l *Loyalty) AddLoyalty(
 
 	ctx, userLoyalty, err := l.loyalStorage.AddLoyalty(ctx, userLoyalty)
 	if err != nil {
+		if errors.Is(err, storage.ErrNegativeBalance) {
+			return ctx, nil, ErrNegativeBalance
+		}
 		span.SetStatus(codes.Error, err.Error())
 		span.SetAttributes(attribute.Bool("error", true))
 		span.RecordError(fmt.Errorf("%s: failed to get loyalty: %w", op, err))

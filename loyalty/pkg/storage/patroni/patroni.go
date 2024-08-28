@@ -131,18 +131,15 @@ func (s *Storage) AddLoyalty(
 	}
 	defer tx.Rollback()
 
-	fmt.Println("1111111111111111111111111111111111111111111111111111111111111111111111111111", userLoyalty.Balance)
 	balance := userLoyalty.Balance
 	//2. Block required row and get row info
 	query := "SELECT uuid, balance FROM loyalty_app.accounts WHERE uuid = $1 FOR UPDATE;"
 	err = tx.QueryRowContext(ctx, query, userLoyalty.UUID).Scan(&userLoyalty.UUID, &userLoyalty.Balance)
-	fmt.Println("1111111111111111111111111111111111111111111111111111111111111111111111111111", userLoyalty.Balance)
 	if err != nil {
 		//3. If no row is selected
 		if errors.Is(err, sql.ErrNoRows) {
 			// 3.1 and balance more than zero, create new row in "accounts" and "loyalty_transactions" tables
 			if userLoyalty.Balance > 0 {
-				fmt.Println("2222222222222222222222222222")
 				query = "INSERT INTO loyalty_app.accounts (uuid, balance) VALUES ($1, $2) RETURNING uuid"
 				err = tx.QueryRowContext(ctx, query, userLoyalty.UUID, userLoyalty.Balance).Scan(&userLoyalty.UUID)
 				if err != nil {
@@ -172,15 +169,11 @@ func (s *Storage) AddLoyalty(
 	fmt.Println("44444444444444444444", balance, userLoyalty.Balance)
 	err = tx.QueryRowContext(ctx, query, balance, userLoyalty.UUID).Scan(&userLoyalty.Balance)
 	fmt.Println("5555555555555555555", balance, userLoyalty.Balance)
-	if err != nil {
-		return ctx, nil, tx.Commit()
-	}
-
 	// https://www.postgresql.org/docs/16/errcodes-appendix.html
 	var pgerr *pgconn.PgError
 	if errors.As(err, &pgerr) {
 		if pgerr.Code == CheckViolationErr {
-			return ctx, nil, errors.New("check violation error, balance can't be less than 0")
+			return ctx, nil, storage.ErrNegativeBalance
 		}
 	}
 	if err != nil {

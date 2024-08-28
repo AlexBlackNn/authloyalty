@@ -76,6 +76,10 @@ func (l *LoyaltyHandlers) AddLoyalty(w http.ResponseWriter, r *http.Request) {
 
 	ctx, loyalty, err := l.loyalty.AddLoyalty(ctx, &domain.UserLoyalty{UUID: reqData.UUID, Balance: reqData.Value})
 	if err != nil {
+		if errors.Is(err, loyaltyservice.ErrNegativeBalance) {
+			dto.ResponseErrorBadRequest(w, "withdrew such amount of loyalty leads to negative balance")
+			return
+		}
 		dto.ResponseErrorInternal(w, "internal server error")
 		return
 	}
