@@ -87,6 +87,10 @@ func (l *LoyaltyHandlers) AddLoyalty(w http.ResponseWriter, r *http.Request) {
 			dto.ResponseErrorBadRequest(w, "withdrew such amount of loyalty leads to negative balance")
 			return
 		}
+		if errors.Is(err, loyaltyservice.ErrUserNotFound) {
+			dto.ResponseErrorBadRequest(w, "user not found")
+			return
+		}
 		dto.ResponseErrorInternal(w, "internal server error")
 		return
 	}
