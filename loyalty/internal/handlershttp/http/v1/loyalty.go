@@ -3,13 +3,17 @@ package v1
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/domain"
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/dto"
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/services/loyaltyservice"
+	"github.com/AlexBlackNn/authloyalty/loyalty/lib"
+	"go.opentelemetry.io/otel"
 
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/config"
 )
@@ -56,6 +60,8 @@ func ctxWithTimeoutCause(
 	return ctx, cancel
 }
 
+var tracer = otel.Tracer("loyalty service")
+
 // @Summary AddLoyalty
 // @Description Authenticates a user and returns access and refresh tokens.
 // @Tags Loyalty
@@ -74,6 +80,20 @@ func (l *LoyaltyHandlers) AddLoyalty(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := ctxWithTimeoutCause(r, l.cfg, "login timeout")
 	defer cancel()
 
+	tokenString := r.Header.Get("Authorization")
+	token := strings.TrimPrefix(tokenString, "Bearer")
+	token = strings.TrimPrefix(token, " ")
+
+	if !lib.JWTCheck(ctx, tracer, token) {
+		fmt.Println("jwt token failed", token)
+	}
+	uid, name, err := lib.JWTParse(token)
+
+	fmt.Println(uid, name, err)
+	if err != nil {
+		fmt.Println("jwt parse failed", token)
+	}
+	fmt.Println("success token", token)
 	ctx, loyalty, err := l.loyalty.AddLoyalty(
 		ctx,
 		&domain.UserLoyalty{
