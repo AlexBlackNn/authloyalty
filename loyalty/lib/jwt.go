@@ -50,7 +50,7 @@ func JWTCheck(ctx context.Context, tracer trace.Tracer, token string) bool {
 	return respIsValid.GetSuccess()
 }
 
-func JWTParse(tokenString string) (int, string, error) {
+func JWTParse(tokenString string) (string, string, error) {
 	token, _, err := new(jwt.Parser).ParseUnverified(tokenString, jwt.MapClaims{})
 	if err != nil {
 		log.Fatal(err)
@@ -66,12 +66,12 @@ func JWTParse(tokenString string) (int, string, error) {
 
 	userName, ok := claims["email"].(string)
 	if !ok {
-		return 0, "", errors.New("email not found")
+		return "", "", errors.New("email not found")
 	}
-	userId, ok := claims["uid"].(float64)
+	userId, ok := claims["uid"].(string)
 	if !ok {
-		return 0, "", errors.New("uid not found")
+		return "", "", errors.New("uid not found")
 	}
 
-	return int(userId), userName, nil
+	return userId, userName, nil
 }
