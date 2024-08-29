@@ -20,7 +20,7 @@ import (
 
 func grpcAddress() string {
 	//TODO: sso migt be localhost in local run. Move to cfg
-	return net.JoinHostPort("sso", "44044")
+	return net.JoinHostPort("localhost", "44044")
 }
 
 func JWTCheck(ctx context.Context, tracer trace.Tracer, token string) bool {
