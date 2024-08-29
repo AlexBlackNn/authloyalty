@@ -77,7 +77,7 @@ func (l *LoyaltyHandlers) AddLoyalty(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx, cancel := ctxWithTimeoutCause(r, l.cfg, "login timeout")
+	ctx, cancel := ctxWithTimeoutCause(r, l.cfg, "add loyalty")
 	defer cancel()
 
 	tokenString := r.Header.Get("Authorization")
