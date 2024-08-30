@@ -73,8 +73,8 @@ var tracer = otel.Tracer("loyalty service")
 // @Tags Loyalty
 // @Accept json
 // @Produce json
-// @Param body body models.UserLoyalty true "UserLoyalty request"
-// @Success 201 {object} models.Response "Add loyalty successful"
+// @Param body body dto.UserLoyalty true "UserLoyalty request"
+// @Success 201 {object} dto.Response "Add loyalty successful"
 // @Router /loyalty [post]
 // @Security BearerAuth
 func (l *LoyaltyHandlers) AddLoyalty(w http.ResponseWriter, r *http.Request) {
@@ -145,8 +145,8 @@ func (l *LoyaltyHandlers) AddLoyalty(w http.ResponseWriter, r *http.Request) {
 // @Tags Loyalty
 // @Accept json
 // @Produce json
-// @Param body body models.UserLoyalty true "UserLoyalty request"
-// @Success 200 {object} models.Response "Get loyalty successful"
+// @Param body body dto.UserLoyalty true "UserLoyalty request"
+// @Success 200 {object} dto.Response "Get loyalty successful"
 // @Router /loyalty [get]
 // @Security BearerAuth
 func (l *LoyaltyHandlers) GetLoyalty(w http.ResponseWriter, r *http.Request) {

@@ -17,12 +17,19 @@ tasks:
     desc: "Generate code from proto files for kafka"
     cmds:
       - protoc -I proto proto/registration.v1/registration.proto --go_out=proto/registration.v1/ --go_opt=paths=source_relative --go-grpc_out=proto/registration.v1/ --go-grpc_opt=paths=source_relative
-  swagger:
+  sso-swagger:
     aliases:
-      - swag
-    desc: "Generate code from proto files for kafka"
+      - sso-swag
+    desc: "Generate swag"
     cmds:
-      - cd .. && swag init -g ./cmd/sso/main.go -o ./cmd/sso/docs
+      - cd ../sso && swag init -g ./cmd/sso/main.go -o ./cmd/sso/docs
+  loyalty-swagger:
+    aliases:
+      - loyalty-swag
+    desc: "Generate swag"
+    cmds:
+    - cd ../loyalty && swag init -g ./cmd/main.go -o ./cmd/docs
+
   migrate:
     aliases:
       - migrate

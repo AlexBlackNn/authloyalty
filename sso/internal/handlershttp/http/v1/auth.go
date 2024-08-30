@@ -94,8 +94,8 @@ func ctxWithTimeoutCause(r *http.Request, cfg *config.Config, textError string) 
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Param body body models.Login true "Login request"
-// @Success 201 {object} models.Response "Login successful"
+// @Param body body dto.Login true "Login request"
+// @Success 201 {object} dto.Response "Login successful"
 // @Router /auth/login [post]
 func (a *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 
@@ -124,8 +124,8 @@ func (a *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Param body body models.Logout true "Logout request"
-// @Success 200 {object} models.Response "Logout successful"
+// @Param body body dto.Logout true "Logout request"
+// @Success 200 {object} dto.Response "Logout successful"
 // @Router /auth/logout [post]
 func (a *AuthHandlers) Logout(w http.ResponseWriter, r *http.Request) {
 	reqData, err := handleBadRequest[*dto.Logout](w, r, &dto.Logout{})
@@ -159,8 +159,8 @@ func (a *AuthHandlers) Logout(w http.ResponseWriter, r *http.Request) {
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Param body body models.Register true "Register request"
-// @Success 201 {object} models.Response "Register successful"
+// @Param body body dto.Register true "Register request"
+// @Success 201 {object} dto.Response "Register successful"
 // @Router /auth/registration [post]
 func (a *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 	reqData, err := handleBadRequest[*dto.Register](w, r, &dto.Register{})
@@ -201,8 +201,8 @@ func (a *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Param body body models.Refresh true "Refresh request"
-// @Success 201 {object} models.Response "Refresh successful"
+// @Param body body dto.Refresh true "Refresh request"
+// @Success 201 {object} dto.Response "Refresh successful"
 // @Router /auth/refresh [post]
 func (a *AuthHandlers) Refresh(w http.ResponseWriter, r *http.Request) {
 	reqData, err := handleBadRequest[*dto.Refresh](w, r, &dto.Refresh{})
