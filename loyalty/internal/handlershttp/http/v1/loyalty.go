@@ -3,9 +3,6 @@ package v1
 import (
 	"context"
 	"errors"
-	"fmt"
-	"github.com/AlexBlackNn/authloyalty/loyalty/internal/jwt"
-	"github.com/AlexBlackNn/authloyalty/loyalty/pkg/ssoclient"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -13,7 +10,9 @@ import (
 
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/domain"
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/dto"
+	"github.com/AlexBlackNn/authloyalty/loyalty/internal/jwt"
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/services/loyaltyservice"
+	"github.com/AlexBlackNn/authloyalty/loyalty/pkg/ssoclient"
 	"go.opentelemetry.io/otel"
 
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/config"
@@ -44,8 +43,7 @@ func New(
 ) LoyaltyHandlers {
 	ssoClient, err := ssoclient.New(cfg)
 	if err != nil {
-		//TODO: remove Print and handle error
-		fmt.Println("can't create SSO client")
+		log.Error("can't create SSO client")
 	}
 	return LoyaltyHandlers{
 		log:       log,
@@ -96,7 +94,7 @@ func (l *LoyaltyHandlers) AddLoyalty(w http.ResponseWriter, r *http.Request) {
 		dto.ResponseErrorBadRequest(w, "jwt token invalid")
 		return
 	}
-	uuid, _, err := jwt.JWTParse(token)
+	uuid, _, err := jwt.Parse(token)
 	if err != nil {
 		dto.ResponseErrorBadRequest(w, "jwt token parsing failed")
 		return

@@ -2,7 +2,6 @@ package broker
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 
@@ -37,8 +36,6 @@ type Broker struct {
 	MessageChan  chan *MessageReceived
 }
 
-var FlushBrokerTimeMs = 100
-var KafkaError = errors.New("kafka broker failed")
 var tracer = otel.Tracer(
 	"loyalty service",
 	trace.WithInstrumentationVersion(contrib.SemVersion()),
@@ -54,11 +51,6 @@ func New(cfg *config.Config) (*Broker, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	//p := otelconfluent.NewConsumerWithTracing(
-	//	confluentConsumer,
-	//	tracer,
-	//)
 
 	MessageChan := make(chan *MessageReceived)
 

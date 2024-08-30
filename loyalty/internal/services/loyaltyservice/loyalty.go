@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/AlexBlackNn/authloyalty/loyalty/pkg/tracing"
 	"log/slog"
+
+	"github.com/AlexBlackNn/authloyalty/loyalty/pkg/tracing"
 
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/config"
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/domain"

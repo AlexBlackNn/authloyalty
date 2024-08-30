@@ -3,11 +3,12 @@ package jwt
 import (
 	"errors"
 	"fmt"
-	"github.com/golang-jwt/jwt/v5"
 	"log"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
-func JWTParse(tokenString string) (string, string, error) {
+func Parse(tokenString string) (string, string, error) {
 	token, _, err := new(jwt.Parser).ParseUnverified(tokenString, jwt.MapClaims{})
 	if err != nil {
 		log.Fatal(err)
