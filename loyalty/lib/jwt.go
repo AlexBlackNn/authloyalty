@@ -15,7 +15,6 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/metadata"
 )
 
 func grpcAddress() string {
@@ -28,12 +27,9 @@ func JWTCheck(ctx context.Context, tracer trace.Tracer, token string) bool {
 		trace.WithAttributes(attribute.String("handler", "JWTCheck")))
 	defer span.End()
 
-	traceId := fmt.Sprintf("%s", span.SpanContext().TraceID())
-	ctx = metadata.AppendToOutgoingContext(ctx, "x-trace-id", traceId)
-
 	// create grpc_transport client
 	cc, err := grpc.DialContext(
-		context.Background(),
+		ctx,
 		grpcAddress(),
 		//use insecure connection during test
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -74,4 +70,28 @@ func JWTParse(tokenString string) (string, string, error) {
 	}
 
 	return userId, userName, nil
+}
+
+func AdminCheck(ctx context.Context, tracer trace.Tracer, uuid string) bool {
+	ctx, span := tracer.Start(ctx, "service layer: AdminCheck",
+		trace.WithAttributes(attribute.String("handler", "AdminCheck")))
+	defer span.End()
+
+	// create grpc_transport client
+	cc, err := grpc.DialContext(
+		ctx,
+		grpcAddress(),
+		//use insecure connection during test
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
+	)
+
+	if err != nil {
+		return false
+	}
+
+	authClient := ssov1.NewAuthClient(cc)
+
+	respIsValid, err := authClient.IsAdmin(ctx, &ssov1.IsAdminRequest{UserId: uuid})
+	return respIsValid.GetIsAdmin()
 }

@@ -6,11 +6,11 @@ curl --header "Content-Type: application/json" --request POST --data '{"uuid":"f
 ```
 
 ```bash
-curl --header "Content-Type: application/json" --header "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAdGVzdC5jb20iLCJleHAiOjE3MjQ5NjA0MjQsInRva2VuX3R5cGUiOiJhY2Nlc3MiLCJ1aWQiOiI2M2M4MjEzMS04NWVmLTQ2YjktYTU3NS1iNjcxMGE0MDMwYWMifQ.OKrKv8zlsNJMkTEMskzUN1aTyYVs2-sx3he3lnQMAtU" --request POST --data '{"uuid":"f0111262-8660-436a-9fcb-f95554cfe51a","balance":10,"operation":"w","comment":"withdraw loyalty"}' http://localhost:8001/loyalty/
+curl --header "Content-Type: application/json" --header "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAdGVzdC5jb20iLCJleHAiOjE3MjUwMDE2MzcsInRva2VuX3R5cGUiOiJhY2Nlc3MiLCJ1aWQiOiIwZDc1YjdhYy0xMWM2LTQ2N2UtYjA5Zi1jOTE5ZWQ1ODQ2MDEifQ.tGltRC3iVXEPewkAhd04u68exDF4hlU4gNppmR42dcU" --request POST --data '{"uuid":"f0111262-8660-436a-9fcb-f95554cfe51a","balance":10,"operation":"w","comment":"withdraw loyalty"}' http://localhost:8001/loyalty/
 ```
 
 ```bash
-curl --header "Content-Type: application/json" --header "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAdGVzdC5jb20iLCJleHAiOjE3MjQ5NjA0MjQsInRva2VuX3R5cGUiOiJhY2Nlc3MiLCJ1aWQiOiI2M2M4MjEzMS04NWVmLTQ2YjktYTU3NS1iNjcxMGE0MDMwYWMifQ.OKrKv8zlsNJMkTEMskzUN1aTyYVs2-sx3he3lnQMAtU" --request POST --data '{"uuid":"f0111262-8660-436a-9fcb-f95554cfe51a","balance":10,"operation":"d","comment":"deposit loyalty"}' http://localhost:8001/loyalty/
+curl --header "Content-Type: application/json" --header "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAdGVzdC5jb20iLCJleHAiOjE3MjUwMDE2MzcsInRva2VuX3R5cGUiOiJhY2Nlc3MiLCJ1aWQiOiIwZDc1YjdhYy0xMWM2LTQ2N2UtYjA5Zi1jOTE5ZWQ1ODQ2MDEifQ.tGltRC3iVXEPewkAhd04u68exDF4hlU4gNppmR42dcU" --request POST --data '{"uuid":"f0111262-8660-436a-9fcb-f95554cfe51a","balance":10,"operation":"d","comment":"deposit loyalty"}' http://localhost:8001/loyalty/
 ```
 
 //addloyalty deposit

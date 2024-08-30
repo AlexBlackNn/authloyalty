@@ -85,19 +85,24 @@ func (l *LoyaltyHandlers) AddLoyalty(w http.ResponseWriter, r *http.Request) {
 	token = strings.TrimPrefix(token, " ")
 
 	if !lib.JWTCheck(ctx, tracer, token) {
-		fmt.Println("jwt token failed", token)
+		fmt.Println("1111111111111111111111111111111111111 jwt token failed", token)
 	}
-	uid, name, err := lib.JWTParse(token)
+	uuid, name, err := lib.JWTParse(token)
 
-	fmt.Println(uid, name, err)
+	fmt.Println("1 ====>>>", uuid, name, err)
 	if err != nil {
-		fmt.Println("jwt parse failed", token)
+		fmt.Println("111111111111111111111111111111111111 jwt parse failed", token)
 	}
-	fmt.Println("success token", token)
+	fmt.Println("2 . success token", token)
+
+	if reqData.Operation == "d" && !lib.AdminCheck(ctx, tracer, uuid) {
+		fmt.Println("3. only admin access", reqData)
+	}
+
 	ctx, loyalty, err := l.loyalty.AddLoyalty(
 		ctx,
 		&domain.UserLoyalty{
-			UUID:      reqData.UUID,
+			UUID:      uuid,
 			Operation: reqData.Operation,
 			Comment:   reqData.Comment,
 			Balance:   reqData.Balance,
