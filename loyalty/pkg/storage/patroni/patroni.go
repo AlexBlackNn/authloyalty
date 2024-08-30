@@ -22,6 +22,11 @@ type Storage struct {
 	dbWrite *sql.DB
 }
 
+const (
+	DEPOSIT  = "d"
+	WITHDRAW = "w"
+)
+
 var tracer = otel.Tracer("loyalty service")
 
 const CheckViolationErr = "23514"
@@ -122,33 +127,30 @@ func (s *Storage) AddLoyalty(
 		//3. If no row is selected
 		if errors.Is(err, sql.ErrNoRows) {
 			// 3.1 and balance more than zero, create new row in "accounts" and "loyalty_transactions" tables
-			if userLoyalty.Operation == "d" {
+			if userLoyalty.Operation == "registration" {
 				query = "INSERT INTO loyalty_app.accounts (uuid, balance) VALUES ($1, $2) RETURNING uuid"
 				err = tx.QueryRowContext(ctx, query, userLoyalty.UUID, userLoyalty.Balance).Scan(&userLoyalty.UUID)
+				fmt.Println("000000000000", userLoyalty)
 				if err != nil {
 					return ctx, nil, err
 				}
-
+				fmt.Println("11111111111111", userLoyalty)
 				query = "INSERT INTO loyalty_app.loyalty_transactions (account_uuid, transaction_amount, transaction_type, comment) VALUES ($1, $2, $3, $4);"
 				// TODO: transaction_type and comment should be extracted from userLoyalty
 				_, err = tx.ExecContext(
-					ctx, query, userLoyalty.UUID, userLoyalty.Balance, userLoyalty.Operation, userLoyalty.Comment)
+					ctx, query, userLoyalty.UUID, userLoyalty.Balance, DEPOSIT, userLoyalty.Comment)
 				if err != nil {
 					return ctx, nil, err
 				}
+				fmt.Println("22222222222222222", userLoyalty)
 				return ctx, userLoyalty, tx.Commit()
 			}
-			// 3.2 balance less than zero
-			return ctx, nil, storage.ErrUserNotFound
 		}
-
-		return ctx, nil, fmt.Errorf(
-			"DATA LAYER: storage.postgres.AddLoyalty: %w",
-			err,
-		)
+		fmt.Println("1111111111111111111111111111111111111111111111111", userLoyalty)
+		// 3.2 balance less than zero
+		return ctx, nil, storage.ErrUserNotFound
 	}
 	// 4. if row exists try to update accounts
-	//TODO: take into consideration withdraw operation!!!
 	if userLoyalty.Operation == "d" {
 		query = "UPDATE loyalty_app.accounts SET balance = balance + $1 WHERE uuid = $2 RETURNING balance;"
 	} else {

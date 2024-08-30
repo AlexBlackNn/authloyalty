@@ -53,7 +53,9 @@ func New(
 	msgChan := loyalBroker.GetMessageChan()
 	go func() {
 		for msg := range msgChan {
-			userLoyalty := &domain.UserLoyalty{UUID: msg.Msg.UUID, Balance: msg.Msg.Balance}
+
+			// TODO: this is insecure. But for now it's ok
+			userLoyalty := &domain.UserLoyalty{UUID: msg.Msg.UUID, Balance: msg.Msg.Balance, Operation: "registration"}
 
 			ctx, span := tracer.Start(msg.Ctx, "service layer: GetMessageChan",
 				trace.WithAttributes(attribute.String("handler", "GetMessageChan")))

@@ -106,7 +106,6 @@ func (l *LoyaltyHandlers) AddLoyalty(w http.ResponseWriter, r *http.Request) {
 
 	isAdmin := l.ssoClient.IsAdmin(ctx, tracer, uuid)
 	// only admins can deposit and withdraw loyalty using uuid in post request
-
 	if isAdmin {
 		userLoyalty = &domain.UserLoyalty{
 			UUID:      reqData.UUID,
