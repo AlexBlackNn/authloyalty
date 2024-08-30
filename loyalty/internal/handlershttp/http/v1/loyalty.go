@@ -42,7 +42,7 @@ func New(
 	cfg *config.Config,
 	loyalty loyaltyService,
 ) LoyaltyHandlers {
-	ssoClient, err := ssoclient.New()
+	ssoClient, err := ssoclient.New(cfg)
 	if err != nil {
 		//TODO: remove Print and handle error
 		fmt.Println("can't create SSO client")

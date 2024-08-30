@@ -2,30 +2,22 @@ package ssoclient
 
 import (
 	"context"
-	"net"
-
 	ssov1 "github.com/AlexBlackNn/authloyalty/commands/proto/sso/gen"
-	"go.opentelemetry.io/otel/attribute"
-
+	"github.com/AlexBlackNn/authloyalty/loyalty/internal/config"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-func grpcAddress() string {
-	//TODO: sso migt be localhost in local run. Move to cfg
-	return net.JoinHostPort("localhost", "44044")
-}
-
 type SSOClient struct {
 	AuthClient ssov1.AuthClient
 }
 
-func New() (*SSOClient, error) {
+func New(cfg *config.Config) (*SSOClient, error) {
 	grpcClient, err := grpc.NewClient(
-		grpcAddress(),
-		//use insecure connection during test
+		cfg.SSOAddress,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
 	)

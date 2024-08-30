@@ -31,6 +31,10 @@ type ServerHandlersTimeoutsCongig struct {
 	RefreshTimeoutMs  int64 `yaml:"refreshTimeoutMs" env-required:"true"`
 }
 
+type ServerGRPC struct {
+	GRPCAddress string `yaml:"grpcAddress" env-required:"true"`
+}
+
 type Config struct {
 	// without this param will be used "local" as param value
 	Env             string        `yaml:"env" env-default:"local"`
@@ -47,6 +51,7 @@ type Config struct {
 	JaegerUrl              string                       `yaml:"jaeger_url"`
 	RateLimit              int                          `yaml:"rate_limit" `
 	Address                string                       `yaml:"address"`
+	SSOAddress             string                       `yaml:"sso_address"`
 }
 
 func New() *Config {
