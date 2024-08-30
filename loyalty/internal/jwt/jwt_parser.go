@@ -2,7 +2,6 @@ package jwt
 
 import (
 	"errors"
-	"fmt"
 	"log"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -17,11 +16,6 @@ func Parse(tokenString string) (string, string, error) {
 	if !ok {
 		log.Fatal("invalid claims format")
 	}
-
-	for key, value := range claims {
-		fmt.Printf("%s = %v\n", key, value)
-	}
-
 	userName, ok := claims["email"].(string)
 	if !ok {
 		return "", "", errors.New("email not found")

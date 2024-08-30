@@ -97,8 +97,7 @@ func (l *Loyalty) GetLoyalty(
 	ctx context.Context,
 	userLoyalty *domain.UserLoyalty,
 ) (context.Context, *domain.UserLoyalty, error) {
-	const op = "SERVICE LAYER: auth_service.RegisterNewUser"
-
+	const op = "SERVICE LAYER: GetLoyalty"
 	ctx, span := tracer.Start(ctx, "service layer: GetLoyalty",
 		trace.WithAttributes(attribute.String("handler", "GetLoyalty")))
 	defer span.End()
@@ -124,7 +123,6 @@ func (l *Loyalty) GetLoyalty(
 			attribute.String("user-id", userLoyalty.UUID),
 			attribute.Int("user-id", userLoyalty.Balance),
 		))
-
 	return ctx, userLoyalty, nil
 }
 
@@ -132,8 +130,7 @@ func (l *Loyalty) AddLoyalty(
 	ctx context.Context,
 	userLoyalty *domain.UserLoyalty,
 ) (context.Context, *domain.UserLoyalty, error) {
-	const op = "SERVICE LAYER: auth_service.RegisterNewUser"
-
+	const op = "SERVICE LAYER: AddLoyalty"
 	ctx, span := tracer.Start(ctx, "service layer: AddLoyalty",
 		trace.WithAttributes(attribute.String("handler", "AddLoyalty")))
 	defer span.End()
@@ -166,6 +163,5 @@ func (l *Loyalty) AddLoyalty(
 			attribute.String("user-id", userLoyalty.UUID),
 			attribute.Int("user-id", userLoyalty.Balance),
 		))
-
 	return ctx, userLoyalty, nil
 }
