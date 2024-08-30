@@ -2,6 +2,9 @@ package tracing
 
 import (
 	"context"
+	"fmt"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/config"
 	"go.opentelemetry.io/otel"
@@ -45,4 +48,10 @@ func Init(serviceName string, cfg *config.Config) (*sdktrace.TracerProvider, err
 	otel.SetTracerProvider(tp)
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
 	return tp, nil
+}
+
+func SpanError(span trace.Span, msg string, err error) {
+	span.SetStatus(codes.Error, err.Error())
+	span.SetAttributes(attribute.Bool("error", true))
+	span.RecordError(fmt.Errorf("%s: %w", msg, err))
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/AlexBlackNn/authloyalty/loyalty/pkg/tracing"
 	"log/slog"
 
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/config"
@@ -12,7 +13,6 @@ import (
 	"github.com/AlexBlackNn/authloyalty/loyalty/pkg/storage"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -54,17 +54,13 @@ func New(
 	go func() {
 		for msg := range msgChan {
 
-			// TODO: this is insecure. But for now it's ok
 			userLoyalty := &domain.UserLoyalty{UUID: msg.Msg.UUID, Balance: msg.Msg.Balance, Operation: "registration"}
-
 			ctx, span := tracer.Start(msg.Ctx, "service layer: GetMessageChan",
 				trace.WithAttributes(attribute.String("handler", "GetMessageChan")))
 			ctx, userLoyalty, err := loyalStorage.AddLoyalty(ctx, userLoyalty)
 			if err != nil {
 				log.Error(err.Error(), "userLoyalty", userLoyalty)
-				span.SetStatus(codes.Error, err.Error())
-				span.SetAttributes(attribute.Bool("error", true))
-				span.RecordError(fmt.Errorf("%s: failed to get loyalty: %w", "GetMessageChan", err))
+				tracing.SpanError(span, "failed to create loyalty for user", err)
 				continue
 			}
 			log.Info("GetMessageChan: userLoyalty", userLoyalty)
@@ -117,9 +113,7 @@ func (l *Loyalty) GetLoyalty(
 		if errors.Is(err, storage.ErrUserNotFound) {
 			return ctx, nil, ErrUserNotFound
 		}
-		span.SetStatus(codes.Error, err.Error())
-		span.SetAttributes(attribute.Bool("error", true))
-		span.RecordError(fmt.Errorf("%s: failed to get loyalty: %w", op, err))
+		tracing.SpanError(span, "failed to get loyalty", err)
 		log.Error("failed to get loyalty", "err", err.Error())
 		return ctx, nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -152,22 +146,16 @@ func (l *Loyalty) AddLoyalty(
 	ctx, userLoyalty, err := l.loyalStorage.AddLoyalty(ctx, userLoyalty)
 	if err != nil {
 		if errors.Is(err, storage.ErrNegativeBalance) {
-			span.SetStatus(codes.Error, err.Error())
-			span.SetAttributes(attribute.Bool("error", true))
-			span.RecordError(fmt.Errorf("%s: withdraw might lead to negative balance: %w", op, err))
+			tracing.SpanError(span, "withdraw might lead to negative balance", err)
 			log.Error("withdraw might lead to negative balance", "err", err.Error())
 			return ctx, nil, ErrNegativeBalance
 		}
 		if errors.Is(err, storage.ErrUserNotFound) {
-			span.SetStatus(codes.Error, err.Error())
-			span.SetAttributes(attribute.Bool("error", true))
-			span.RecordError(fmt.Errorf("%s: withdraw might lead to negative balance: %w", op, err))
+			tracing.SpanError(span, "withdraw might lead to negative balance", err)
 			log.Error("withdraw might lead to negative balance", "err", err.Error())
 			return ctx, nil, ErrUserNotFound
 		}
-		span.SetStatus(codes.Error, err.Error())
-		span.SetAttributes(attribute.Bool("error", true))
-		span.RecordError(fmt.Errorf("%s: failed to get loyalty: %w", op, err))
+		tracing.SpanError(span, "failed to get loyalty", err)
 		log.Error("failed to get loyalty", "err", err.Error())
 		return ctx, nil, fmt.Errorf("%s: %w", op, err)
 	}
