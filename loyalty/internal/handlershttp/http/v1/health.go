@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/dto"
-
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/services/loyaltyservice"
 )
 
@@ -19,10 +18,6 @@ type HealthHandlers struct {
 
 func NewHealth(log *slog.Logger, loyaltyService *loyaltyservice.Loyalty) HealthHandlers {
 	return HealthHandlers{log: log, loyaltyService: loyaltyService}
-}
-
-type Request struct {
-	Expression string `json:"expression" validate:"required"`
 }
 
 // @Summary Проверка готовности приложения

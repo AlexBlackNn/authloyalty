@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/AlexBlackNn/authloyalty/loyalty/internal/jwt"
+	"github.com/AlexBlackNn/authloyalty/loyalty/pkg/ssoclient"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -12,7 +14,6 @@ import (
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/domain"
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/dto"
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/services/loyaltyservice"
-	"github.com/AlexBlackNn/authloyalty/loyalty/lib"
 	"go.opentelemetry.io/otel"
 
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/config"
@@ -30,9 +31,10 @@ type loyaltyService interface {
 }
 
 type LoyaltyHandlers struct {
-	log     *slog.Logger
-	loyalty loyaltyService
-	cfg     *config.Config
+	log       *slog.Logger
+	cfg       *config.Config
+	loyalty   loyaltyService
+	ssoClient *ssoclient.SSOClient
 }
 
 func New(
@@ -40,10 +42,15 @@ func New(
 	cfg *config.Config,
 	loyalty loyaltyService,
 ) LoyaltyHandlers {
+	ssoClient, err := ssoclient.New()
+	if err != nil {
+		fmt.Println("can't create SSO client")
+	}
 	return LoyaltyHandlers{
-		log:     log,
-		cfg:     cfg,
-		loyalty: loyalty,
+		log:       log,
+		cfg:       cfg,
+		ssoClient: ssoClient,
+		loyalty:   loyalty,
 	}
 }
 
@@ -84,10 +91,10 @@ func (l *LoyaltyHandlers) AddLoyalty(w http.ResponseWriter, r *http.Request) {
 	token := strings.TrimPrefix(tokenString, "Bearer")
 	token = strings.TrimPrefix(token, " ")
 
-	if !lib.JWTCheck(ctx, tracer, token) {
+	if !l.ssoClient.IsJWTValid(ctx, tracer, token) {
 		fmt.Println("1111111111111111111111111111111111111 jwt token failed", token)
 	}
-	uuid, name, err := lib.JWTParse(token)
+	uuid, name, err := jwt.JWTParse(token)
 
 	fmt.Println("1 ====>>>", uuid, name, err)
 	if err != nil {
@@ -95,7 +102,7 @@ func (l *LoyaltyHandlers) AddLoyalty(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Println("2 . success token", token)
 
-	if reqData.Operation == "d" && !lib.AdminCheck(ctx, tracer, uuid) {
+	if reqData.Operation == "d" && !l.ssoClient.IsAdmin(ctx, tracer, uuid) {
 		fmt.Println("3. only admin access", reqData)
 	}
 
@@ -109,7 +116,7 @@ func (l *LoyaltyHandlers) AddLoyalty(w http.ResponseWriter, r *http.Request) {
 		})
 	if err != nil {
 		if errors.Is(err, loyaltyservice.ErrNegativeBalance) {
-			dto.ResponseErrorBadRequest(w, "withdrew such amount of loyalty leads to negative balance")
+			dto.ResponseErrorBadRequest(w, "withdraw such amount of loyalty leads to negative balance")
 			return
 		}
 		if errors.Is(err, loyaltyservice.ErrUserNotFound) {
