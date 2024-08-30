@@ -1,8 +1,6 @@
 package unit_tests
 
 import (
-	"encoding/json"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -12,23 +10,23 @@ import (
 	"github.com/AlexBlackNn/authloyalty/loyalty/cmd/router"
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/config"
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/domain"
-	"github.com/AlexBlackNn/authloyalty/loyalty/internal/dto"
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/logger"
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/services/loyaltyservice"
 	"github.com/AlexBlackNn/authloyalty/loyalty/tests/unit_tests/mocks"
+	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/net/context"
 )
 
-type LoyaltySuite struct {
+type LoyaltyAddSuite struct {
 	suite.Suite
 	application *serverhttp.App
 	client      http.Client
 	srv         *httptest.Server
 }
 
-func (ls *LoyaltySuite) SetupSuite() {
+func (ls *LoyaltyAddSuite) SetupSuite() {
 	var err error
 
 	cfg := config.MustLoadByPath("../../config/local.yaml")
@@ -66,7 +64,7 @@ func (ls *LoyaltySuite) SetupSuite() {
 	ls.client = http.Client{Timeout: 3 * time.Second}
 }
 
-func (ls *LoyaltySuite) BeforeTest(suiteName, testName string) {
+func (ls *LoyaltyAddSuite) BeforeTest(suiteName, testName string) {
 	// Starts server with first random port.
 	ls.srv = httptest.NewServer(router.NewChiRouter(
 		ls.application.Cfg,
@@ -76,55 +74,43 @@ func (ls *LoyaltySuite) BeforeTest(suiteName, testName string) {
 	))
 }
 
-func (ls *LoyaltySuite) AfterTest(suiteName, testName string) {
+func (ls *LoyaltyAddSuite) AfterTest(suiteName, testName string) {
 	ls.srv = nil
 }
 
-func TestSuite(t *testing.T) {
-	suite.Run(t, new(LoyaltySuite))
+func TestAddSuite(t *testing.T) {
+	suite.Run(t, new(LoyaltyAddSuite))
 }
 
-func (ls *LoyaltySuite) TestHttpServerRegisterHappyPath() {
-	type Want struct {
-		code        int
-		response    dto.UserLoyalty
-		contentType string
-	}
-
-	test := struct {
-		name string
-		url  string
-		body []byte
-		want Want
-	}{
-		name: "get userLoyalty",
-		url:  "/loyalty/79d3ac44-5857-4185-ba92-1a224fbacb51",
-		want: Want{
-			code:        http.StatusOK,
-			contentType: "application/json",
-			response: dto.UserLoyalty{
-				UUID:    "79d3ac44-5857-4185-ba92-1a224fbacb51",
-				Balance: 1000,
-			},
-		},
-	}
-	// stop server when tests finished
-	defer ls.srv.Close()
-
-	ls.Run(test.name, func() {
-		url := ls.srv.URL + test.url
-		request, err := http.NewRequest(http.MethodGet, url, nil)
+func (ls *LoyaltyAddSuite) TestHttpServerRegisterHappyPath() {
+	ls.Run("registration", func() {
+		//////
+		mockCluster, err := kafka.NewMockCluster(1)
 		ls.NoError(err)
-		res, err := ls.client.Do(request)
-		ls.NoError(err)
-		ls.Equal(test.want.code, res.StatusCode)
-		body, err := io.ReadAll(res.Body)
+		defer mockCluster.Close()
+
+		broker := mockCluster.BootstrapServers()
+		producer, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": broker})
 		ls.NoError(err)
 
-		var response dto.UserLoyalty
-		err = json.Unmarshal(body, &response)
+		topic := "registration"
+
+		payload := []byte{0, 0, 0, 0, 1, 0, 10, 13, 116, 101, 115, 116, 64, 116, 101, 115, 116, 46, 99, 111, 109, 18, 6, 115, 116, 114, 105, 110, 103}
+
+		headers := []kafka.Header{{Key: "request-Id", Value: []byte("header values are binary")}}
+
+		err = producer.Produce(&kafka.Message{
+			Key:            []byte("79d3ac44-5857-4185-ba92-1a224fbacb51"),
+			TopicPartition: kafka.TopicPartition{Topic: &topic},
+			Value:          payload,
+			Headers:        headers,
+		}, nil)
 		ls.NoError(err)
-		ls.Equal(test.want.response.Balance, response.Balance)
-		ls.Equal(test.want.response.UUID, response.UUID)
+
+		e := <-producer.Events()
+		m := e.(*kafka.Message)
+
+		ls.NoError(m.TopicPartition.Error)
+
 	})
 }

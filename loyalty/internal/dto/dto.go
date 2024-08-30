@@ -21,10 +21,10 @@ type UserLoyalty struct {
 // Output
 
 type Response struct {
-	Status string `json:"status"`
-	Error  string `json:"error,omitempty"`
-	UUID   string `json:"uuid,omitempty"`
-	Value  int    `json:"value,omitempty"`
+	Status  string `json:"status"`
+	Error   string `json:"error,omitempty"`
+	UUID    string `json:"uuid,omitempty"`
+	Balance int    `json:"balance,omitempty"`
 }
 
 const StatusError = "Error"
@@ -113,12 +113,12 @@ func ResponseOKLoyalty(
 ) {
 	dataMarshal, _ := json.Marshal(
 		Response{
-			Status: StatusSuccess,
-			UUID:   uuid,
-			Value:  value,
+			Status:  StatusSuccess,
+			UUID:    uuid,
+			Balance: value,
 		},
 	)
-	sendJSON(w, http.StatusCreated, dataMarshal)
+	sendJSON(w, http.StatusOK, dataMarshal)
 }
 
 // Validation error.

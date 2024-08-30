@@ -47,7 +47,7 @@ var tracer = otel.Tracer("loyalty service")
 func New(
 	cfg *config.Config,
 	log *slog.Logger,
-	loyalBroker *broker.Broker,
+	loyalBroker loyaltyBroker,
 	loyalStorage loyaltyStorage,
 ) *Loyalty {
 
