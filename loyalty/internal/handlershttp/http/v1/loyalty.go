@@ -44,6 +44,7 @@ func New(
 ) LoyaltyHandlers {
 	ssoClient, err := ssoclient.New()
 	if err != nil {
+		//TODO: remove Print and handle error
 		fmt.Println("can't create SSO client")
 	}
 	return LoyaltyHandlers{
@@ -92,28 +93,41 @@ func (l *LoyaltyHandlers) AddLoyalty(w http.ResponseWriter, r *http.Request) {
 	token = strings.TrimPrefix(token, " ")
 
 	if !l.ssoClient.IsJWTValid(ctx, tracer, token) {
-		fmt.Println("1111111111111111111111111111111111111 jwt token failed", token)
+		dto.ResponseErrorBadRequest(w, "jwt token invalid")
+		return
 	}
-	uuid, name, err := jwt.JWTParse(token)
-
-	fmt.Println("1 ====>>>", uuid, name, err)
+	uuid, _, err := jwt.JWTParse(token)
 	if err != nil {
-		fmt.Println("111111111111111111111111111111111111 jwt parse failed", token)
-	}
-	fmt.Println("2 . success token", token)
-
-	if reqData.Operation == "d" && !l.ssoClient.IsAdmin(ctx, tracer, uuid) {
-		fmt.Println("3. only admin access", reqData)
+		dto.ResponseErrorBadRequest(w, "jwt token parsing failed")
+		return
 	}
 
-	ctx, loyalty, err := l.loyalty.AddLoyalty(
-		ctx,
-		&domain.UserLoyalty{
+	var userLoyalty *domain.UserLoyalty
+
+	isAdmin := l.ssoClient.IsAdmin(ctx, tracer, uuid)
+	// only admins can deposit and withdraw loyalty using uuid in post request
+
+	if isAdmin {
+		userLoyalty = &domain.UserLoyalty{
+			UUID:      reqData.UUID,
+			Operation: reqData.Operation,
+			Comment:   reqData.Comment,
+			Balance:   reqData.Balance,
+		}
+	} else if reqData.Operation == "d" {
+		dto.ResponseErrorBadRequest(w, "only admins can deposit loyalty")
+	} else {
+		// users can only withdraw loyalty from their own account (uuid extracted from jwt)
+		userLoyalty = &domain.UserLoyalty{
 			UUID:      uuid,
 			Operation: reqData.Operation,
 			Comment:   reqData.Comment,
 			Balance:   reqData.Balance,
-		})
+		}
+	}
+
+	ctx, loyalty, err := l.loyalty.AddLoyalty(ctx, userLoyalty)
+
 	if err != nil {
 		if errors.Is(err, loyaltyservice.ErrNegativeBalance) {
 			dto.ResponseErrorBadRequest(w, "withdraw such amount of loyalty leads to negative balance")
