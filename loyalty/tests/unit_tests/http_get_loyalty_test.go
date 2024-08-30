@@ -8,41 +8,40 @@ import (
 	"testing"
 	"time"
 
-	"github.com/AlexBlackNn/authloyalty/sso/app/serverhttp"
-	"github.com/AlexBlackNn/authloyalty/sso/cmd/sso/router"
-	"github.com/AlexBlackNn/authloyalty/sso/internal/config"
-	"github.com/AlexBlackNn/authloyalty/sso/internal/domain"
-	"github.com/AlexBlackNn/authloyalty/sso/internal/dto"
-	"github.com/AlexBlackNn/authloyalty/sso/internal/logger"
-	"github.com/AlexBlackNn/authloyalty/sso/internal/services/authservice"
-	"github.com/AlexBlackNn/authloyalty/sso/pkg/broker"
-	"github.com/AlexBlackNn/authloyalty/sso/tests/unit_tests/mocks"
-	gofakeit "github.com/brianvoe/gofakeit/v6"
-	jwt "github.com/golang-jwt/jwt/v5"
+	"github.com/AlexBlackNn/authloyalty/loyalty/app/serverhttp"
+	"github.com/AlexBlackNn/authloyalty/loyalty/cmd/router"
+	"github.com/AlexBlackNn/authloyalty/loyalty/internal/config"
+	"github.com/AlexBlackNn/authloyalty/loyalty/internal/domain"
+	"github.com/AlexBlackNn/authloyalty/loyalty/internal/dto"
+	"github.com/AlexBlackNn/authloyalty/loyalty/internal/logger"
+	"github.com/AlexBlackNn/authloyalty/loyalty/pkg/broker"
+	"github.com/AlexBlackNn/authloyalty/loyalty/tests/unit_tests/mocks"
+	"github.com/brianvoe/gofakeit/v6"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/net/context"
 )
 
-type AuthSuite struct {
+type LoyaltySuite struct {
 	suite.Suite
 	application *serverhttp.App
 	client      http.Client
 	srv         *httptest.Server
 }
 
-func (ms *AuthSuite) SetupSuite() {
+func (ls *LoyaltySuite) SetupSuite() {
 	var err error
 
 	cfg := config.MustLoadByPath("../../config/local.yaml")
 	log := logger.New(cfg.Env)
 
-	ctrl := gomock.NewController(ms.T())
+	ctrl := gomock.NewController(ls.T())
 	defer ctrl.Finish()
 
-	userStorageMock := mocks.NewMockUserStorage(ctrl)
-	userStorageMock.EXPECT().
+	loyaltyStorageMock := mocks.NewMockloyaltyStorage(ctrl)
+	loyaltyStorageMock.EXPECT().
 		SaveUser(gomock.Any(), gomock.Any(), gomock.Any()).
 		Return(context.Background(), "79d3ac44-5857-4185-ba92-1a224fbacb51", nil).
 		AnyTimes()

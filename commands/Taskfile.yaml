@@ -59,12 +59,18 @@ tasks:
     desc: "run local kafka consumer for tests"
     cmds:
       - cd .. && go run ./sso/kafka_consumer/main.go --config=./sso/config/local.yaml
-  create-mocks:
+  create-sso-mocks:
     aliases:
-      - mocks
-    desc: "create mocks for infra"
+      - sso-mocks
+    desc: "create mocks for sso infra"
     cmds:
-      - mockgen -source=../internal/services/authservice/auth.go -destination=../tests/unit_tests/mocks/mock_infra.go -package=mocks UserStorage,TokenStorage,HealthChecker,SendCloser
+      - mockgen -source=../sso/internal/services/authservice/auth.go -destination=../sso/tests/unit_tests/mocks/mock_infra.go -package=mocks UserStorage,TokenStorage,HealthChecker,SendCloser
+  create-loyalty-mocks:
+    aliases:
+      - loyalty-mocks
+    desc: "create mocks for loyalty infra"
+    cmds:
+      - mockgen -source=../loyalty/internal/services/loyaltyservice/loyalty.go -destination=../loyalty/tests/unit_tests/mocks/mock_infra.go -package=mocks loyaltyStorage,loyaltyBroker
   run-demo-sso-scale:
     aliases:
       - demo-scale
