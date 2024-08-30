@@ -7,11 +7,11 @@ services:
       logging: "promtail"
       logging_jobname: "containerlogs"
     volumes:
-      - ../nginx/.htpasswd:/etc/nginx/.htpasswd:ro
-      - ../nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ../nginx/configs:/etc/nginx/conf.d:ro
-      - ../nginx/key.pem:/root/ssl/key.pem
-      - ../nginx/cert.pem:/root/ssl/cert.pem
+      - ./nginx/.htpasswd:/etc/nginx/.htpasswd:ro
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/configs:/etc/nginx/conf.d:ro
+      - ./nginx/key.pem:/root/ssl/key.pem
+      - ./nginx/cert.pem:/root/ssl/cert.pem
       - ./data:/data/:ro
     ports:
       - "443:443"
@@ -31,7 +31,7 @@ services:
       - 8090:80
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ../nginx_balancer/sso_http_nginx.tmpl:/app/nginx.tmpl
+      - ./nginx_balancer/sso_http_nginx.tmpl:/app/nginx.tmpl
     environment:
       - DEFAULT_HOST=sso-http-loadbalancer
     depends_on:
@@ -48,7 +48,7 @@ services:
       - 8091:80
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ../nginx_balancer/sso_grpc_nginx.tmpl:/app/nginx.tmpl
+      - ./nginx_balancer/sso_grpc_nginx.tmpl:/app/nginx.tmpl
     environment:
       - DEFAULT_HOST=sso-grpc-loadbalancer
     depends_on:
