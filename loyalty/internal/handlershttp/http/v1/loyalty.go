@@ -69,7 +69,7 @@ func ctxWithTimeoutCause(
 var tracer = otel.Tracer("loyalty service")
 
 // @Summary AddLoyalty
-// @Description Authenticates a user and returns access and refresh tokens.
+// @Description Add Loyalty
 // @Tags Loyalty
 // @Accept json
 // @Produce json
@@ -140,14 +140,14 @@ func (l *LoyaltyHandlers) AddLoyalty(w http.ResponseWriter, r *http.Request) {
 	dto.ResponseOKLoyalty(w, loyalty.UUID, loyalty.Balance)
 }
 
-// @Summary AddLoyalty
-// @Description Authenticates a user and returns access and refresh tokens.
+// @Summary GetLoyalty
+// @Description Get Loyalty
 // @Tags Loyalty
 // @Accept json
 // @Produce json
-// @Param body body dto.UserLoyalty true "UserLoyalty request"
 // @Success 200 {object} dto.Response "Get loyalty successful"
-// @Router /loyalty [get]
+// @Router /loyalty/{uuid} [get]
+// @Param uuid path string true "User UUID"
 // @Security BearerAuth
 func (l *LoyaltyHandlers) GetLoyalty(w http.ResponseWriter, r *http.Request) {
 	userLoyalty, err := handleGetLoyaltyBadRequest(w, r)

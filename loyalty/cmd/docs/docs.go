@@ -61,50 +61,13 @@ const docTemplate = `{
             }
         },
         "/loyalty": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Authenticates a user and returns access and refresh tokens.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Loyalty"
-                ],
-                "summary": "AddLoyalty",
-                "parameters": [
-                    {
-                        "description": "UserLoyalty request",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dto.UserLoyalty"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Get loyalty successful",
-                        "schema": {
-                            "$ref": "#/definitions/dto.Response"
-                        }
-                    }
-                }
-            },
             "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Authenticates a user and returns access and refresh tokens.",
+                "description": "Add Loyalty",
                 "consumes": [
                     "application/json"
                 ],
@@ -129,6 +92,43 @@ const docTemplate = `{
                 "responses": {
                     "201": {
                         "description": "Add loyalty successful",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/loyalty/{uuid}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get Loyalty",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Loyalty"
+                ],
+                "summary": "GetLoyalty",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User UUID",
+                        "name": "uuid",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Get loyalty successful",
                         "schema": {
                             "$ref": "#/definitions/dto.Response"
                         }

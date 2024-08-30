@@ -62,33 +62,10 @@ paths:
       tags:
       - Health
   /loyalty:
-    get:
-      consumes:
-      - application/json
-      description: Authenticates a user and returns access and refresh tokens.
-      parameters:
-      - description: UserLoyalty request
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/dto.UserLoyalty'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Get loyalty successful
-          schema:
-            $ref: '#/definitions/dto.Response'
-      security:
-      - BearerAuth: []
-      summary: AddLoyalty
-      tags:
-      - Loyalty
     post:
       consumes:
       - application/json
-      description: Authenticates a user and returns access and refresh tokens.
+      description: Add Loyalty
       parameters:
       - description: UserLoyalty request
         in: body
@@ -106,6 +83,29 @@ paths:
       security:
       - BearerAuth: []
       summary: AddLoyalty
+      tags:
+      - Loyalty
+  /loyalty/{uuid}:
+    get:
+      consumes:
+      - application/json
+      description: Get Loyalty
+      parameters:
+      - description: User UUID
+        in: path
+        name: uuid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Get loyalty successful
+          schema:
+            $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
+      summary: GetLoyalty
       tags:
       - Loyalty
 securityDefinitions:
