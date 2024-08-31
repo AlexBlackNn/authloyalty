@@ -101,7 +101,6 @@ func (a *App) Start(ctx context.Context) error {
 	}
 }
 
-// TODO: close all unexported methods
 func (a *App) Stop() error {
 	log.Info("close user storage client")
 	err := a.ServerLoyaltyStorage.Stop()
@@ -115,6 +114,11 @@ func (a *App) Stop() error {
 		return err
 	}
 
+	log.Info("close information bus client")
+	err = a.ServerConsumer.Close()
+	if err != nil {
+		return err
+	}
 	log.Info("close open telemetry client")
 	err = a.ServerOpenTelemetry.Shutdown(context.Background())
 	if err != nil {

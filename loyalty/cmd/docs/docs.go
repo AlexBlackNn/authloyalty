@@ -34,75 +34,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/auth/login": {
-            "post": {
-                "description": "Authenticates a user and returns access and refresh tokens.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Auth"
-                ],
-                "summary": "Login",
-                "parameters": [
-                    {
-                        "description": "Login request",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.Login"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Login successful",
-                        "schema": {
-                            "$ref": "#/definitions/models.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/auth/logout": {
-            "post": {
-                "description": "Logout from current session. Frontend needs to send access and then refresh token",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Auth"
-                ],
-                "summary": "Logout",
-                "parameters": [
-                    {
-                        "description": "Logout request",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.Logout"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Logout successful",
-                        "schema": {
-                            "$ref": "#/definitions/models.Response"
+                            "$ref": "#/definitions/dto.Response"
                         }
                     }
                 }
@@ -122,14 +54,20 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.Response"
+                            "$ref": "#/definitions/dto.Response"
                         }
                     }
                 }
             }
         },
-        "/auth/refresh": {
+        "/loyalty": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Add Loyalty",
                 "consumes": [
                     "application/json"
                 ],
@@ -137,33 +75,38 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Auth"
+                    "Loyalty"
                 ],
-                "summary": "Refresh",
+                "summary": "AddLoyalty",
                 "parameters": [
                     {
-                        "description": "Refresh request",
+                        "description": "UserLoyalty request",
                         "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Refresh"
+                            "$ref": "#/definitions/dto.UserLoyalty"
                         }
                     }
                 ],
                 "responses": {
                     "201": {
-                        "description": "Refresh successful",
+                        "description": "Add loyalty successful",
                         "schema": {
-                            "$ref": "#/definitions/models.Response"
+                            "$ref": "#/definitions/dto.Response"
                         }
                     }
                 }
             }
         },
-        "/auth/registration": {
-            "post": {
-                "description": "User registration",
+        "/loyalty/{uuid}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get Loyalty",
                 "consumes": [
                     "application/json"
                 ],
@@ -171,25 +114,23 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Auth"
+                    "Loyalty"
                 ],
-                "summary": "Registration",
+                "summary": "GetLoyalty",
                 "parameters": [
                     {
-                        "description": "Register request",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.Register"
-                        }
+                        "type": "string",
+                        "description": "User UUID",
+                        "name": "uuid",
+                        "in": "path",
+                        "required": true
                     }
                 ],
                 "responses": {
-                    "201": {
-                        "description": "Register successful",
+                    "200": {
+                        "description": "Get loyalty successful",
                         "schema": {
-                            "$ref": "#/definitions/models.Response"
+                            "$ref": "#/definitions/dto.Response"
                         }
                     }
                 }
@@ -197,66 +138,41 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "models.Login": {
+        "dto.Response": {
             "type": "object",
             "properties": {
-                "email": {
-                    "type": "string"
-                },
-                "password": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.Logout": {
-            "type": "object",
-            "properties": {
-                "token": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.Refresh": {
-            "type": "object",
-            "properties": {
-                "token": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.Register": {
-            "type": "object",
-            "required": [
-                "password"
-            ],
-            "properties": {
-                "birthday": {
-                    "type": "string"
-                },
-                "email": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "password": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.Response": {
-            "type": "object",
-            "properties": {
-                "access_token": {
-                    "type": "string"
+                "balance": {
+                    "type": "integer"
                 },
                 "error": {
                     "type": "string"
                 },
-                "refresh_token": {
+                "status": {
                     "type": "string"
                 },
-                "status": {
+                "uuid": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.UserLoyalty": {
+            "type": "object",
+            "required": [
+                "balance",
+                "comment",
+                "operation"
+            ],
+            "properties": {
+                "balance": {
+                    "type": "integer"
+                },
+                "comment": {
+                    "type": "string"
+                },
+                "operation": {
+                    "type": "string"
+                },
+                "uuid": {
                     "type": "string"
                 }
             }
@@ -265,7 +181,7 @@ const docTemplate = `{
     "securityDefinitions": {
         "BearerAuth": {
             "type": "apiKey",
-            "name": "Authorization",
+            "name": "Loyalty",
             "in": "header"
         }
     }
@@ -274,11 +190,11 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "localhost:8000",
+	Host:             "localhost:8001",
 	BasePath:         "",
 	Schemes:          []string{},
 	Title:            "Swagger API",
-	Description:      "sso service.",
+	Description:      "loyalty service.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

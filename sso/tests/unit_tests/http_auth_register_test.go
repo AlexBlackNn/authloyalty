@@ -17,8 +17,8 @@ import (
 	"github.com/AlexBlackNn/authloyalty/sso/internal/services/authservice"
 	"github.com/AlexBlackNn/authloyalty/sso/pkg/broker"
 	"github.com/AlexBlackNn/authloyalty/sso/tests/unit_tests/mocks"
-	gofakeit "github.com/brianvoe/gofakeit/v6"
-	jwt "github.com/golang-jwt/jwt/v5"
+	"github.com/brianvoe/gofakeit/v6"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/crypto/bcrypt"
@@ -41,7 +41,7 @@ func (ms *AuthSuite) SetupSuite() {
 	ctrl := gomock.NewController(ms.T())
 	defer ctrl.Finish()
 
-	userStorageMock := mocks.NewMockUserStorage(ctrl)
+	userStorageMock := mocks.NewMockuserStorage(ctrl)
 	userStorageMock.EXPECT().
 		SaveUser(gomock.Any(), gomock.Any(), gomock.Any()).
 		Return(context.Background(), "79d3ac44-5857-4185-ba92-1a224fbacb51", nil).
@@ -67,7 +67,7 @@ func (ms *AuthSuite) SetupSuite() {
 		Return(context.Background(), nil).
 		AnyTimes()
 
-	brokerMock := mocks.NewMockGetResponseChanSender(ctrl)
+	brokerMock := mocks.NewMockgetResponseChanSender(ctrl)
 
 	brokerMock.EXPECT().
 		Send(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
@@ -79,7 +79,7 @@ func (ms *AuthSuite) SetupSuite() {
 		Return(make(chan *broker.Response)).
 		AnyTimes()
 
-	tokenStorageMock := mocks.NewMockTokenStorage(ctrl)
+	tokenStorageMock := mocks.NewMocktokenStorage(ctrl)
 	authService := authservice.New(
 		cfg,
 		log,

@@ -22,9 +22,12 @@ type Storage struct {
 	dbWrite *sql.DB
 }
 
-var tracer = otel.Tracer("loyalty service")
+const (
+	Deposit           = "d"
+	CheckViolationErr = "23514"
+)
 
-const CheckViolationErr = "23514"
+var tracer = otel.Tracer("loyalty service")
 
 func New(cfg *config.Config) (*Storage, error) {
 	dbWrite, err := otelsql.Open("pgx", cfg.StoragePatroni.Master)
@@ -115,62 +118,59 @@ func (s *Storage) AddLoyalty(
 	defer tx.Rollback()
 
 	balance := userLoyalty.Balance
-	//2. Block required row and get row info
+
+	//2. Block required row to avoid changing from other transactions
 	query := "SELECT uuid, balance FROM loyalty_app.accounts WHERE uuid = $1 FOR UPDATE;"
 	err = tx.QueryRowContext(ctx, query, userLoyalty.UUID).Scan(&userLoyalty.UUID, &userLoyalty.Balance)
 	if err != nil {
 		//3. If no row is selected
 		if errors.Is(err, sql.ErrNoRows) {
-			// 3.1 and balance more than zero, create new row in "accounts" and "loyalty_transactions" tables
-			if userLoyalty.Operation == "d" {
+			// 3.1 and operation is a registration then create new row in "accounts" and "loyalty_transactions" tables
+			if userLoyalty.Operation == "registration" {
 				query = "INSERT INTO loyalty_app.accounts (uuid, balance) VALUES ($1, $2) RETURNING uuid"
 				err = tx.QueryRowContext(ctx, query, userLoyalty.UUID, userLoyalty.Balance).Scan(&userLoyalty.UUID)
 				if err != nil {
 					return ctx, nil, err
 				}
-
 				query = "INSERT INTO loyalty_app.loyalty_transactions (account_uuid, transaction_amount, transaction_type, comment) VALUES ($1, $2, $3, $4);"
-				// TODO: transaction_type and comment should be extracted from userLoyalty
-				_, err = tx.ExecContext(
-					ctx, query, userLoyalty.UUID, userLoyalty.Balance, userLoyalty.Operation, userLoyalty.Comment)
+				_, err = tx.ExecContext(ctx, query, userLoyalty.UUID, userLoyalty.Balance, Deposit, userLoyalty.Comment)
 				if err != nil {
 					return ctx, nil, err
 				}
 				return ctx, userLoyalty, tx.Commit()
 			}
-			// 3.2 balance less than zero
-			return ctx, nil, storage.ErrUserNotFound
 		}
-
-		return ctx, nil, fmt.Errorf(
-			"DATA LAYER: storage.postgres.AddLoyalty: %w",
-			err,
-		)
+		// 3.2 and operation is NOT a registration (withdraw and deposit loyalty is forbidden if user is not registered)
+		return ctx, nil, storage.ErrUserNotFound
 	}
-	// 4. if row exists try to update accounts
-	//TODO: take into consideration withdraw operation!!!
+
+	// 4. if user account exists, try to update account
 	if userLoyalty.Operation == "d" {
+		// 4.1 if deposit
 		query = "UPDATE loyalty_app.accounts SET balance = balance + $1 WHERE uuid = $2 RETURNING balance;"
-	} else {
+	} else if userLoyalty.Operation == "w" {
+		// 4.2 if withdraw
 		query = "UPDATE loyalty_app.accounts SET balance = balance - $1 WHERE uuid = $2 RETURNING balance;"
+	} else {
+		// 4.3 if other type of operations (i.e."registration" - to create exactly only once "registration" operation)
+		return ctx, nil, storage.ErrWrongParamType
 	}
 	err = tx.QueryRowContext(ctx, query, balance, userLoyalty.UUID).Scan(&userLoyalty.Balance)
+
 	// https://www.postgresql.org/docs/16/errcodes-appendix.html
 	var pgerr *pgconn.PgError
-	if errors.As(err, &pgerr) {
-		if pgerr.Code == CheckViolationErr {
-			return ctx, nil, storage.ErrNegativeBalance
-		}
-	}
+
 	if err != nil {
-		return ctx, nil, fmt.Errorf(
-			"DATA LAYER: storage.postgres.AddLoyalty: couldn't change balance  %w",
-			err,
-		)
+		if errors.As(err, &pgerr) {
+			if pgerr.Code == CheckViolationErr {
+				return ctx, nil, storage.ErrNegativeBalance
+			}
+		}
+		return ctx, nil, storage.ErrInternalErr
 	}
+
 	// 5. Write data to account_transaction
 	query = "INSERT INTO loyalty_app.loyalty_transactions (account_uuid, transaction_amount, transaction_type, comment) VALUES ($1, $2, $3, $4);"
-	// TODO: transaction_type and comment should be extracted from userLoyalty
 	_, err = tx.ExecContext(ctx, query, userLoyalty.UUID, balance, userLoyalty.Operation, userLoyalty.Comment)
 	if err != nil {
 		return ctx, nil, err

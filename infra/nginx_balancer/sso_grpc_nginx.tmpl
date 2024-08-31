@@ -1,0 +1,21 @@
+{{ range $host, $containers := groupBy $ "Env.VIRTUAL_HOST" }}
+upstream {{ $host }} {
+
+{{ range $index, $value := $containers }}
+    {{ with $address := index $value.Addresses 0 }}
+    server {{ $value.Hostname }}:{{ $address.Port }};
+    {{ end }}
+{{ end }}
+
+}
+
+server {
+
+  listen 80 http2;
+
+  location / {
+    grpc_pass grpc://sso:44044;
+  }
+
+}
+{{ end }}

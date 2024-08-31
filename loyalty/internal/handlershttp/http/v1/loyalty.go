@@ -3,7 +3,6 @@ package v1
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -11,8 +10,9 @@ import (
 
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/domain"
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/dto"
+	"github.com/AlexBlackNn/authloyalty/loyalty/internal/jwt"
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/services/loyaltyservice"
-	"github.com/AlexBlackNn/authloyalty/loyalty/lib"
+	"github.com/AlexBlackNn/authloyalty/loyalty/pkg/ssoclient"
 	"go.opentelemetry.io/otel"
 
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/config"
@@ -30,9 +30,10 @@ type loyaltyService interface {
 }
 
 type LoyaltyHandlers struct {
-	log     *slog.Logger
-	loyalty loyaltyService
-	cfg     *config.Config
+	log       *slog.Logger
+	cfg       *config.Config
+	loyalty   loyaltyService
+	ssoClient *ssoclient.SSOClient
 }
 
 func New(
@@ -40,10 +41,15 @@ func New(
 	cfg *config.Config,
 	loyalty loyaltyService,
 ) LoyaltyHandlers {
+	ssoClient, err := ssoclient.New(cfg)
+	if err != nil {
+		log.Error("can't create SSO client")
+	}
 	return LoyaltyHandlers{
-		log:     log,
-		cfg:     cfg,
-		loyalty: loyalty,
+		log:       log,
+		cfg:       cfg,
+		ssoClient: ssoClient,
+		loyalty:   loyalty,
 	}
 }
 
@@ -63,12 +69,12 @@ func ctxWithTimeoutCause(
 var tracer = otel.Tracer("loyalty service")
 
 // @Summary AddLoyalty
-// @Description Authenticates a user and returns access and refresh tokens.
+// @Description Add Loyalty
 // @Tags Loyalty
 // @Accept json
 // @Produce json
-// @Param body body models.UserLoyalty true "UserLoyalty request"
-// @Success 201 {object} models.Response "Add loyalty successful"
+// @Param body body dto.UserLoyalty true "UserLoyalty request"
+// @Success 201 {object} dto.Response "Add loyalty successful"
 // @Router /loyalty [post]
 // @Security BearerAuth
 func (l *LoyaltyHandlers) AddLoyalty(w http.ResponseWriter, r *http.Request) {
@@ -84,27 +90,44 @@ func (l *LoyaltyHandlers) AddLoyalty(w http.ResponseWriter, r *http.Request) {
 	token := strings.TrimPrefix(tokenString, "Bearer")
 	token = strings.TrimPrefix(token, " ")
 
-	if !lib.JWTCheck(ctx, tracer, token) {
-		fmt.Println("jwt token failed", token)
+	if !l.ssoClient.IsJWTValid(ctx, tracer, token) {
+		dto.ResponseErrorBadRequest(w, "jwt token invalid")
+		return
 	}
-	uid, name, err := lib.JWTParse(token)
-
-	fmt.Println(uid, name, err)
+	uuid, _, err := jwt.Parse(token)
 	if err != nil {
-		fmt.Println("jwt parse failed", token)
+		dto.ResponseErrorBadRequest(w, "jwt token parsing failed")
+		return
 	}
-	fmt.Println("success token", token)
-	ctx, loyalty, err := l.loyalty.AddLoyalty(
-		ctx,
-		&domain.UserLoyalty{
+
+	var userLoyalty *domain.UserLoyalty
+
+	isAdmin := l.ssoClient.IsAdmin(ctx, tracer, uuid)
+	// only admins can deposit and withdraw loyalty using uuid in post request
+	if isAdmin {
+		userLoyalty = &domain.UserLoyalty{
 			UUID:      reqData.UUID,
 			Operation: reqData.Operation,
 			Comment:   reqData.Comment,
 			Balance:   reqData.Balance,
-		})
+		}
+	} else if reqData.Operation == "d" {
+		dto.ResponseErrorBadRequest(w, "only admins can deposit loyalty")
+	} else {
+		// users can only withdraw loyalty from their own account (uuid extracted from jwt)
+		userLoyalty = &domain.UserLoyalty{
+			UUID:      uuid,
+			Operation: reqData.Operation,
+			Comment:   reqData.Comment,
+			Balance:   reqData.Balance,
+		}
+	}
+
+	ctx, loyalty, err := l.loyalty.AddLoyalty(ctx, userLoyalty)
+
 	if err != nil {
 		if errors.Is(err, loyaltyservice.ErrNegativeBalance) {
-			dto.ResponseErrorBadRequest(w, "withdrew such amount of loyalty leads to negative balance")
+			dto.ResponseErrorBadRequest(w, "withdraw such amount of loyalty leads to negative balance")
 			return
 		}
 		if errors.Is(err, loyaltyservice.ErrUserNotFound) {
@@ -117,20 +140,21 @@ func (l *LoyaltyHandlers) AddLoyalty(w http.ResponseWriter, r *http.Request) {
 	dto.ResponseOKLoyalty(w, loyalty.UUID, loyalty.Balance)
 }
 
-// @Summary AddLoyalty
-// @Description Authenticates a user and returns access and refresh tokens.
+// @Summary GetLoyalty
+// @Description Get Loyalty
 // @Tags Loyalty
 // @Accept json
 // @Produce json
-// @Param body body models.UserLoyalty true "UserLoyalty request"
-// @Success 200 {object} models.Response "Get loyalty successful"
-// @Router /loyalty [get]
+// @Success 200 {object} dto.Response "Get loyalty successful"
+// @Router /loyalty/{uuid} [get]
+// @Param uuid path string true "User UUID"
 // @Security BearerAuth
 func (l *LoyaltyHandlers) GetLoyalty(w http.ResponseWriter, r *http.Request) {
 	userLoyalty, err := handleGetLoyaltyBadRequest(w, r)
 	ctx, cancel := ctxWithTimeoutCause(r, l.cfg, "login timeout")
 	defer cancel()
 	ctx, loyalty, err := l.loyalty.GetLoyalty(ctx, userLoyalty)
+
 	if err != nil {
 		if errors.Is(err, loyaltyservice.ErrUserNotFound) {
 			dto.ResponseErrorNotFound(w, "user not found")

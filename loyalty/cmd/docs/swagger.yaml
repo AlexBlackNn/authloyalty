@@ -1,50 +1,35 @@
 definitions:
-  models.Login:
+  dto.Response:
     properties:
-      email:
-        type: string
-      password:
-        type: string
-    type: object
-  models.Logout:
-    properties:
-      token:
-        type: string
-    type: object
-  models.Refresh:
-    properties:
-      token:
-        type: string
-    type: object
-  models.Register:
-    properties:
-      birthday:
-        type: string
-      email:
-        type: string
-      name:
-        type: string
-      password:
-        type: string
-    required:
-    - password
-    type: object
-  models.Response:
-    properties:
-      access_token:
-        type: string
+      balance:
+        type: integer
       error:
-        type: string
-      refresh_token:
         type: string
       status:
         type: string
+      uuid:
+        type: string
     type: object
-host: localhost:8000
+  dto.UserLoyalty:
+    properties:
+      balance:
+        type: integer
+      comment:
+        type: string
+      operation:
+        type: string
+      uuid:
+        type: string
+    required:
+    - balance
+    - comment
+    - operation
+    type: object
+host: localhost:8001
 info:
   contact:
     name: API Support
-  description: sso service.
+  description: loyalty service.
   license:
     name: Apache 2.0
   title: Swagger API
@@ -59,55 +44,10 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.Response'
+            $ref: '#/definitions/dto.Response'
       summary: Проверка, что приложение живо
       tags:
       - Health
-  /auth/login:
-    post:
-      consumes:
-      - application/json
-      description: Authenticates a user and returns access and refresh tokens.
-      parameters:
-      - description: Login request
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/models.Login'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Login successful
-          schema:
-            $ref: '#/definitions/models.Response'
-      summary: Login
-      tags:
-      - Auth
-  /auth/logout:
-    post:
-      consumes:
-      - application/json
-      description: Logout from current session. Frontend needs to send access and
-        then refresh token
-      parameters:
-      - description: Logout request
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/models.Logout'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Logout successful
-          schema:
-            $ref: '#/definitions/models.Response'
-      summary: Logout
-      tags:
-      - Auth
   /auth/ready:
     get:
       description: Определяет можно ли подавать трафик на сервис
@@ -117,56 +57,60 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.Response'
+            $ref: '#/definitions/dto.Response'
       summary: Проверка готовности приложения
       tags:
       - Health
-  /auth/refresh:
+  /loyalty:
     post:
       consumes:
       - application/json
+      description: Add Loyalty
       parameters:
-      - description: Refresh request
+      - description: UserLoyalty request
         in: body
         name: body
         required: true
         schema:
-          $ref: '#/definitions/models.Refresh'
+          $ref: '#/definitions/dto.UserLoyalty'
       produces:
       - application/json
       responses:
         "201":
-          description: Refresh successful
+          description: Add loyalty successful
           schema:
-            $ref: '#/definitions/models.Response'
-      summary: Refresh
+            $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
+      summary: AddLoyalty
       tags:
-      - Auth
-  /auth/registration:
-    post:
+      - Loyalty
+  /loyalty/{uuid}:
+    get:
       consumes:
       - application/json
-      description: User registration
+      description: Get Loyalty
       parameters:
-      - description: Register request
-        in: body
-        name: body
+      - description: User UUID
+        in: path
+        name: uuid
         required: true
-        schema:
-          $ref: '#/definitions/models.Register'
+        type: string
       produces:
       - application/json
       responses:
-        "201":
-          description: Register successful
+        "200":
+          description: Get loyalty successful
           schema:
-            $ref: '#/definitions/models.Response'
-      summary: Registration
+            $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
+      summary: GetLoyalty
       tags:
-      - Auth
+      - Loyalty
 securityDefinitions:
   BearerAuth:
     in: header
-    name: Authorization
+    name: Loyalty
     type: apiKey
 swagger: "2.0"
