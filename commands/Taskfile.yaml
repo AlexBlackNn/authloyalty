@@ -29,7 +29,12 @@ tasks:
     desc: "Generate swag"
     cmds:
     - cd ../loyalty && swag init -g ./cmd/main.go -o ./cmd/docs
-
+  easy-json:
+    aliases:
+      - easy
+    desc: "Generate easy-json"
+    cmds:
+      - easyjson -all ../sso/internal/dto/dto.go
   migrate:
     aliases:
       - migrate

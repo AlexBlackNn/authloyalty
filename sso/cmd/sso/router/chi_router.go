@@ -2,19 +2,21 @@ package router
 
 import (
 	"compress/gzip"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"log/slog"
 	"time"
 
-	v1 "github.com/AlexBlackNn/authloyalty/sso/internal/handlershttp/http/v1"
-
 	_ "github.com/AlexBlackNn/authloyalty/sso/cmd/sso/docs"
 	"github.com/AlexBlackNn/authloyalty/sso/internal/config"
+	v1 "github.com/AlexBlackNn/authloyalty/sso/internal/handlershttp/http/v1"
 	customMiddleware "github.com/AlexBlackNn/authloyalty/sso/internal/middleware"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/httprate"
-
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	metrics "github.com/slok/go-http-metrics/metrics/prometheus"
+	httpMetricMiddleware "github.com/slok/go-http-metrics/middleware"
+	"github.com/slok/go-http-metrics/middleware/std"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
@@ -25,9 +27,9 @@ func NewChiRouter(
 	healthHandlerV1 v1.HealthHandlers,
 ) *chi.Mux {
 
-	//mdlw := httpMetricMiddleware.New(httpMetricMiddleware.Config{
-	//	Recorder: httpMetrics.NewRecorder(httpMetrics.Config{}),
-	//})
+	mdlw := httpMetricMiddleware.New(httpMetricMiddleware.Config{
+		Recorder: metrics.NewRecorder(metrics.Config{}),
+	})
 
 	router := chi.NewRouter()
 	router.Use(middleware.RequestID)
@@ -42,7 +44,7 @@ func NewChiRouter(
 	router.Use(middleware.Recoverer)
 
 	router.Route("/auth", func(r chi.Router) {
-		//r.Use(std.HandlerProvider("", mdlw))
+		r.Use(std.HandlerProvider("", mdlw))
 		r.Use(customMiddleware.GzipDecompressor(log))
 		r.Use(customMiddleware.GzipCompressor(log, gzip.BestCompression))
 		r.Get("/ready", healthHandlerV1.ReadinessProbe)

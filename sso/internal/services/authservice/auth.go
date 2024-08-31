@@ -303,6 +303,7 @@ func (a *Auth) Register(
 		a.log.Error("failed to generate tokens", "err", err.Error())
 		return ctx, nil, err
 	}
+	usrWithTokens.ID = uuid
 	return ctx, usrWithTokens, nil
 }
 
