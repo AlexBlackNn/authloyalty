@@ -29,3 +29,4 @@ server_handlers_timeouts:
   logoutTimeoutMs: 300
   registerTimeoutMs: 5000
   refreshTimeoutMs: 300
+sso_address: sso:44044

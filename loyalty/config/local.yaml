@@ -28,4 +28,5 @@ server_handlers_timeouts:
   logoutTimeoutMs: 300
   registerTimeoutMs: 5000
   refreshTimeoutMs: 300
-sso_address: localhost:44044
+sso_address: localhost:8091
+#sso_address: localhost:44044 work with server p2p (localhost:8091 to connect via grpc balancer)
