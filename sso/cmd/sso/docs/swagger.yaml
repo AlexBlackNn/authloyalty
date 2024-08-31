@@ -39,6 +39,8 @@ definitions:
         type: string
       status:
         type: string
+      user_id:
+        type: string
     type: object
 host: localhost:8000
 info:

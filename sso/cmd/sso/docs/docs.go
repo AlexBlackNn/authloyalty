@@ -258,6 +258,9 @@ const docTemplate = `{
                 },
                 "status": {
                     "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
                 }
             }
         }
