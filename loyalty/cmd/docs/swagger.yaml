@@ -111,6 +111,6 @@ paths:
 securityDefinitions:
   BearerAuth:
     in: header
-    name: Loyalty
+    name: Authorization
     type: apiKey
 swagger: "2.0"

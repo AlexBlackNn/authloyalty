@@ -89,7 +89,6 @@ func (l *LoyaltyHandlers) AddLoyalty(w http.ResponseWriter, r *http.Request) {
 	tokenString := r.Header.Get("Authorization")
 	token := strings.TrimPrefix(tokenString, "Bearer")
 	token = strings.TrimPrefix(token, " ")
-
 	if !l.ssoClient.IsJWTValid(ctx, tracer, token) {
 		dto.ResponseErrorBadRequest(w, "jwt token invalid")
 		return
@@ -113,6 +112,7 @@ func (l *LoyaltyHandlers) AddLoyalty(w http.ResponseWriter, r *http.Request) {
 		}
 	} else if reqData.Operation == "d" {
 		dto.ResponseErrorBadRequest(w, "only admins can deposit loyalty")
+		return
 	} else {
 		// users can only withdraw loyalty from their own account (uuid extracted from jwt)
 		userLoyalty = &domain.UserLoyalty{

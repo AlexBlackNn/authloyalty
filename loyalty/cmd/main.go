@@ -18,7 +18,7 @@ import (
 // @host      localhost:8001
 // @securityDefinitions.apikey BearerAuth
 // @in header
-// @name Loyalty
+// @name Authorization
 //
 //go:generate go run github.com/swaggo/swag/cmd/swag init
 func main() {
