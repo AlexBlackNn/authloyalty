@@ -119,6 +119,7 @@ func (a *App) Stop() error {
 	if err != nil {
 		return err
 	}
+
 	log.Info("close open telemetry client")
 	err = a.ServerOpenTelemetry.Shutdown(context.Background())
 	if err != nil {

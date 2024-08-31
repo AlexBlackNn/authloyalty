@@ -34,6 +34,7 @@ type Broker struct {
 	consumer     *kafka.Consumer
 	deserializer serde.Deserializer
 	MessageChan  chan *MessageReceived
+	workEnable   bool
 }
 
 var tracer = otel.Tracer(
@@ -73,6 +74,7 @@ func New(cfg *config.Config) (*Broker, error) {
 		deserializer: deser,
 		MessageChan:  MessageChan,
 	}
+	broker.workEnable = true
 	go broker.Consume()
 	return broker, nil
 
@@ -85,6 +87,9 @@ func (b *Broker) GetMessageChan() chan *MessageReceived {
 
 // Close closes deserialization agent and kafka consumer
 func (b *Broker) Close() error {
+	// Consume method need to be finished before.
+	//https://github.com/confluentinc/confluent-kafka-go/issues/136#issuecomment-586166364
+	b.workEnable = false
 	b.deserializer.Close()
 	//https://docs.confluent.io/platform/current/clients/confluent-kafka-go/index.html#hdr-High_level_Consumer
 	err := b.consumer.Close()
@@ -95,7 +100,7 @@ func (b *Broker) Close() error {
 }
 
 func (b *Broker) Consume() {
-	for {
+	for b.workEnable {
 		//TODO: get from config
 		ev := b.consumer.Poll(100)
 		if ev == nil {
