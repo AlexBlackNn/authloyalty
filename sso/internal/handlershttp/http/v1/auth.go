@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/AlexBlackNn/authloyalty/sso/internal/domain"
 	"github.com/AlexBlackNn/authloyalty/sso/internal/dto"
 
 	"github.com/AlexBlackNn/authloyalty/sso/internal/config"
@@ -17,15 +18,15 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-type httpAuthorization interface {
+type authService interface {
 	Login(
 		ctx context.Context,
 		reqData *dto.Login,
-	) (accessToken string, refreshToken string, err error)
+	) (userWithTokens *domain.UserWithTokens, err error)
 	Register(
 		ctx context.Context,
 		reqData *dto.Register,
-	) (ctxOut context.Context, userID string, err error)
+	) (ctxOut context.Context, userWithTokens *domain.UserWithTokens, err error)
 	Logout(
 		ctx context.Context,
 		reqData *dto.Logout,
@@ -33,16 +34,16 @@ type httpAuthorization interface {
 	Refresh(
 		ctx context.Context,
 		reqData *dto.Refresh,
-	) (accessToken string, refreshToken string, err error)
+	) (userWithTokens *domain.UserWithTokens, err error)
 }
 
 type AuthHandlers struct {
 	log  *slog.Logger
-	auth httpAuthorization
+	auth authService
 	cfg  *config.Config
 }
 
-func New(log *slog.Logger, cfg *config.Config, authService httpAuthorization) AuthHandlers {
+func New(log *slog.Logger, cfg *config.Config, authService authService) AuthHandlers {
 	return AuthHandlers{log: log, cfg: cfg, auth: authService}
 }
 
@@ -94,8 +95,8 @@ func ctxWithTimeoutCause(r *http.Request, cfg *config.Config, textError string) 
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Param body body models.Login true "Login request"
-// @Success 201 {object} models.Response "Login successful"
+// @Param body body dto.Login true "Login request"
+// @Success 201 {object} dto.Response "Login successful"
 // @Router /auth/login [post]
 func (a *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 
@@ -107,7 +108,7 @@ func (a *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := ctxWithTimeoutCause(r, a.cfg, "login timeout")
 	defer cancel()
 
-	accessToken, refreshToken, err := a.auth.Login(ctx, reqData)
+	userWithTokens, err := a.auth.Login(ctx, reqData)
 	if err != nil {
 		if errors.Is(err, authservice.ErrInvalidCredentials) {
 			dto.ResponseErrorNotFound(w, "user not found")
@@ -116,7 +117,7 @@ func (a *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 		dto.ResponseErrorInternal(w, "internal server error")
 		return
 	}
-	dto.ResponseOKAccessRefresh(w, accessToken, refreshToken)
+	dto.ResponseOKAccessRefresh(w, userWithTokens)
 }
 
 // @Summary Logout
@@ -124,8 +125,8 @@ func (a *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Param body body models.Logout true "Logout request"
-// @Success 200 {object} models.Response "Logout successful"
+// @Param body body dto.Logout true "Logout request"
+// @Success 200 {object} dto.Response "Logout successful"
 // @Router /auth/logout [post]
 func (a *AuthHandlers) Logout(w http.ResponseWriter, r *http.Request) {
 	reqData, err := handleBadRequest[*dto.Logout](w, r, &dto.Logout{})
@@ -159,8 +160,8 @@ func (a *AuthHandlers) Logout(w http.ResponseWriter, r *http.Request) {
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Param body body models.Register true "Register request"
-// @Success 201 {object} models.Response "Register successful"
+// @Param body body dto.Register true "Register request"
+// @Success 201 {object} dto.Response "Register successful"
 // @Router /auth/registration [post]
 func (a *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 	reqData, err := handleBadRequest[*dto.Register](w, r, &dto.Register{})
@@ -170,7 +171,7 @@ func (a *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := ctxWithTimeoutCause(r, a.cfg, "register timeout")
 	defer cancel()
 
-	ctx, _, err = a.auth.Register(ctx, reqData)
+	ctx, userWithTokens, err := a.auth.Register(ctx, reqData)
 	if err != nil {
 		// TODO change to service error
 		if errors.Is(err, storage.ErrUserExists) {
@@ -180,20 +181,7 @@ func (a *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 		dto.ResponseErrorInternal(w, "internal server error")
 		return
 	}
-
-	accessToken, refreshToken, err := a.auth.Login(
-		ctx, &dto.Login{Email: reqData.Email, Password: reqData.Password},
-	)
-
-	if err != nil {
-		if errors.Is(err, authservice.ErrInvalidCredentials) {
-			dto.ResponseErrorNotFound(w, "user not found")
-			return
-		}
-		dto.ResponseErrorInternal(w, "internal server error")
-		return
-	}
-	dto.ResponseOKAccessRefresh(w, accessToken, refreshToken)
+	dto.ResponseOKAccessRefresh(w, userWithTokens)
 }
 
 // @Summary Refresh
@@ -201,8 +189,8 @@ func (a *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Param body body models.Refresh true "Refresh request"
-// @Success 201 {object} models.Response "Refresh successful"
+// @Param body body dto.Refresh true "Refresh request"
+// @Success 201 {object} dto.Response "Refresh successful"
 // @Router /auth/refresh [post]
 func (a *AuthHandlers) Refresh(w http.ResponseWriter, r *http.Request) {
 	reqData, err := handleBadRequest[*dto.Refresh](w, r, &dto.Refresh{})
@@ -213,7 +201,7 @@ func (a *AuthHandlers) Refresh(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := ctxWithTimeoutCause(r, a.cfg, "refresh timeout")
 	defer cancel()
 
-	accessToken, refreshToken, err := a.auth.Refresh(ctx, reqData)
+	userWithTokens, err := a.auth.Refresh(ctx, reqData)
 
 	if err != nil {
 		switch {
@@ -232,5 +220,5 @@ func (a *AuthHandlers) Refresh(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	dto.ResponseOKAccessRefresh(w, accessToken, refreshToken)
+	dto.ResponseOKAccessRefresh(w, userWithTokens)
 }

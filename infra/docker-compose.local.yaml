@@ -229,7 +229,7 @@ services:
     ports:
       - 9090:9090
     volumes:
-      - ../monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
     networks:
@@ -243,7 +243,7 @@ services:
       logging: "promtail"
       logging_jobname: "containerlogs"
     volumes:
-      - ../monitoring/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yaml
+      - ./monitoring/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yaml
     environment:
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
@@ -271,7 +271,7 @@ services:
       logging: "promtail"
       logging_jobname: "containerlogs"
     volumes:
-      - ../monitoring/promtail.yaml:/etc/promtail/docker-config.yaml
+      - ./monitoring/promtail.yaml:/etc/promtail/docker-config.yaml
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock
     command: -config.file=/etc/promtail/docker-config.yaml

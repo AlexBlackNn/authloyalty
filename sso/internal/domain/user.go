@@ -6,3 +6,9 @@ type User struct {
 	PassHash []byte
 	IsAdmin  bool
 }
+
+type UserWithTokens struct {
+	User
+	AccessToken  string
+	RefreshToken string
+}

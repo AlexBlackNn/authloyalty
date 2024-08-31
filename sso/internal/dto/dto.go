@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/AlexBlackNn/authloyalty/sso/internal/domain"
 	"github.com/go-playground/validator/v10"
 	"github.com/mailru/easyjson"
 )
@@ -36,6 +37,7 @@ type Logout struct {
 type Response struct {
 	Status       string `json:"status"`
 	Error        string `json:"error,omitempty"`
+	UserID       string `json:"user_id,omitempty"`
 	AccessToken  string `json:"access_token,omitempty"`
 	RefreshToken string `json:"refresh_token,omitempty"`
 }
@@ -119,14 +121,14 @@ func ResponseOK(w http.ResponseWriter) {
 
 func ResponseOKAccessRefresh(
 	w http.ResponseWriter,
-	accessToken string,
-	refreshToken string,
+	userWithTokens *domain.UserWithTokens,
 ) {
 	dataMarshal, _ := easyjson.Marshal(
 		Response{
 			Status:       StatusSuccess,
-			AccessToken:  accessToken,
-			RefreshToken: refreshToken,
+			UserID:       userWithTokens.ID,
+			AccessToken:  userWithTokens.AccessToken,
+			RefreshToken: userWithTokens.RefreshToken,
 		},
 	)
 	sendJSON(w, http.StatusCreated, dataMarshal)

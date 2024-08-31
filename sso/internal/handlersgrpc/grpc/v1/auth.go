@@ -6,6 +6,7 @@ import (
 	"fmt"
 	log "log/slog"
 
+	"github.com/AlexBlackNn/authloyalty/sso/internal/domain"
 	"github.com/AlexBlackNn/authloyalty/sso/internal/dto"
 
 	ssov1 "github.com/AlexBlackNn/authloyalty/commands/proto/sso/gen"
@@ -19,15 +20,15 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type grpcAuthorization interface {
+type authService interface {
 	Login(
 		ctx context.Context,
 		reqData *dto.Login,
-	) (accessToken string, refreshToken string, err error)
+	) (userWithTokens *domain.UserWithTokens, err error)
 	Register(
 		ctx context.Context,
 		reqData *dto.Register,
-	) (ctxOut context.Context, userID string, err error)
+	) (ctxOut context.Context, userWithTokens *domain.UserWithTokens, err error)
 	Logout(
 		ctx context.Context,
 		reqData *dto.Logout,
@@ -43,7 +44,7 @@ type grpcAuthorization interface {
 	Refresh(
 		ctx context.Context,
 		reqData *dto.Refresh,
-	) (accessToken string, refreshToken string, err error)
+	) (userWithTokens *domain.UserWithTokens, err error)
 }
 
 // serverAPI TRANSPORT layer
@@ -51,11 +52,11 @@ type serverAPI struct {
 	// provides ability to work even without service interface realisation
 	ssov1.UnimplementedAuthServer
 	// service layer
-	auth   grpcAuthorization
+	auth   authService
 	tracer trace.Tracer
 }
 
-func Register(gRPC *grpc.Server, auth grpcAuthorization) {
+func Register(gRPC *grpc.Server, auth authService) {
 	ssov1.RegisterAuthServer(gRPC, &serverAPI{auth: auth, tracer: otel.Tracer("sso service")})
 }
 
@@ -79,7 +80,7 @@ func (s *serverAPI) Login(
 		return nil, err
 	}
 
-	accessToken, refreshToken, err := s.auth.Login(
+	userWithTokens, err := s.auth.Login(
 		ctx, &dto.Login{Email: req.GetEmail(), Password: req.GetPassword()},
 	)
 	if err != nil {
@@ -90,8 +91,8 @@ func (s *serverAPI) Login(
 		return nil, status.Error(codes.Internal, "internal error")
 	}
 	return &ssov1.LoginResponse{
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
+		AccessToken:  userWithTokens.AccessToken,
+		RefreshToken: userWithTokens.RefreshToken,
 	}, nil
 }
 
@@ -105,7 +106,7 @@ func (s *serverAPI) Refresh(
 		log.Warn(err.Error())
 	}
 
-	accessToken, refreshToken, err := s.auth.Refresh(
+	userWithTokens, err := s.auth.Refresh(
 		ctx, &dto.Refresh{Token: req.GetRefreshToken()},
 	)
 	if err != nil {
@@ -119,8 +120,8 @@ func (s *serverAPI) Refresh(
 	}
 
 	return &ssov1.RefreshResponse{
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
+		AccessToken:  userWithTokens.AccessToken,
+		RefreshToken: userWithTokens.RefreshToken,
 	}, nil
 }
 
@@ -136,7 +137,7 @@ func (s *serverAPI) Register(
 	if err = validateRegister(req); err != nil {
 		return nil, err
 	}
-	ctx, userID, err := s.auth.Register(
+	ctx, userWithTokens, err := s.auth.Register(
 		ctx, &dto.Register{Email: req.GetEmail(), Password: req.GetPassword()},
 	)
 	if err != nil {
@@ -148,7 +149,7 @@ func (s *serverAPI) Register(
 		return nil, status.Error(codes.Internal, "internal error")
 	}
 	return &ssov1.RegisterResponse{
-		UserId: userID,
+		UserId: userWithTokens.ID,
 	}, nil
 }
 
