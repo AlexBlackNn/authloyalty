@@ -92,7 +92,7 @@ go run ./loyalty/cmd/main.go --config=./loyalty/config/local.yaml
    Операция начисления баллов, доступна только администратору или при регистрации пользователя (приходит сообщение по шине данных kafka).
    
    ###  Демо запуск:
-
+#### sso - Примеры запросов (необходимо подстроить под себя, так как токены могут отличаться)
 1. Регистрация
 ```bash
 curl -X 'POST' \
@@ -139,4 +139,29 @@ curl -X 'POST' \
   -d '{
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAdGVzdC5jb20iLCJleHAiOjE3MjYwNTE1MDIsInRva2VuX3R5cGUiOiJyZWZyZXNoIiwidWlkIjoiN2I0ODI1YmQtMWMwMy00M2VkLTk0NzAtMzkwNjAxNWI2ZmMwIn0.4AD2-hQo8vvVhwL6RUtjNcbct_6BDfIM2-BTHnQcyqM"
 }'
+```
+
+#### loyalty - Примеры запросов (необходимо подстроить под себя, так как токены могут отличаться)
+
+1. Изменение баллов лояльности 
+```bash
+curl -X 'POST' \
+'http://localhost:8001/loyalty' \
+-H 'accept: application/json' \
+-H 'Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAdGVzdC5jb20iLCJleHAiOjE3MjUxOTIxMDgsInRva2VuX3R5cGUiOiJhY2Nlc3MiLCJ1aWQiOiI3YjQ4MjViZC0xYzAzLTQzZWQtOTQ3MC0zOTA2MDE1YjZmYzAifQ.UmE5w4ehAllOa7MHxOgfmvVeucr8kAj15NIjG0k6Gco' \
+-H 'Content-Type: application/json' \
+-d '{
+"balance": 20,
+"comment": "purchase",
+"operation": "w",
+"uuid": "7b4825bd-1c03-43ed-9470-3906015b6fc0"
+}'
+```
+
+2. Получить кол-во баллов лояльности по uuid пользователя
+```
+curl -X 'GET' \
+'http://localhost:8001/loyalty/7b4825bd-1c03-43ed-9470-3906015b6fc0' \
+-H 'accept: application/json' \
+-H 'Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAdGVzdC5jb20iLCJleHAiOjE3MjUxOTIxMDgsInRva2VuX3R5cGUiOiJhY2Nlc3MiLCJ1aWQiOiI3YjQ4MjViZC0xYzAzLTQzZWQtOTQ3MC0zOTA2MDE1YjZmYzAifQ.UmE5w4ehAllOa7MHxOgfmvVeucr8kAj15NIjG0k6Gco'
 ```
