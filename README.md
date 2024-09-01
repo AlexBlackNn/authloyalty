@@ -75,7 +75,9 @@ go run ./loyalty/cmd/main.go --config=./loyalty/config/local.yaml
    
     4.3 В swagger сервиса начисления балов лояльности нажать Authorize и ввести access_token из пункта 4.2
     4.4 Списание балов лояльности
-   ![loyalty_withdraw.png](docs%loyalty_withdraw.png)
+ 
+   ![loyalty_withdraw.png](docs%2Floyalty_withdraw.png)
+
    uuid из тела запроса, анализируется, только если запрос пришел от аккаунта администратора (jwt token содержит поле admin)  : 
    Пример тела запроса:
    ```
