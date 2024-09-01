@@ -91,67 +91,123 @@ go run ./loyalty/cmd/main.go --config=./loyalty/config/local.yaml
    В случае пользователя uuid извлекается из jwt token. 
    Операция начисления баллов, доступна только администратору или при регистрации пользователя (приходит сообщение по шине данных kafka).
    
-   ###  Демо запуск:
+   ###  Демо запуск: 
+
+Поднимются все сервисы в докере. Так как сервис авторизации находится за балансировщиками нагрузки, подымаются его 2 копии (можно больше, трафик будет случайным образом (round robin) перенаправляться в одну из копий).
+
+```bash
+cd commands && task demo-scale
+```
+
 #### sso - Примеры запросов (необходимо подстроить под себя, так как токены могут отличаться)
 1. Регистрация
 ```bash
-curl -X 'POST' \
-  'http://localhost:8000/auth/registration' \
+curl -k -X 'POST' \
+  'https://localhost:443/auth/registration' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{
   "birthday": "string",
   "email": "test@test.com",
-  "name": "test",
-  "password": "string"
+  "name": "test_name",
+  "password": "test"
 }'
+```
+
+Результат: 
+```
+{
+"status":"Success",
+"user_id":"e66a298a-c835-4cfa-8c8e-60534f4c00f9","access_token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAdGVzdC5jb20iLCJleHAiOjE3MjUxOTM4MTksInRva2VuX3R5cGUiOiJhY2Nlc3MiLCJ1aWQiOiJlNjZhMjk4YS1jODM1LTRjZmEtOGM4ZS02MDUzNGY0YzAwZjkifQ.oL2ndWYnf6I4vC9xThtCLsFVyqSje3a__n1Iz_sYC6g","refresh_token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAdGVzdC5jb20iLCJleHAiOjE3MjYwNTQyMTksInRva2VuX3R5cGUiOiJyZWZyZXNoIiwidWlkIjoiZTY2YTI5OGEtYzgzNS00Y2ZhLThjOGUtNjA1MzRmNGMwMGY5In0.FecpRypAwL88rNy4HPe3pyWFNWnmEq71r1Cae5rbpZ0"
+}
 ```
 
 2. Логин
 ```bash
-curl -X 'POST' \
-  'http://localhost:8000/auth/login' \
+curl -k -X 'POST' \
+  'https://localhost:443/auth/login' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{
   "email": "test@test.com",
-  "password": "string"
+  "password": "test"
 }'
 ```
 
-3. Отзыв токена
+Результат
+```
+{
+"status":"Success",
+"user_id":"e66a298a-c835-4cfa-8c8e-60534f4c00f9",
+"access_token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAdGVzdC5jb20iLCJleHAiOjE3MjUxOTM5MTEsInRva2VuX3R5cGUiOiJhY2Nlc3MiLCJ1aWQiOiJlNjZhMjk4YS1jODM1LTRjZmEtOGM4ZS02MDUzNGY0YzAwZjkifQ.D7SQF4GlM3ykCh8gZbb6qUOAxufbha_0ZEW1GEsei2g",
+"refresh_token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAdGVzdC5jb20iLCJleHAiOjE3MjYwNTQzMTEsInRva2VuX3R5cGUiOiJyZWZyZXNoIiwidWlkIjoiZTY2YTI5OGEtYzgzNS00Y2ZhLThjOGUtNjA1MzRmNGMwMGY5In0.xuQlt_TWB1y8vLHJl-2fsmP5ICnDOXFmA1YIryp2X_c"
+}
+```
+
+3. Отзыв токена 
 ```bash
-   curl -X 'POST' \
-   'http://localhost:8000/auth/logout' \
+   curl -k -X 'POST' \
+   'https://localhost:443/auth/logout' \
    -H 'accept: application/json' \
    -H 'Content-Type: application/json' \
    -d '{
-   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAdGVzdC5jb20iLCJleHAiOjE3MjUxOTExMDIsInRva2VuX3R5cGUiOiJhY2Nlc3MiLCJ1aWQiOiI3YjQ4MjViZC0xYzAzLTQzZWQtOTQ3MC0zOTA2MDE1YjZmYzAifQ.YQYmd5RsIdJ-a3vxADY9nuSvSV-BpZtmSYlM2DtO6Pk"
+   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAdGVzdC5jb20iLCJleHAiOjE3MjUxOTM5MTEsInRva2VuX3R5cGUiOiJhY2Nlc3MiLCJ1aWQiOiJlNjZhMjk4YS1jODM1LTRjZmEtOGM4ZS02MDUzNGY0YzAwZjkifQ.D7SQF4GlM3ykCh8gZbb6qUOAxufbha_0ZEW1GEsei2g"
    }'
+```
+
+Результат: 
+```
+{
+"status":"Success"
+}
 ```
 
 4. Обновление токена 
 ```bash
-curl -X 'POST' \
-  'http://localhost:8000/auth/refresh' \
+curl -k -X 'POST' \
+  'https://localhost:443/auth/refresh' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAdGVzdC5jb20iLCJleHAiOjE3MjYwNTE1MDIsInRva2VuX3R5cGUiOiJyZWZyZXNoIiwidWlkIjoiN2I0ODI1YmQtMWMwMy00M2VkLTk0NzAtMzkwNjAxNWI2ZmMwIn0.4AD2-hQo8vvVhwL6RUtjNcbct_6BDfIM2-BTHnQcyqM"
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAdGVzdC5jb20iLCJleHAiOjE3MjYwNTQzMTEsInRva2VuX3R5cGUiOiJyZWZyZXNoIiwidWlkIjoiZTY2YTI5OGEtYzgzNS00Y2ZhLThjOGUtNjA1MzRmNGMwMGY5In0.xuQlt_TWB1y8vLHJl-2fsmP5ICnDOXFmA1YIryp2X_c"
 }'
+```
+
+Результат: 
+```
+{
+"status":"Success",
+"user_id":"e66a298a-c835-4cfa-8c8e-60534f4c00f9",
+"access_token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAdGVzdC5jb20iLCJleHAiOjE3MjUxOTQzOTgsInRva2VuX3R5cGUiOiJhY2Nlc3MiLCJ1aWQiOiJlNjZhMjk4YS1jODM1LTRjZmEtOGM4ZS02MDUzNGY0YzAwZjkifQ.JGhm4XYUHWEasWdcHZWkGyxRtMg7CbldLvtlGKd-tWA",
+"refresh_token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAdGVzdC5jb20iLCJleHAiOjE3MjYwNTQ3OTgsInRva2VuX3R5cGUiOiJyZWZyZXNoIiwidWlkIjoiZTY2YTI5OGEtYzgzNS00Y2ZhLThjOGUtNjA1MzRmNGMwMGY5In0.IxZWJD3Ry6-uL992nWFcfqvqnQ-uGguXXTTHC9fvoe8"
+}
 ```
 
 #### loyalty - Примеры запросов (необходимо подстроить под себя, так как токены могут отличаться)
 
 1. Изменение баллов лояльности 
 ```bash
-curl -X 'POST' \
+curl -k -X 'POST' \
 'http://localhost:8001/loyalty' \
 -H 'accept: application/json' \
--H 'Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAdGVzdC5jb20iLCJleHAiOjE3MjUxOTIxMDgsInRva2VuX3R5cGUiOiJhY2Nlc3MiLCJ1aWQiOiI3YjQ4MjViZC0xYzAzLTQzZWQtOTQ3MC0zOTA2MDE1YjZmYzAifQ.UmE5w4ehAllOa7MHxOgfmvVeucr8kAj15NIjG0k6Gco' \
+-H 'Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAdGVzdC5jb20iLCJleHAiOjE3MjUxOTQzOTgsInRva2VuX3R5cGUiOiJhY2Nlc3MiLCJ1aWQiOiJlNjZhMjk4YS1jODM1LTRjZmEtOGM4ZS02MDUzNGY0YzAwZjkifQ.JGhm4XYUHWEasWdcHZWkGyxRtMg7CbldLvtlGKd-tWA' \
 -H 'Content-Type: application/json' \
 -d '{
-"balance": 20,
+"balance": 1,
+"comment": "purchase",
+"operation": "w",
+"uuid": "7b4825bd-1c03-43ed-9470-3906015b6fc0"
+}'
+```
+
+```bash
+curl -k -X 'POST' \
+'https://localhost:443/loyalty' \
+-H 'accept: application/json' \
+-H 'Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAdGVzdC5jb20iLCJleHAiOjE3MjUxOTQzOTgsInRva2VuX3R5cGUiOiJhY2Nlc3MiLCJ1aWQiOiJlNjZhMjk4YS1jODM1LTRjZmEtOGM4ZS02MDUzNGY0YzAwZjkifQ.JGhm4XYUHWEasWdcHZWkGyxRtMg7CbldLvtlGKd-tWA' \
+-H 'Content-Type: application/json' \
+-d '{
+"balance": 1,
 "comment": "purchase",
 "operation": "w",
 "uuid": "7b4825bd-1c03-43ed-9470-3906015b6fc0"
@@ -159,9 +215,12 @@ curl -X 'POST' \
 ```
 
 2. Получить кол-во баллов лояльности по uuid пользователя
-```
+```bash
 curl -X 'GET' \
-'http://localhost:8001/loyalty/7b4825bd-1c03-43ed-9470-3906015b6fc0' \
--H 'accept: application/json' \
--H 'Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAdGVzdC5jb20iLCJleHAiOjE3MjUxOTIxMDgsInRva2VuX3R5cGUiOiJhY2Nlc3MiLCJ1aWQiOiI3YjQ4MjViZC0xYzAzLTQzZWQtOTQ3MC0zOTA2MDE1YjZmYzAifQ.UmE5w4ehAllOa7MHxOgfmvVeucr8kAj15NIjG0k6Gco'
+'http://localhost:8001/loyalty/e66a298a-c835-4cfa-8c8e-60534f4c00f9'
+```
+
+Результат:
+```
+{"status":"Success","uuid":"e66a298a-c835-4cfa-8c8e-60534f4c00f9","balance":78}
 ```
