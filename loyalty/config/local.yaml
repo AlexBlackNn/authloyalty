@@ -1,6 +1,4 @@
 env: "local" #demo, prod
-#storage_path: "./storage/sso.db" # for sqlite
-storage_path: "postgresql://postgres:postgres@127.0.0.1:5000/postgres"
 storage_patroni:
   master: "postgresql://postgres:postgres@127.0.0.1:5000/postgres"
   slave: "postgresql://postgres:postgres@127.0.0.1:5001/postgres"

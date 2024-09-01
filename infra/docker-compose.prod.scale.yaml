@@ -88,6 +88,36 @@ services:
     networks:
       - proxynet
 
+  loyalty:
+    build:
+      context: ../.
+      dockerfile: loyalty.Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    labels:
+      logging: "promtail"
+      logging_jobname: "containerlogs"
+    depends_on:
+      - jaeger
+      - loki
+      - promtail
+      - redis_master
+      - redis_replica1
+      - redis_replica2
+      - redis_sentinel1
+      - redis_sentinel2
+      - redis_sentinel3
+      - patroni1
+      - patroni2
+      - patroni3
+      - haproxy
+      - etcd1
+      - etcd2
+      - etcd3
+    networks:
+      - proxynet
+
   redis_master:
     image: bitnami/redis:6.2.10
     ports:
@@ -317,7 +347,7 @@ services:
     ports:
       - 9090:9090
     volumes:
-      - ../monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
     networks:
@@ -331,7 +361,7 @@ services:
       logging: "promtail"
       logging_jobname: "containerlogs"
     volumes:
-      - ../monitoring/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yaml
+      - ./monitoring/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yaml
     environment:
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
@@ -359,7 +389,7 @@ services:
       logging: "promtail"
       logging_jobname: "containerlogs"
     volumes:
-      - ../monitoring/promtail.yaml:/etc/promtail/docker-config.yaml
+      - ./monitoring/promtail.yaml:/etc/promtail/docker-config.yaml
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock
     command: -config.file=/etc/promtail/docker-config.yaml
