@@ -89,4 +89,3 @@ tasks:
     desc: "run demo 2 sso service"
     cmds:
       - ./run.sso.demo.scale.sh
-

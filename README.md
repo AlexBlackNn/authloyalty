@@ -21,7 +21,7 @@ cd commands && task integration-tests
 
 ##  Доступны два варианта запуска: локальный и на демо стенде.
 
-##### Локальный запуск:
+### Локальный запуск:
 * Разворачивается инфраструктура в `docker compose`.
 * Сервисы запускаются локально.
 
@@ -91,4 +91,52 @@ go run ./loyalty/cmd/main.go --config=./loyalty/config/local.yaml
    В случае пользователя uuid извлекается из jwt token. 
    Операция начисления баллов, доступна только администратору или при регистрации пользователя (приходит сообщение по шине данных kafka).
    
-   
+   ###  Демо запуск:
+
+1. Регистрация
+```bash
+curl -X 'POST' \
+  'http://localhost:8000/auth/registration' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "birthday": "string",
+  "email": "test@test.com",
+  "name": "test",
+  "password": "string"
+}'
+```
+
+2. Логин
+```bash
+curl -X 'POST' \
+  'http://localhost:8000/auth/login' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "email": "test@test.com",
+  "password": "string"
+}'
+```
+
+3. Отзыв токена
+```bash
+   curl -X 'POST' \
+   'http://localhost:8000/auth/logout' \
+   -H 'accept: application/json' \
+   -H 'Content-Type: application/json' \
+   -d '{
+   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAdGVzdC5jb20iLCJleHAiOjE3MjUxOTExMDIsInRva2VuX3R5cGUiOiJhY2Nlc3MiLCJ1aWQiOiI3YjQ4MjViZC0xYzAzLTQzZWQtOTQ3MC0zOTA2MDE1YjZmYzAifQ.YQYmd5RsIdJ-a3vxADY9nuSvSV-BpZtmSYlM2DtO6Pk"
+   }'
+```
+
+4. Обновление токена 
+```bash
+curl -X 'POST' \
+  'http://localhost:8000/auth/refresh' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAdGVzdC5jb20iLCJleHAiOjE3MjYwNTE1MDIsInRva2VuX3R5cGUiOiJyZWZyZXNoIiwidWlkIjoiN2I0ODI1YmQtMWMwMy00M2VkLTk0NzAtMzkwNjAxNWI2ZmMwIn0.4AD2-hQo8vvVhwL6RUtjNcbct_6BDfIM2-BTHnQcyqM"
+}'
+```
