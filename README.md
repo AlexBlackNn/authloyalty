@@ -40,7 +40,20 @@ go run ./sso/cmd/sso/main.go --config=./sso/config/local.yaml
 go run ./loyalty/cmd/main.go --config=./loyalty/config/local.yaml
 ```
 
-4. Взаимодействие между сервисами
+4. Описание хэндлеров 
+ 4.1 sso
+   В сервисе авторизации также доступны handlers для:
+   1. Login - получить токены доступа
+   2. Logout - отозвать токен
+   3. Refresh - обновить токен (необходимо использовать refresh token)
+   4. Register - зарегестировать пользователя
+
+  4.2 loyalty 
+  1. AddLoyalty - начислить или списать баллы
+  2. GetLoyalty - получить баллы
+
+
+5. Взаимодействие между сервисами
     
     4.1. Открыть swagger   
     a. [swagger](http://localhost:8000/swagger/index.htm/index.html) сервиса авторизации
@@ -60,5 +73,20 @@ go run ./loyalty/cmd/main.go --config=./loyalty/config/local.yaml
     }
     ```
    
-    4.3 В swagger сервиса начисления былов лояльности нажать Authorize и ввести access_token из пункта 4.2
-    
+    4.3 В swagger сервиса начисления балов лояльности нажать Authorize и ввести access_token из пункта 4.2
+    4.4 Списание балов лояльности
+   ![loyalty_withdraw.png](docs%loyalty_withdraw.png)
+   uuid из тела запроса, анализируется, только если запрос пришел от аккаунта администратора (jwt token содержит поле admin)  : 
+   Пример тела запроса:
+   ```
+   {
+   "balance": 20,
+   "comment": "purchase",
+   "operation": "w",
+   "uuid": "7b4825bd-1c03-43ed-9470-3906015b6fc0"
+   }
+   ``` 
+   В случае пользователя uuid исплекается из jwt token. 
+   Операция начисления балов, доступна только администратору или при регистрации пользователя (приходит сообщение по шине данных kafka).
+   
+   
