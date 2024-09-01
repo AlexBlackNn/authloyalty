@@ -163,7 +163,6 @@ func (a *App) Start(ctx context.Context) error {
 	}
 }
 
-// TODO: close all unexported methods
 func (a *App) Stop() error {
 	log.Info("close user storage client")
 	err := a.ServerUserStorage.Stop()

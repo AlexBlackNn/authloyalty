@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/AlexBlackNn/authloyalty/sso/internal/config"
 	"github.com/AlexBlackNn/authloyalty/sso/pkg/tracing/otelconfluent"
 	"github.com/confluentinc/confluent-kafka-go/schemaregistry"

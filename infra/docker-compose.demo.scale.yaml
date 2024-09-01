@@ -7,11 +7,11 @@ services:
       logging: "promtail"
       logging_jobname: "containerlogs"
     volumes:
-      - ../nginx/.htpasswd:/etc/nginx/.htpasswd:ro
-      - ../nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ../nginx/configs:/etc/nginx/conf.d:ro
-      - ../nginx/key.pem:/root/ssl/key.pem
-      - ../nginx/cert.pem:/root/ssl/cert.pem
+      - ./nginx/.htpasswd:/etc/nginx/.htpasswd:ro
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/configs:/etc/nginx/conf.d:ro
+      - ./nginx/key.pem:/root/ssl/key.pem
+      - ./nginx/cert.pem:/root/ssl/cert.pem
       - ./data:/data/:ro
     ports:
       - "443:443"
@@ -31,7 +31,7 @@ services:
       - 8090:80
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ../nginx_balancer/sso_http_nginx.tmpl:/app/nginx.tmpl
+      - ./nginx_balancer/sso_http_nginx.tmpl:/app/nginx.tmpl
     environment:
       - DEFAULT_HOST=sso-http-loadbalancer
     depends_on:
@@ -48,7 +48,7 @@ services:
       - 8091:80
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ../nginx_balancer/sso_grpc_nginx.tmpl:/app/nginx.tmpl
+      - ./nginx_balancer/sso_grpc_nginx.tmpl:/app/nginx.tmpl
     environment:
       - DEFAULT_HOST=sso-grpc-loadbalancer
     depends_on:
@@ -59,15 +59,46 @@ services:
   sso:
     build:
       context: ../.
+      dockerfile: sso.Dockerfile
     restart: unless-stopped
-    ports:
-      - "44044:44044"
-      - "8000:8000"
+    expose:
+      - "44044"
+      - "8000"
     labels:
       logging: "promtail"
       logging_jobname: "containerlogs"
     environment:
       - VIRTUAL_HOST=sso-http-loadbalancer,sso-grpc-loadbalancer
+    depends_on:
+      - jaeger
+      - loki
+      - promtail
+      - redis_master
+      - redis_replica1
+      - redis_replica2
+      - redis_sentinel1
+      - redis_sentinel2
+      - redis_sentinel3
+      - patroni1
+      - patroni2
+      - patroni3
+      - haproxy
+      - etcd1
+      - etcd2
+      - etcd3
+    networks:
+      - proxynet
+
+  loyalty:
+    build:
+      context: ../.
+      dockerfile: loyalty.Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    labels:
+      logging: "promtail"
+      logging_jobname: "containerlogs"
     depends_on:
       - jaeger
       - loki
@@ -317,7 +348,7 @@ services:
     ports:
       - 9090:9090
     volumes:
-      - ../monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
     networks:
@@ -331,7 +362,7 @@ services:
       logging: "promtail"
       logging_jobname: "containerlogs"
     volumes:
-      - ../monitoring/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yaml
+      - ./monitoring/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yaml
     environment:
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
@@ -359,7 +390,7 @@ services:
       logging: "promtail"
       logging_jobname: "containerlogs"
     volumes:
-      - ../monitoring/promtail.yaml:/etc/promtail/docker-config.yaml
+      - ./monitoring/promtail.yaml:/etc/promtail/docker-config.yaml
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock
     command: -config.file=/etc/promtail/docker-config.yaml

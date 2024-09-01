@@ -1,0 +1,116 @@
+definitions:
+  dto.Response:
+    properties:
+      balance:
+        type: integer
+      error:
+        type: string
+      status:
+        type: string
+      uuid:
+        type: string
+    type: object
+  dto.UserLoyalty:
+    properties:
+      balance:
+        type: integer
+      comment:
+        type: string
+      operation:
+        type: string
+      uuid:
+        type: string
+    required:
+    - balance
+    - comment
+    - operation
+    type: object
+host: localhost:8001
+info:
+  contact:
+    name: API Support
+  description: loyalty service.
+  license:
+    name: Apache 2.0
+  title: Swagger API
+  version: "1.0"
+paths:
+  /auth/healthz:
+    get:
+      description: Определяет, нужно ли перезагрузить сервис
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.Response'
+      summary: Проверка, что приложение живо
+      tags:
+      - Health
+  /auth/ready:
+    get:
+      description: Определяет можно ли подавать трафик на сервис
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.Response'
+      summary: Проверка готовности приложения
+      tags:
+      - Health
+  /loyalty:
+    post:
+      consumes:
+      - application/json
+      description: Add Loyalty
+      parameters:
+      - description: UserLoyalty request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UserLoyalty'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Add loyalty successful
+          schema:
+            $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
+      summary: AddLoyalty
+      tags:
+      - Loyalty
+  /loyalty/{uuid}:
+    get:
+      consumes:
+      - application/json
+      description: Get Loyalty
+      parameters:
+      - description: User UUID
+        in: path
+        name: uuid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Get loyalty successful
+          schema:
+            $ref: '#/definitions/dto.Response'
+      security:
+      - BearerAuth: []
+      summary: GetLoyalty
+      tags:
+      - Loyalty
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

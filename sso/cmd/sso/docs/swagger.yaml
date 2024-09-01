@@ -1,22 +1,22 @@
 definitions:
-  models.Login:
+  dto.Login:
     properties:
       email:
         type: string
       password:
         type: string
     type: object
-  models.Logout:
+  dto.Logout:
     properties:
       token:
         type: string
     type: object
-  models.Refresh:
+  dto.Refresh:
     properties:
       token:
         type: string
     type: object
-  models.Register:
+  dto.Register:
     properties:
       birthday:
         type: string
@@ -29,7 +29,7 @@ definitions:
     required:
     - password
     type: object
-  models.Response:
+  dto.Response:
     properties:
       access_token:
         type: string
@@ -38,6 +38,8 @@ definitions:
       refresh_token:
         type: string
       status:
+        type: string
+      user_id:
         type: string
     type: object
 host: localhost:8000
@@ -59,7 +61,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.Response'
+            $ref: '#/definitions/dto.Response'
       summary: Проверка, что приложение живо
       tags:
       - Health
@@ -74,14 +76,14 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/models.Login'
+          $ref: '#/definitions/dto.Login'
       produces:
       - application/json
       responses:
         "201":
           description: Login successful
           schema:
-            $ref: '#/definitions/models.Response'
+            $ref: '#/definitions/dto.Response'
       summary: Login
       tags:
       - Auth
@@ -97,14 +99,14 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/models.Logout'
+          $ref: '#/definitions/dto.Logout'
       produces:
       - application/json
       responses:
         "200":
           description: Logout successful
           schema:
-            $ref: '#/definitions/models.Response'
+            $ref: '#/definitions/dto.Response'
       summary: Logout
       tags:
       - Auth
@@ -117,7 +119,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.Response'
+            $ref: '#/definitions/dto.Response'
       summary: Проверка готовности приложения
       tags:
       - Health
@@ -131,14 +133,14 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/models.Refresh'
+          $ref: '#/definitions/dto.Refresh'
       produces:
       - application/json
       responses:
         "201":
           description: Refresh successful
           schema:
-            $ref: '#/definitions/models.Response'
+            $ref: '#/definitions/dto.Response'
       summary: Refresh
       tags:
       - Auth
@@ -153,14 +155,14 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/models.Register'
+          $ref: '#/definitions/dto.Register'
       produces:
       - application/json
       responses:
         "201":
           description: Register successful
           schema:
-            $ref: '#/definitions/models.Response'
+            $ref: '#/definitions/dto.Response'
       summary: Registration
       tags:
       - Auth

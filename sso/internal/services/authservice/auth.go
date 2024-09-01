@@ -146,7 +146,7 @@ var tracer = otel.Tracer("sso service")
 // HealthCheck returns service health check.
 func (a *Auth) HealthCheck(ctx context.Context) (context.Context, error) {
 	log := a.log.With(
-		slog.String("info", "SERVICE LAYER: metrics_service.HealthCheck"),
+		slog.String("info", "SERVICE LAYER: HealthCheck"),
 	)
 	log.Info("starts getting health check")
 	defer log.Info("finish getting health check")
@@ -157,7 +157,7 @@ func (a *Auth) HealthCheck(ctx context.Context) (context.Context, error) {
 func (a *Auth) Login(
 	ctx context.Context,
 	reqData *dto.Login,
-) (string, string, error) {
+) (*domain.UserWithTokens, error) {
 	ctx, span := tracer.Start(ctx, "service layer: login",
 		trace.WithAttributes(attribute.String("handler", "login")))
 	defer span.End()
@@ -168,26 +168,25 @@ func (a *Auth) Login(
 		"user-id", md.Get("user-id"),
 		"x-trace-id", md.Get("x-trace-id"),
 	)
-	// TODO: generateRefreshAccessToken m.b. should be separated by several functions it violates S from solid
 	ctx, usrWithTokens, err := a.generateRefreshAccessToken(ctx, reqData.Email)
 	if err != nil {
 		a.log.Error("Generation token failed:", "err", err.Error())
-		return "", "", fmt.Errorf("generation token failed: %w", err)
+		return nil, fmt.Errorf("generation token failed: %w", err)
 	}
 	if err = bcrypt.CompareHashAndPassword(
-		usrWithTokens.user.PassHash, []byte(reqData.Password),
+		usrWithTokens.PassHash, []byte(reqData.Password),
 	); err != nil {
 		a.log.Warn("invalid credentials")
-		return "", "", fmt.Errorf("invalid credentials: %w", ErrInvalidCredentials)
+		return nil, fmt.Errorf("invalid credentials: %w", ErrInvalidCredentials)
 	}
-	return usrWithTokens.accessToken, usrWithTokens.refreshToken, nil
+	return usrWithTokens, nil
 }
 
 // Refresh creates new access and refresh tokens.
 func (a *Auth) Refresh(
 	ctx context.Context,
 	reqData *dto.Refresh,
-) (string, string, error) {
+) (*domain.UserWithTokens, error) {
 	ctx, span := tracer.Start(ctx, "service layer: refresh",
 		trace.WithAttributes(attribute.String("handler", "refresh")))
 	defer span.End()
@@ -202,33 +201,33 @@ func (a *Auth) Refresh(
 	ctx, claims, err := a.validateToken(ctx, reqData.Token)
 	if err != nil {
 		log.Error("token validation failed", "err", err.Error())
-		return "", "", fmt.Errorf("refresh: token validation failed: %w", err)
+		return nil, fmt.Errorf("refresh: token validation failed: %w", err)
 	}
 	ttl := time.Duration(claims["exp"].(float64)-float64(time.Now().Unix())) * time.Second
 	if claims["token_type"].(string) == "access" {
-		return "", "", ErrTokenWrongType
+		return nil, ErrTokenWrongType
 	}
 	log.Info("validate token successfully")
 	ctx, usrWithTokens, err := a.generateRefreshAccessToken(ctx, claims["email"].(string))
 	if err != nil {
 		a.log.Error("failed to generate tokens", "err", err.Error())
-		return "", "", err
+		return nil, err
 	}
 	a.log.Info("saving refresh token to redis")
 	ctx, err = a.tokenStorage.SaveToken(ctx, reqData.Token, ttl)
 	if err != nil {
 		a.log.Error("failed to save token", "err", err.Error())
-		return "", "", err
+		return nil, err
 	}
 	a.log.Info("token saved to redis successfully")
-	return usrWithTokens.accessToken, usrWithTokens.refreshToken, nil
+	return usrWithTokens, nil
 }
 
 // Register registers new users.
 func (a *Auth) Register(
 	ctx context.Context,
 	reqData *dto.Register,
-) (context.Context, string, error) {
+) (context.Context, *domain.UserWithTokens, error) {
 	const op = "SERVICE LAYER: auth_service.RegisterNewUser"
 
 	ctx, span := tracer.Start(ctx, "service layer: register",
@@ -248,7 +247,7 @@ func (a *Auth) Register(
 		span.SetAttributes(attribute.Bool("error", true))
 		span.RecordError(fmt.Errorf("failed to generate password: %w", err))
 		log.Error("failed to generate password hash", "err", err.Error())
-		return ctx, "", fmt.Errorf("%s: %w", op, err)
+		return ctx, nil, fmt.Errorf("%s: %w", op, err)
 	}
 	// TODO: move to dto and need to add name
 	ctx, uuid, err := a.userStorage.SaveUser(ctx, reqData.Email, passHash)
@@ -257,7 +256,7 @@ func (a *Auth) Register(
 		span.SetAttributes(attribute.Bool("error", true))
 		span.RecordError(fmt.Errorf("failed to save user: %w", err))
 		log.Error("failed to save user", "err", err.Error())
-		return ctx, "", fmt.Errorf("%s: %w", op, err)
+		return ctx, nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	span.AddEvent("user registered", trace.WithAttributes(attribute.String("user-id", uuid)))
@@ -299,7 +298,13 @@ func (a *Auth) Register(
 		"message to broker was sent successfully",
 		trace.WithAttributes(attribute.String("user-id", uuid)),
 	)
-	return ctx, uuid, nil
+	ctx, usrWithTokens, err := a.generateRefreshAccessToken(ctx, reqData.Email)
+	if err != nil {
+		a.log.Error("failed to generate tokens", "err", err.Error())
+		return ctx, nil, err
+	}
+	usrWithTokens.ID = uuid
+	return ctx, usrWithTokens, nil
 }
 
 // IsAdmin checks if user is admin
@@ -411,58 +416,26 @@ func (a *Auth) validateToken(ctx context.Context, token string) (context.Context
 	return ctx, claims, nil
 }
 
-type userWithTokens struct {
-	user         *domain.User
-	accessToken  string
-	refreshToken string
-	err          error
-}
-
 func (a *Auth) generateRefreshAccessToken(
 	ctx context.Context,
 	email string,
-) (context.Context, userWithTokens, error) {
+) (context.Context, *domain.UserWithTokens, error) {
 
 	ctx, user, err := a.userStorage.GetUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, storage.ErrUserNotFound) {
-			return ctx,
-				userWithTokens{
-					user:         nil,
-					accessToken:  "",
-					refreshToken: "",
-				}, ErrInvalidCredentials
+			return ctx, nil, ErrInvalidCredentials
 		}
-		return ctx,
-			userWithTokens{
-				user:         nil,
-				accessToken:  "",
-				refreshToken: "",
-			}, err
+		return ctx, nil, err
 	}
 
 	accessToken, err := jwtlib.NewToken(user, a.cfg, "access")
 	if err != nil {
-		return ctx,
-			userWithTokens{
-				user:         nil,
-				accessToken:  "",
-				refreshToken: "",
-			}, fmt.Errorf("accessToken generation failed: %w", err)
+		return ctx, nil, fmt.Errorf("accessToken generation failed: %w", err)
 	}
 	refreshToken, err := jwtlib.NewToken(user, a.cfg, "refresh")
 	if err != nil {
-		return ctx,
-			userWithTokens{
-				user:         nil,
-				accessToken:  "",
-				refreshToken: "",
-			}, fmt.Errorf("refreshToken generation failed: %w", err)
+		return ctx, nil, fmt.Errorf("refreshToken generation failed: %w", err)
 	}
-	return ctx,
-		userWithTokens{
-			user:         &user,
-			accessToken:  accessToken,
-			refreshToken: refreshToken,
-		}, nil
+	return ctx, &domain.UserWithTokens{User: user, AccessToken: accessToken, RefreshToken: refreshToken}, nil
 }
