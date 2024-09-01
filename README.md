@@ -1,4 +1,4 @@
-# Сервис начисления балов лояльности с авторизацией 
+# Сервис начисления баллов лояльности с авторизацией 
 
 ### Запуск
 
@@ -35,7 +35,7 @@ cd commands && task local
 go run ./sso/cmd/sso/main.go --config=./sso/config/local.yaml
 ```
 
-3. Запуск сервиса начисления балов лояльности
+3. Запуск сервиса начисления баллов лояльности
 ```bash
 go run ./loyalty/cmd/main.go --config=./loyalty/config/local.yaml
 ```
@@ -58,7 +58,7 @@ go run ./loyalty/cmd/main.go --config=./loyalty/config/local.yaml
     4.1. Открыть swagger   
     a. [swagger](http://localhost:8000/swagger/index.htm/index.html) сервиса авторизации
     
-    б. [swagger](http://localhost:8001/swagger/index.htm/index.html) сервиса начисления балов лояльности 
+    б. [swagger](http://localhost:8001/swagger/index.htm/index.html) сервиса начисления баллов лояльности 
 
     4.2 В swagger сервиса авторизации зарегестрироваться.
    ![registration.png](docs%2Fregistration.png)
@@ -73,8 +73,8 @@ go run ./loyalty/cmd/main.go --config=./loyalty/config/local.yaml
     }
     ```
    
-    4.3 В swagger сервиса начисления балов лояльности нажать Authorize и ввести access_token из пункта 4.2
-    4.4 Списание балов лояльности
+    4.3 В swagger сервиса начисления баллов лояльности нажать Authorize и ввести access_token из пункта 4.2
+    4.4 Списание баллов лояльности
  
    ![loyalty_withdraw.png](docs%2Floyalty_withdraw.png)
 
@@ -88,7 +88,7 @@ go run ./loyalty/cmd/main.go --config=./loyalty/config/local.yaml
    "uuid": "7b4825bd-1c03-43ed-9470-3906015b6fc0"
    }
    ``` 
-   В случае пользователя uuid исплекается из jwt token. 
-   Операция начисления балов, доступна только администратору или при регистрации пользователя (приходит сообщение по шине данных kafka).
+   В случае пользователя uuid извлекается из jwt token. 
+   Операция начисления баллов, доступна только администратору или при регистрации пользователя (приходит сообщение по шине данных kafka).
    
    
