@@ -59,6 +59,7 @@ services:
   sso:
     build:
       context: ../.
+      dockerfile: sso.Dockerfile
     restart: unless-stopped
     expose:
       - "44044"
