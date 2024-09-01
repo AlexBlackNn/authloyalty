@@ -185,42 +185,34 @@ curl -k -X 'POST' \
 
 #### loyalty - Примеры запросов (необходимо подстроить под себя, так как токены могут отличаться)
 
-1. Изменение баллов лояльности 
+1. Изменение баллов лояльности
 ```bash
 curl -k -X 'POST' \
 'http://localhost:8001/loyalty' \
 -H 'accept: application/json' \
--H 'Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAdGVzdC5jb20iLCJleHAiOjE3MjUxOTQzOTgsInRva2VuX3R5cGUiOiJhY2Nlc3MiLCJ1aWQiOiJlNjZhMjk4YS1jODM1LTRjZmEtOGM4ZS02MDUzNGY0YzAwZjkifQ.JGhm4XYUHWEasWdcHZWkGyxRtMg7CbldLvtlGKd-tWA' \
+-H 'Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAdGVzdC5jb20iLCJleHAiOjE3MjUxOTU3MjUsInRva2VuX3R5cGUiOiJhY2Nlc3MiLCJ1aWQiOiJlNjZhMjk4YS1jODM1LTRjZmEtOGM4ZS02MDUzNGY0YzAwZjkifQ.6k9LyerCfpTcEqv4bDY2CLxPWuhx-JZ2pi2Ew3tBx84' \
 -H 'Content-Type: application/json' \
 -d '{
 "balance": 1,
 "comment": "purchase",
 "operation": "w",
-"uuid": "7b4825bd-1c03-43ed-9470-3906015b6fc0"
-}'
-```
-
-```bash
-curl -k -X 'POST' \
-'https://localhost:443/loyalty' \
--H 'accept: application/json' \
--H 'Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAdGVzdC5jb20iLCJleHAiOjE3MjUxOTQzOTgsInRva2VuX3R5cGUiOiJhY2Nlc3MiLCJ1aWQiOiJlNjZhMjk4YS1jODM1LTRjZmEtOGM4ZS02MDUzNGY0YzAwZjkifQ.JGhm4XYUHWEasWdcHZWkGyxRtMg7CbldLvtlGKd-tWA' \
--H 'Content-Type: application/json' \
--d '{
-"balance": 1,
-"comment": "purchase",
-"operation": "w",
-"uuid": "7b4825bd-1c03-43ed-9470-3906015b6fc0"
+"uuid": "e66a298a-c835-4cfa-8c8e-60534f4c00f9"
 }'
 ```
 
 2. Получить кол-во баллов лояльности по uuid пользователя
 ```bash
-curl -X 'GET' \
-'http://localhost:8001/loyalty/e66a298a-c835-4cfa-8c8e-60534f4c00f9'
+curl -k -X 'GET' \
+'https://localhost:443/loyalty/e66a298a-c835-4cfa-8c8e-60534f4c00f9'
 ```
 
 Результат:
 ```
 {"status":"Success","uuid":"e66a298a-c835-4cfa-8c8e-60534f4c00f9","balance":78}
+```
+
+3. Ready
+```bash
+curl -k -X 'GET' \
+'https://localhost:443/loyalty/ready'
 ```
