@@ -220,7 +220,7 @@ curl -k -X 'GET' \
 
 ## Архитектурные решения
 
-![architecture.png](docs%2Farchitecture.png)
+![architecture.jpg](docs%2Farchitecture.jpg)
 
 ### API:
 HTTP-handlers используются для общения с frontend, а gRPC для общения внутри микросервисов.
