@@ -220,6 +220,8 @@ curl -k -X 'GET' \
 
 ## Архитектурные решения
 
+![architecture.png](docs%2Farchitecture.png)
+
 ### API:
 HTTP-handlers используются для общения с frontend, а gRPC для общения внутри микросервисов.
 * gRPC: использует Protobuf для сериализации данных, что обеспечивает более компактное
