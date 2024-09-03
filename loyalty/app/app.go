@@ -11,9 +11,9 @@ import (
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/domain"
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/logger"
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/services/loyaltyservice"
+	"github.com/AlexBlackNn/authloyalty/loyalty/internal/storage"
+	"github.com/AlexBlackNn/authloyalty/loyalty/internal/storage/patroni"
 	"github.com/AlexBlackNn/authloyalty/loyalty/pkg/broker"
-	"github.com/AlexBlackNn/authloyalty/loyalty/pkg/storage"
-	"github.com/AlexBlackNn/authloyalty/loyalty/pkg/storage/patroni"
 	"github.com/AlexBlackNn/authloyalty/loyalty/pkg/tracing"
 	"go.opentelemetry.io/otel/sdk/trace"
 )

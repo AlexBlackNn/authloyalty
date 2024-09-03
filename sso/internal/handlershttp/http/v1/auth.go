@@ -11,10 +11,10 @@ import (
 
 	"github.com/AlexBlackNn/authloyalty/sso/internal/domain"
 	"github.com/AlexBlackNn/authloyalty/sso/internal/dto"
+	"github.com/AlexBlackNn/authloyalty/sso/internal/storage"
 
 	"github.com/AlexBlackNn/authloyalty/sso/internal/config"
 	"github.com/AlexBlackNn/authloyalty/sso/internal/services/authservice"
-	"github.com/AlexBlackNn/authloyalty/sso/pkg/storage"
 	"github.com/go-playground/validator/v10"
 )
 

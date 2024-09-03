@@ -1,6 +1,6 @@
 // КОД НЕ ДЛЯ ПРОВЕРКИ.
 // СДЕЛАН КЛИЕНТ ПРОСТО ДЛЯ ТЕСТА, ЧТО С КАФКИ МОЖНО ЧИТАТЬ И РАБОТАЮТ СПАНЫ. ПОТОМ
-// ИЛИ УДАЛЮ ИЛИ ПЕРЕДЕЛАЮ И ОТПРАВЛЮ В ПАПКУ examples.
+// ПЕРЕДЕЛАЮ И ОТПРАВЛЮ В ПАПКУ examples.
 package main
 
 import (
@@ -137,7 +137,6 @@ func main() {
 					),
 				)
 				span.End()
-				fmt.Println("1111111111111111111111", ctx)
 				ctx, span = customTracer.Start(
 					ctx,
 					"tracer consumer3",
@@ -175,8 +174,6 @@ func main() {
 
 func foo(ctx context.Context) context.Context {
 	var customTracer = otel.Tracer("consumer")
-	fmt.Printf("Hello\n")
-	fmt.Println("1111111111111111111111", ctx)
 	ctx, span := customTracer.Start(
 		ctx,
 		"foo",
