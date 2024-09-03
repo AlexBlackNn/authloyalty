@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/AlexBlackNn/authloyalty/loyalty/internal/storage"
 	"github.com/AlexBlackNn/authloyalty/loyalty/pkg/tracing"
 
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/config"
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/domain"
 	"github.com/AlexBlackNn/authloyalty/loyalty/pkg/broker"
-	"github.com/AlexBlackNn/authloyalty/loyalty/pkg/storage"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"

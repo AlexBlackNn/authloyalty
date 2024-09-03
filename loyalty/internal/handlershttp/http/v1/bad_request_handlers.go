@@ -2,7 +2,6 @@ package v1
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 
@@ -28,7 +27,6 @@ func handleAddLoyaltyBadRequest(w http.ResponseWriter, r *http.Request, reqData 
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	err = json.Unmarshal(body, reqData)
 	if err != nil {
-		fmt.Println(reqData)
 		dto.ResponseErrorBadRequest(w, "failed to decode body")
 		return nil, errors.New("failed to decode request")
 	}

@@ -2,8 +2,7 @@ package broker
 
 import (
 	"context"
-	"fmt"
-	"os"
+	log "log/slog"
 
 	registrationv1 "github.com/AlexBlackNn/authloyalty/commands/proto/registration.v1/registration.v1"
 	"github.com/AlexBlackNn/authloyalty/loyalty/internal/config"
@@ -115,12 +114,12 @@ func (b *Broker) Consume() {
 
 			value, err := b.deserializer.Deserialize(*e.TopicPartition.Topic, e.Value)
 			if err != nil {
-				fmt.Printf("Failed to deserialize payload: %s\n", err)
+				log.Error("Failed to deserialize payload: %s\n", err)
 			} else {
-				fmt.Printf("%% Message on %s:\n%+v\n", e.TopicPartition, value)
+				log.Error("%% Message on %s:\n%+v\n", e.TopicPartition, value)
 			}
 			if e.Headers != nil {
-				fmt.Printf("%% Headers: %v\n", e.Headers)
+				log.Error("%% Headers: %v\n", e.Headers)
 
 				headers := propagation.MapCarrier{}
 
@@ -148,9 +147,9 @@ func (b *Broker) Consume() {
 			// Errors should generally be considered
 			// informational, the client will try to
 			// automatically recover.
-			fmt.Fprintf(os.Stderr, "%% Error: %v: %v\n", e.Code(), e)
+			log.Error("%% Error: %v: %v\n", e.Code(), e)
 		default:
-			fmt.Printf("Ignored %v\n", e)
+			log.Warn("Ignored %v\n", e)
 		}
 	}
 }

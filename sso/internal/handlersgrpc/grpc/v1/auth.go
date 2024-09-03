@@ -3,15 +3,14 @@ package v1
 import (
 	"context"
 	"errors"
-	"fmt"
 	log "log/slog"
 
 	"github.com/AlexBlackNn/authloyalty/sso/internal/domain"
 	"github.com/AlexBlackNn/authloyalty/sso/internal/dto"
+	"github.com/AlexBlackNn/authloyalty/sso/internal/storage"
 
 	ssov1 "github.com/AlexBlackNn/authloyalty/commands/proto/sso/gen"
 	"github.com/AlexBlackNn/authloyalty/sso/internal/services/authservice"
-	"github.com/AlexBlackNn/authloyalty/sso/pkg/storage"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
@@ -84,7 +83,6 @@ func (s *serverAPI) Login(
 		ctx, &dto.Login{Email: req.GetEmail(), Password: req.GetPassword()},
 	)
 	if err != nil {
-		fmt.Println(err.Error())
 		if errors.Is(err, authservice.ErrInvalidCredentials) {
 			return nil, status.Error(codes.InvalidArgument, "invalid credentials")
 		}

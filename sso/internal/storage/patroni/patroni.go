@@ -8,7 +8,7 @@ import (
 
 	"github.com/AlexBlackNn/authloyalty/sso/internal/config"
 	"github.com/AlexBlackNn/authloyalty/sso/internal/domain"
-	"github.com/AlexBlackNn/authloyalty/sso/pkg/storage"
+	"github.com/AlexBlackNn/authloyalty/sso/internal/storage"
 	"github.com/XSAM/otelsql"
 	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
