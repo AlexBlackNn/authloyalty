@@ -53,12 +53,11 @@ func (mr *MockgetResponseChanSenderMockRecorder) GetResponseChan() *gomock.Call 
 }
 
 // Send mocks base method.
-func (m *MockgetResponseChanSender) Send(ctx context.Context, msg proto.Message, topic, key string) (context.Context, error) {
+func (m *MockgetResponseChanSender) Send(ctx context.Context, msg proto.Message, topic, key string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Send", ctx, msg, topic, key)
-	ret0, _ := ret[0].(context.Context)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // Send indicates an expected call of Send.
@@ -91,13 +90,12 @@ func (m *MockuserStorage) EXPECT() *MockuserStorageMockRecorder {
 }
 
 // GetUser mocks base method.
-func (m *MockuserStorage) GetUser(ctx context.Context, uuid string) (context.Context, domain.User, error) {
+func (m *MockuserStorage) GetUser(ctx context.Context, uuid string) (domain.User, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUser", ctx, uuid)
-	ret0, _ := ret[0].(context.Context)
-	ret1, _ := ret[1].(domain.User)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
+	ret0, _ := ret[0].(domain.User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // GetUser indicates an expected call of GetUser.
@@ -107,13 +105,12 @@ func (mr *MockuserStorageMockRecorder) GetUser(ctx, uuid interface{}) *gomock.Ca
 }
 
 // GetUserByEmail mocks base method.
-func (m *MockuserStorage) GetUserByEmail(ctx context.Context, email string) (context.Context, domain.User, error) {
+func (m *MockuserStorage) GetUserByEmail(ctx context.Context, email string) (domain.User, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUserByEmail", ctx, email)
-	ret0, _ := ret[0].(context.Context)
-	ret1, _ := ret[1].(domain.User)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
+	ret0, _ := ret[0].(domain.User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // GetUserByEmail indicates an expected call of GetUserByEmail.
@@ -123,12 +120,11 @@ func (mr *MockuserStorageMockRecorder) GetUserByEmail(ctx, email interface{}) *g
 }
 
 // HealthCheck mocks base method.
-func (m *MockuserStorage) HealthCheck(ctx context.Context) (context.Context, error) {
+func (m *MockuserStorage) HealthCheck(ctx context.Context) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "HealthCheck", ctx)
-	ret0, _ := ret[0].(context.Context)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // HealthCheck indicates an expected call of HealthCheck.
@@ -138,13 +134,12 @@ func (mr *MockuserStorageMockRecorder) HealthCheck(ctx interface{}) *gomock.Call
 }
 
 // SaveUser mocks base method.
-func (m *MockuserStorage) SaveUser(ctx context.Context, email string, passHash []byte) (context.Context, string, error) {
+func (m *MockuserStorage) SaveUser(ctx context.Context, email string, passHash []byte) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SaveUser", ctx, email, passHash)
-	ret0, _ := ret[0].(context.Context)
-	ret1, _ := ret[1].(string)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // SaveUser indicates an expected call of SaveUser.
@@ -154,12 +149,11 @@ func (mr *MockuserStorageMockRecorder) SaveUser(ctx, email, passHash interface{}
 }
 
 // UpdateSendStatus mocks base method.
-func (m *MockuserStorage) UpdateSendStatus(ctx context.Context, uuid, status string) (context.Context, error) {
+func (m *MockuserStorage) UpdateSendStatus(ctx context.Context, uuid, status string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateSendStatus", ctx, uuid, status)
-	ret0, _ := ret[0].(context.Context)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // UpdateSendStatus indicates an expected call of UpdateSendStatus.
@@ -192,13 +186,12 @@ func (m *MocktokenStorage) EXPECT() *MocktokenStorageMockRecorder {
 }
 
 // CheckTokenExists mocks base method.
-func (m *MocktokenStorage) CheckTokenExists(ctx context.Context, token string) (context.Context, int64, error) {
+func (m *MocktokenStorage) CheckTokenExists(ctx context.Context, token string) (int64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CheckTokenExists", ctx, token)
-	ret0, _ := ret[0].(context.Context)
-	ret1, _ := ret[1].(int64)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // CheckTokenExists indicates an expected call of CheckTokenExists.
@@ -208,13 +201,12 @@ func (mr *MocktokenStorageMockRecorder) CheckTokenExists(ctx, token interface{})
 }
 
 // GetToken mocks base method.
-func (m *MocktokenStorage) GetToken(ctx context.Context, token string) (context.Context, string, error) {
+func (m *MocktokenStorage) GetToken(ctx context.Context, token string) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetToken", ctx, token)
-	ret0, _ := ret[0].(context.Context)
-	ret1, _ := ret[1].(string)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // GetToken indicates an expected call of GetToken.
@@ -224,12 +216,11 @@ func (mr *MocktokenStorageMockRecorder) GetToken(ctx, token interface{}) *gomock
 }
 
 // SaveToken mocks base method.
-func (m *MocktokenStorage) SaveToken(ctx context.Context, token string, ttl time.Duration) (context.Context, error) {
+func (m *MocktokenStorage) SaveToken(ctx context.Context, token string, ttl time.Duration) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SaveToken", ctx, token, ttl)
-	ret0, _ := ret[0].(context.Context)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // SaveToken indicates an expected call of SaveToken.

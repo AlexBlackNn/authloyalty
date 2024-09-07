@@ -74,13 +74,12 @@ func (m *MockloyaltyStorage) EXPECT() *MockloyaltyStorageMockRecorder {
 }
 
 // AddLoyalty mocks base method.
-func (m *MockloyaltyStorage) AddLoyalty(ctx context.Context, loyalty *domain.UserLoyalty) (context.Context, *domain.UserLoyalty, error) {
+func (m *MockloyaltyStorage) AddLoyalty(ctx context.Context, loyalty *domain.UserLoyalty) (*domain.UserLoyalty, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AddLoyalty", ctx, loyalty)
-	ret0, _ := ret[0].(context.Context)
-	ret1, _ := ret[1].(*domain.UserLoyalty)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
+	ret0, _ := ret[0].(*domain.UserLoyalty)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // AddLoyalty indicates an expected call of AddLoyalty.
@@ -90,13 +89,12 @@ func (mr *MockloyaltyStorageMockRecorder) AddLoyalty(ctx, loyalty interface{}) *
 }
 
 // GetLoyalty mocks base method.
-func (m *MockloyaltyStorage) GetLoyalty(ctx context.Context, loyalty *domain.UserLoyalty) (context.Context, *domain.UserLoyalty, error) {
+func (m *MockloyaltyStorage) GetLoyalty(ctx context.Context, loyalty *domain.UserLoyalty) (*domain.UserLoyalty, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetLoyalty", ctx, loyalty)
-	ret0, _ := ret[0].(context.Context)
-	ret1, _ := ret[1].(*domain.UserLoyalty)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
+	ret0, _ := ret[0].(*domain.UserLoyalty)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // GetLoyalty indicates an expected call of GetLoyalty.
@@ -106,12 +104,11 @@ func (mr *MockloyaltyStorageMockRecorder) GetLoyalty(ctx, loyalty interface{}) *
 }
 
 // HealthCheck mocks base method.
-func (m *MockloyaltyStorage) HealthCheck(arg0 context.Context) (context.Context, error) {
+func (m *MockloyaltyStorage) HealthCheck(arg0 context.Context) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "HealthCheck", arg0)
-	ret0, _ := ret[0].(context.Context)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // HealthCheck indicates an expected call of HealthCheck.
