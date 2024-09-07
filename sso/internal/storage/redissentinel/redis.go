@@ -47,7 +47,7 @@ func (s *Cache) SaveToken(
 	ctx context.Context,
 	token string,
 	ttl time.Duration,
-) (context.Context, error) {
+) error {
 	const op = "DATA LAYER: storage.redis.SaveToken"
 
 	ctx, span := tracer.Start(ctx, op,
@@ -56,16 +56,16 @@ func (s *Cache) SaveToken(
 
 	err := s.client.Set(ctx, token, true, ttl).Err()
 	if err != nil {
-		return ctx, fmt.Errorf("%s: %w", op, err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	return ctx, nil
+	return nil
 }
 
 func (s *Cache) GetToken(
 	ctx context.Context,
 	token string,
-) (context.Context, string, error) {
+) (string, error) {
 	const op = "DATA LAYER: storage.redis.GetToken"
 
 	ctx, span := tracer.Start(ctx, op,
@@ -74,15 +74,15 @@ func (s *Cache) GetToken(
 
 	val, err := s.client.Get(ctx, token).Result()
 	if err != nil {
-		return ctx, "", fmt.Errorf("%s: %w", op, err)
+		return "", fmt.Errorf("%s: %w", op, err)
 	}
-	return ctx, val, nil
+	return val, nil
 }
 
 func (s *Cache) CheckTokenExists(
 	ctx context.Context,
 	token string,
-) (context.Context, int64, error) {
+) (int64, error) {
 	const op = "DATA LAYER: storage.redis.CheckTokenExists"
 
 	ctx, span := tracer.Start(ctx, op,
@@ -91,7 +91,7 @@ func (s *Cache) CheckTokenExists(
 
 	val, err := s.client.Exists(ctx, token).Result()
 	if err != nil {
-		return ctx, 0, fmt.Errorf("%s: %w", op, err)
+		return 0, fmt.Errorf("%s: %w", op, err)
 	}
-	return ctx, val, nil
+	return val, nil
 }

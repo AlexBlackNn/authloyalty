@@ -39,7 +39,7 @@ func (m *HealthHandlers) ReadinessProbe(w http.ResponseWriter, r *http.Request) 
 	ctx, cancel := context.WithTimeoutCause(r.Context(), 300*time.Millisecond, errors.New("readinessProbe timeout"))
 	defer cancel()
 
-	ctx, err := m.authservice.HealthCheck(ctx)
+	err := m.authservice.HealthCheck(ctx)
 
 	if err != nil {
 		dto.ResponseErrorInternal(w, "internal server error")

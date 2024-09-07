@@ -75,7 +75,7 @@ func (s *Storage) Stop() error {
 func (s *Storage) GetLoyalty(
 	ctx context.Context,
 	userLoyalty *domain.UserLoyalty,
-) (context.Context, *domain.UserLoyalty, error) {
+) (*domain.UserLoyalty, error) {
 	ctx, span := tracer.Start(
 		ctx, "data layer Patroni: GetLoyalty",
 		trace.WithAttributes(attribute.String("handler", "GetLoyalty")),
@@ -87,23 +87,23 @@ func (s *Storage) GetLoyalty(
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return ctx, nil, fmt.Errorf(
+			return nil, fmt.Errorf(
 				"DATA LAYER: storage.postgres.GetLoyalty: %w",
 				storage.ErrUserNotFound,
 			)
 		}
-		return ctx, nil, fmt.Errorf(
+		return nil, fmt.Errorf(
 			"DATA LAYER: storage.postgres.GetLoyalty: %w",
 			err,
 		)
 	}
-	return ctx, userLoyalty, nil
+	return userLoyalty, nil
 }
 
 func (s *Storage) AddLoyalty(
 	ctx context.Context,
 	userLoyalty *domain.UserLoyalty,
-) (context.Context, *domain.UserLoyalty, error) {
+) (*domain.UserLoyalty, error) {
 	ctx, span := tracer.Start(
 		ctx, "data layer Patroni: AddLoyalty",
 		trace.WithAttributes(attribute.String("handler", "AddLoyalty")),
@@ -113,7 +113,7 @@ func (s *Storage) AddLoyalty(
 	//1. Open transaction
 	tx, err := s.dbWrite.Begin()
 	if err != nil {
-		return ctx, nil, fmt.Errorf("failed to begin transaction: %w", err)
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer tx.Rollback()
 
@@ -130,18 +130,18 @@ func (s *Storage) AddLoyalty(
 				query = "INSERT INTO loyalty_app.accounts (uuid, balance) VALUES ($1, $2) RETURNING uuid"
 				err = tx.QueryRowContext(ctx, query, userLoyalty.UUID, userLoyalty.Balance).Scan(&userLoyalty.UUID)
 				if err != nil {
-					return ctx, nil, err
+					return nil, err
 				}
 				query = "INSERT INTO loyalty_app.loyalty_transactions (account_uuid, transaction_amount, transaction_type, comment) VALUES ($1, $2, $3, $4);"
 				_, err = tx.ExecContext(ctx, query, userLoyalty.UUID, userLoyalty.Balance, Deposit, userLoyalty.Comment)
 				if err != nil {
-					return ctx, nil, err
+					return nil, err
 				}
-				return ctx, userLoyalty, tx.Commit()
+				return userLoyalty, tx.Commit()
 			}
 		}
 		// 3.2 and operation is NOT a registration (withdraw and deposit loyalty is forbidden if user is not registered)
-		return ctx, nil, storage.ErrUserNotFound
+		return nil, storage.ErrUserNotFound
 	}
 
 	// 4. if user account exists, try to update account
@@ -153,7 +153,7 @@ func (s *Storage) AddLoyalty(
 		query = "UPDATE loyalty_app.accounts SET balance = balance - $1 WHERE uuid = $2 RETURNING balance;"
 	} else {
 		// 4.3 if other type of operations (i.e."registration" - to create exactly only once "registration" operation)
-		return ctx, nil, storage.ErrWrongParamType
+		return nil, storage.ErrWrongParamType
 	}
 	err = tx.QueryRowContext(ctx, query, balance, userLoyalty.UUID).Scan(&userLoyalty.Balance)
 
@@ -163,22 +163,22 @@ func (s *Storage) AddLoyalty(
 	if err != nil {
 		if errors.As(err, &pgerr) {
 			if pgerr.Code == CheckViolationErr {
-				return ctx, nil, storage.ErrNegativeBalance
+				return nil, storage.ErrNegativeBalance
 			}
 		}
-		return ctx, nil, storage.ErrInternalErr
+		return nil, storage.ErrInternalErr
 	}
 
 	// 5. Write data to account_transaction
 	query = "INSERT INTO loyalty_app.loyalty_transactions (account_uuid, transaction_amount, transaction_type, comment) VALUES ($1, $2, $3, $4);"
 	_, err = tx.ExecContext(ctx, query, userLoyalty.UUID, balance, userLoyalty.Operation, userLoyalty.Comment)
 	if err != nil {
-		return ctx, nil, err
+		return nil, err
 	}
-	return ctx, userLoyalty, tx.Commit()
+	return userLoyalty, tx.Commit()
 }
 
-func (s *Storage) HealthCheck(ctx context.Context) (context.Context, error) {
+func (s *Storage) HealthCheck(ctx context.Context) error {
 	ctx, span := tracer.Start(ctx, "data layer Patroni: HealthCheck",
 		trace.WithAttributes(attribute.String("handler", "HealthCheck")))
 	defer span.End()
@@ -186,10 +186,10 @@ func (s *Storage) HealthCheck(ctx context.Context) (context.Context, error) {
 	// is changed need to be checked. https://pkg.go.dev/database/sql/driver#Pinger
 	err := s.dbWrite.Ping()
 	if err != nil {
-		return ctx, fmt.Errorf(
+		return fmt.Errorf(
 			"DATA LAYER: storage.postgres.HealthCheck: couldn't ping databae  %w",
 			err,
 		)
 	}
-	return ctx, nil
+	return nil
 }

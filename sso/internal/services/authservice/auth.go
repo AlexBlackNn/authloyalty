@@ -39,23 +39,23 @@ type userStorage interface {
 		ctx context.Context,
 		email string,
 		passHash []byte,
-	) (context.Context, string, error)
+	) (string, error)
 	GetUser(
 		ctx context.Context,
 		uuid string,
-	) (context.Context, domain.User, error)
+	) (domain.User, error)
 	GetUserByEmail(
 		ctx context.Context,
 		email string,
-	) (context.Context, domain.User, error)
+	) (domain.User, error)
 	UpdateSendStatus(
 		ctx context.Context,
 		uuid string,
 		status string,
-	) (context.Context, error)
+	) error
 	HealthCheck(
 		ctx context.Context,
-	) (context.Context, error)
+	) error
 }
 
 type tokenStorage interface {
@@ -63,15 +63,15 @@ type tokenStorage interface {
 		ctx context.Context,
 		token string,
 		ttl time.Duration,
-	) (context.Context, error)
+	) error
 	GetToken(
 		ctx context.Context,
 		token string,
-	) (context.Context, string, error)
+	) (string, error)
 	CheckTokenExists(
 		ctx context.Context,
 		token string,
-	) (context.Context, int64, error)
+	) (int64, error)
 }
 
 type Auth struct {
@@ -105,7 +105,7 @@ func New(
 					"err", brokerResponse.Err,
 					"uuid", brokerResponse.UserUUID,
 				)
-				_, err := userStorage.UpdateSendStatus(
+				err := userStorage.UpdateSendStatus(
 					context.Background(), brokerResponse.UserUUID, "failed",
 				)
 				if err != nil {
@@ -117,7 +117,7 @@ func New(
 				}
 				continue
 			}
-			_, err := userStorage.UpdateSendStatus(
+			err := userStorage.UpdateSendStatus(
 				context.Background(),
 				brokerResponse.UserUUID,
 				"successful",
@@ -144,7 +144,7 @@ const (
 var tracer = otel.Tracer("sso service")
 
 // HealthCheck returns service health check.
-func (a *Auth) HealthCheck(ctx context.Context) (context.Context, error) {
+func (a *Auth) HealthCheck(ctx context.Context) error {
 	log := a.log.With(
 		slog.String("info", "SERVICE LAYER: HealthCheck"),
 	)
@@ -214,7 +214,7 @@ func (a *Auth) Refresh(
 		return nil, err
 	}
 	a.log.Info("saving refresh token to redis")
-	ctx, err = a.tokenStorage.SaveToken(ctx, reqData.Token, ttl)
+	err = a.tokenStorage.SaveToken(ctx, reqData.Token, ttl)
 	if err != nil {
 		a.log.Error("failed to save token", "err", err.Error())
 		return nil, err
@@ -250,7 +250,7 @@ func (a *Auth) Register(
 		return ctx, nil, fmt.Errorf("%s: %w", op, err)
 	}
 	// TODO: move to dto and need to add name
-	ctx, uuid, err := a.userStorage.SaveUser(ctx, reqData.Email, passHash)
+	uuid, err := a.userStorage.SaveUser(ctx, reqData.Email, passHash)
 	if err != nil {
 		span.SetStatus(codes.Error, err.Error())
 		span.SetAttributes(attribute.Bool("error", true))
@@ -275,7 +275,7 @@ func (a *Auth) Register(
 		span.SetAttributes(attribute.Bool("error", true))
 		span.RecordError(fmt.Errorf("sending message to broker failed %w", err))
 		log.Error("sending message to broker failed", "err", err.Error())
-		ctx, err = a.userStorage.UpdateSendStatus(
+		err = a.userStorage.UpdateSendStatus(
 			ctx, uuid, "failed",
 		)
 		if err != nil {
@@ -321,7 +321,7 @@ func (a *Auth) IsAdmin(
 	)
 
 	log.Info("getting user from database")
-	ctx, user, err := a.userStorage.GetUser(ctx, userID)
+	user, err := a.userStorage.GetUser(ctx, userID)
 	if err != nil {
 		log.Error("failed to extract user", "err", err.Error())
 		return false, fmt.Errorf("%s: %w", op, err)
@@ -353,7 +353,7 @@ func (a *Auth) Logout(
 	log.Info("validate token successfully")
 	log.Info("saving token to redis")
 
-	ctx, err = a.tokenStorage.SaveToken(ctx, reqData.Token, ttl)
+	err = a.tokenStorage.SaveToken(ctx, reqData.Token, ttl)
 	if err != nil {
 		log.Error("failed to save token", "err", err.Error())
 		return false, err
@@ -406,7 +406,7 @@ func (a *Auth) validateToken(ctx context.Context, token string) (context.Context
 	}
 	// check if token exists in redis
 
-	ctx, value, err := a.tokenStorage.CheckTokenExists(ctx, token)
+	value, err := a.tokenStorage.CheckTokenExists(ctx, token)
 	if err != nil {
 		return ctx, jwt.MapClaims{}, fmt.Errorf("validateToken: %w", err)
 	}
@@ -421,7 +421,7 @@ func (a *Auth) generateRefreshAccessToken(
 	email string,
 ) (context.Context, *domain.UserWithTokens, error) {
 
-	ctx, user, err := a.userStorage.GetUserByEmail(ctx, email)
+	user, err := a.userStorage.GetUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, storage.ErrUserNotFound) {
 			return ctx, nil, ErrInvalidCredentials

@@ -108,7 +108,7 @@ curl -k -X 'POST' \
   -H 'Content-Type: application/json' \
   -d '{
   "birthday": "string",
-  "email": "test@test.com",
+  "email": "test00@test.com",
   "name": "test_name",
   "password": "test"
 }'

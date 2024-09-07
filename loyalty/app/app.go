@@ -22,11 +22,11 @@ type loyaltyStorage interface {
 	AddLoyalty(
 		ctx context.Context,
 		userLoyalty *domain.UserLoyalty,
-	) (context.Context, *domain.UserLoyalty, error)
+	) (*domain.UserLoyalty, error)
 	GetLoyalty(
 		ctx context.Context,
 		userLoyalty *domain.UserLoyalty,
-	) (context.Context, *domain.UserLoyalty, error)
+	) (*domain.UserLoyalty, error)
 	Stop() error
 }
 

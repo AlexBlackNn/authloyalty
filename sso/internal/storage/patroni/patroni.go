@@ -71,7 +71,7 @@ func (s *Storage) Stop() error {
 }
 
 // SaveUser saves user to db.
-func (s *Storage) SaveUser(ctx context.Context, email string, passHash []byte) (context.Context, string, error) {
+func (s *Storage) SaveUser(ctx context.Context, email string, passHash []byte) (string, error) {
 	ctx, span := tracer.Start(
 		ctx, "data layer Patroni: SaveUser",
 		trace.WithAttributes(attribute.String("handler", "SaveUser")),
@@ -85,19 +85,19 @@ func (s *Storage) SaveUser(ctx context.Context, email string, passHash []byte) (
 	var pgerr *pgconn.PgError
 	if errors.As(err, &pgerr) {
 		if pgerr.Code == UniqueViolation {
-			return ctx, "", storage.ErrUserExists
+			return "", storage.ErrUserExists
 		}
 	}
 	if err != nil {
-		return ctx, "", fmt.Errorf(
+		return "", fmt.Errorf(
 			"DATA LAYER: storage.postgres.SaveUser: couldn't save user  %w",
 			err,
 		)
 	}
-	return ctx, uuid, nil
+	return uuid, nil
 }
 
-func (s *Storage) GetUser(ctx context.Context, uuid string) (context.Context, domain.User, error) {
+func (s *Storage) GetUser(ctx context.Context, uuid string) (domain.User, error) {
 	ctx, span := tracer.Start(ctx, "data layer Patroni: GetUser",
 		trace.WithAttributes(attribute.String("handler", "GetUser")))
 	defer span.End()
@@ -109,20 +109,20 @@ func (s *Storage) GetUser(ctx context.Context, uuid string) (context.Context, do
 	err := row.Scan(&user.ID, &user.Email, &user.PassHash, &user.IsAdmin)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return ctx, domain.User{}, fmt.Errorf(
+			return domain.User{}, fmt.Errorf(
 				"DATA LAYER: storage.postgres.GetUser: %w",
 				storage.ErrUserNotFound,
 			)
 		}
-		return ctx, domain.User{}, fmt.Errorf(
+		return domain.User{}, fmt.Errorf(
 			"DATA LAYER: storage.postgres.GetUser: %w",
 			err,
 		)
 	}
-	return ctx, user, nil
+	return user, nil
 }
 
-func (s *Storage) GetUserByEmail(ctx context.Context, email string) (context.Context, domain.User, error) {
+func (s *Storage) GetUserByEmail(ctx context.Context, email string) (domain.User, error) {
 	ctx, span := tracer.Start(ctx, "data layer Patroni: GetUser",
 		trace.WithAttributes(attribute.String("handler", "GetUser")))
 	defer span.End()
@@ -134,21 +134,21 @@ func (s *Storage) GetUserByEmail(ctx context.Context, email string) (context.Con
 	err := row.Scan(&user.ID, &user.Email, &user.PassHash, &user.IsAdmin)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return ctx, domain.User{}, fmt.Errorf(
+			return domain.User{}, fmt.Errorf(
 				"DATA LAYER: storage.postgres.GetUser: %w",
 				storage.ErrUserNotFound,
 			)
 		}
-		return ctx, domain.User{}, fmt.Errorf(
+		return domain.User{}, fmt.Errorf(
 			"DATA LAYER: storage.postgres.GetUser: %w",
 			err,
 		)
 	}
-	return ctx, user, nil
+	return user, nil
 }
 
 // UpdateSendStatus updates message send status.
-func (s *Storage) UpdateSendStatus(ctx context.Context, uuid string, status string) (context.Context, error) {
+func (s *Storage) UpdateSendStatus(ctx context.Context, uuid string, status string) error {
 	ctx, span := tracer.Start(ctx, "data layer Patroni: UpdateSendStatus",
 		trace.WithAttributes(attribute.String("handler", "UpdateSendStatus")))
 	defer span.End()
@@ -156,15 +156,15 @@ func (s *Storage) UpdateSendStatus(ctx context.Context, uuid string, status stri
 	query := "UPDATE users SET message_status=$2 WHERE uuid = $1;"
 	_, err := s.dbWrite.ExecContext(ctx, query, uuid, status)
 	if err != nil {
-		return ctx, fmt.Errorf(
+		return fmt.Errorf(
 			"DATA LAYER: storage.postgres.UpdateSendStatus: couldn't update message registration status delivery  %w",
 			err,
 		)
 	}
-	return ctx, nil
+	return nil
 }
 
-func (s *Storage) HealthCheck(ctx context.Context) (context.Context, error) {
+func (s *Storage) HealthCheck(ctx context.Context) error {
 	ctx, span := tracer.Start(ctx, "data layer Patroni: HealthCheck",
 		trace.WithAttributes(attribute.String("handler", "HealthCheck")))
 	defer span.End()
@@ -172,10 +172,10 @@ func (s *Storage) HealthCheck(ctx context.Context) (context.Context, error) {
 	// is changed need to be checked. https://pkg.go.dev/database/sql/driver#Pinger
 	err := s.dbWrite.Ping()
 	if err != nil {
-		return ctx, fmt.Errorf(
+		return fmt.Errorf(
 			"DATA LAYER: storage.postgres.HealthCheck: couldn't ping databae  %w",
 			err,
 		)
 	}
-	return ctx, nil
+	return nil
 }

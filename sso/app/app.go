@@ -26,11 +26,11 @@ type userStorage interface {
 		ctx context.Context,
 		email string,
 		passHash []byte,
-	) (context.Context, string, error)
+	) (string, error)
 	GetUser(
 		ctx context.Context,
 		email string,
-	) (context.Context, domain.User, error)
+	) (domain.User, error)
 	Stop() error
 }
 
@@ -39,15 +39,15 @@ type tokenStorage interface {
 		ctx context.Context,
 		token string,
 		ttl time.Duration,
-	) (context.Context, error)
+	) error
 	GetToken(
 		ctx context.Context,
 		token string,
-	) (context.Context, string, error)
+	) (string, error)
 	CheckTokenExists(
 		ctx context.Context,
 		token string,
-	) (context.Context, int64, error)
+	) (int64, error)
 }
 
 type sendCloser interface {
