@@ -56,7 +56,7 @@ type sendCloser interface {
 		msg proto.Message,
 		topic string,
 		key string,
-	) (context.Context, error)
+	) error
 	Close()
 }
 

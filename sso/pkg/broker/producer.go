@@ -40,7 +40,7 @@ var tracer = otel.Tracer(
 
 // New returns kafka producer with schema registry
 func New(cfg *config.Config) (*Broker, error) {
-	confluentProducer, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": cfg.Kafka.KafkaURL})
+	confluentProducer, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": cfg.Kafka.URL})
 	if err != nil {
 		return nil, err
 	}
@@ -124,14 +124,14 @@ func (b *Broker) GetResponseChan() chan *Response {
 }
 
 // Send sends serialized message to kafka using schema registry
-func (b *Broker) Send(ctx context.Context, msg proto.Message, topic string, key string) (context.Context, error) {
+func (b *Broker) Send(ctx context.Context, msg proto.Message, topic string, key string) error {
 	ctx, span := tracer.Start(
 		ctx, "transfer layer Kafka: Serialize message",
 		trace.WithAttributes(attribute.String("transfer transfer", "Send")),
 	)
 	payload, err := b.serializer.Serialize(topic, msg)
 	if err != nil {
-		return ctx, err
+		return err
 	}
 	span.End()
 	ctx, span = tracer.Start(
@@ -151,9 +151,9 @@ func (b *Broker) Send(ctx context.Context, msg proto.Message, topic string, key 
 		Value:          payload,
 		Headers:        headers,
 	}, nil); err != nil {
-		return ctx, err
+		return err
 	}
-	return ctx, nil
+	return nil
 }
 
 func createProducerSpan(ctx context.Context, headers []kafka.Header) ([]kafka.Header, trace.Span) {

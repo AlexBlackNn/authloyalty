@@ -140,8 +140,8 @@ func (b *Broker) Consume() {
 				)
 				defer span.End()
 			}
-			// TODO: Balance migt be transmitted from sso and extracted from protobuf, Err - take a look at docs to find out.
-			b.MessageChan <- &MessageReceived{Msg: Message{UUID: string(e.Key), Balance: 100, Comment: "registration"}, Ctx: ctx, Err: nil}
+			// TODO: Balance might be transmitted from sso and extracted from protobuf, Err - take a look at docs to find out.
+			b.MessageChan <- &MessageReceived{Msg: Message{UUID: string(e.Key), Balance: 100, Comment: string(e.Value)}, Ctx: ctx, Err: nil}
 
 		case kafka.Error:
 			// Errors should generally be considered

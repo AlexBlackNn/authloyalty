@@ -27,8 +27,9 @@ type StoragePatroniConfig struct {
 }
 
 type KafkaConfig struct {
-	KafkaURL          string `yaml:"kafkaUrl" env-required:"true"`
+	URL               string `yaml:"kafkaUrl" env-required:"true"`
 	SchemaRegistryURL string `yaml:"schemaRegistryURL" env-required:"true"`
+	Topic             string `yaml:"topic" env-required:"true"`
 }
 
 type ServerTimeoutConfig struct {

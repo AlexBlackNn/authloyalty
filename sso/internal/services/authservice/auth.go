@@ -30,7 +30,7 @@ type getResponseChanSender interface {
 		msg proto.Message,
 		topic string,
 		key string,
-	) (context.Context, error)
+	) error
 	GetResponseChan() chan *broker.Response
 }
 
@@ -138,7 +138,8 @@ func New(
 }
 
 const (
-	TokenRevoked = 1
+	TokenRevoked     = 1
+	RegistrationType = "registration"
 )
 
 var tracer = otel.Tracer("sso service")
@@ -262,11 +263,11 @@ func (a *Auth) Register(
 	span.AddEvent("user registered", trace.WithAttributes(attribute.String("user-id", uuid)))
 	log.Info("user registered")
 	registrationMsg := registrationv1.RegistrationMessage{
-		Email:    reqData.Email,
-		FullName: reqData.Name,
+		Uuid: uuid,
+		Type: RegistrationType,
 	}
-	//TODO: registration should be got from config
-	ctx, err = a.producer.Send(ctx, &registrationMsg, "registration", uuid)
+
+	err = a.producer.Send(ctx, &registrationMsg, a.cfg.Kafka.Topic, uuid)
 	if err != nil {
 		// TODO: determine the err can be faced
 		// No return here with err!!!, we do continue working (so-called soft degradation)
