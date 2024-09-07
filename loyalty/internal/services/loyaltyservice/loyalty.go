@@ -55,7 +55,7 @@ func New(
 	go func() {
 		for msg := range msgChan {
 
-			userLoyalty := &domain.UserLoyalty{UUID: msg.Msg.UUID, Balance: msg.Msg.Balance, Operation: "registration"}
+			userLoyalty := &domain.UserLoyalty{UUID: msg.Msg.UUID, Balance: msg.Msg.Balance, Operation: msg.Msg.Type, Comment: msg.Msg.Comment}
 			ctx, span := tracer.Start(msg.Ctx, "service layer: GetMessageChan",
 				trace.WithAttributes(attribute.String("handler", "GetMessageChan")))
 			userLoyalty, err := loyalStorage.AddLoyalty(ctx, userLoyalty)
@@ -69,7 +69,7 @@ func New(
 				"user loyalty extracted from broker message",
 				trace.WithAttributes(
 					attribute.String("user-id", userLoyalty.UUID),
-					attribute.Int("user-id", userLoyalty.Balance),
+					attribute.Int("balance", userLoyalty.Balance),
 				),
 			)
 			span.End()

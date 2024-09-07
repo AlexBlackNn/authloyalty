@@ -116,15 +116,18 @@ func (s *Storage) AddLoyalty(
 		return nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer tx.Rollback()
-
+	fmt.Println("0000000000000000000000")
 	balance := userLoyalty.Balance
 
 	//2. Block required row to avoid changing from other transactions
+	var userLoyaltyBlocked domain.UserLoyalty
 	query := "SELECT uuid, balance FROM loyalty_app.accounts WHERE uuid = $1 FOR UPDATE;"
-	err = tx.QueryRowContext(ctx, query, userLoyalty.UUID).Scan(&userLoyalty.UUID, &userLoyalty.Balance)
+	err = tx.QueryRowContext(ctx, query, userLoyalty.UUID).Scan(&userLoyaltyBlocked.UUID, &userLoyaltyBlocked.Balance)
+	fmt.Println("0101010101010", err, userLoyalty, userLoyaltyBlocked)
 	if err != nil {
 		//3. If no row is selected
 		if errors.Is(err, sql.ErrNoRows) {
+			fmt.Println("0101010101010", userLoyalty.Comment, userLoyalty.Operation)
 			// 3.1 and operation is a registration then create new row in "accounts" and "loyalty_transactions" tables
 			if userLoyalty.Operation == "registration" {
 				query = "INSERT INTO loyalty_app.accounts (uuid, balance) VALUES ($1, $2) RETURNING uuid"
@@ -133,6 +136,7 @@ func (s *Storage) AddLoyalty(
 					return nil, err
 				}
 				query = "INSERT INTO loyalty_app.loyalty_transactions (account_uuid, transaction_amount, transaction_type, comment) VALUES ($1, $2, $3, $4);"
+				fmt.Println("11111111111111111111111111111111111111111111111111111111111", userLoyalty)
 				_, err = tx.ExecContext(ctx, query, userLoyalty.UUID, userLoyalty.Balance, Deposit, userLoyalty.Comment)
 				if err != nil {
 					return nil, err
