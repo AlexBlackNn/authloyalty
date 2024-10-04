@@ -1,7 +1,8 @@
 FROM golang:latest AS build
 WORKDIR /app
 COPY . /app/
-RUN GOOS=linux go build -ldflags '-extldflags "-static"' -o main ./sso/cmd/sso/main.go
+# go build -ldflags "-s -w" — скомпилирует исполняемый файл меньшего размера, так как в него не будет включена таблица символов и отладочная информация.
+RUN GOOS=linux go build -ldflags '-extldflags "-static" -s -w' -o main ./sso/cmd/sso/main.go
 
 FROM scratch
 WORKDIR /app
