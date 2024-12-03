@@ -485,15 +485,14 @@ func (a *Auth) Info(
 		log.Error("failed validate token: ", "err", err.Error())
 		return nil, err
 	}
-
-	for _, item := range mapClaims {
-		fmt.Println("33333333333", item)
+	uuid, ok := (mapClaims["uid"]).(string)
+	if !ok {
+		return nil, ErrInvalidCredentials
 	}
 
-	return &domain.User{
-		ID:       "1",
-		Email:    "test@test.com",
-		Avatar:   "avatar",
-		Birthday: "02-10-20",
-	}, nil
+	user, err := a.userStorage.GetUser(ctx, uuid)
+	if err != nil {
+		return nil, ErrUserNotFound
+	}
+	return &user, nil
 }
