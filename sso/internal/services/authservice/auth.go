@@ -408,10 +408,10 @@ func (a *Auth) Validate(
 }
 
 func (a *Auth) validateToken(ctx context.Context, token string) (context.Context, jwt.MapClaims, error) {
-
 	tokenParsed, err := jwt.Parse(token, func(token *jwt.Token) (any, error) {
 		return []byte(a.cfg.ServiceSecret), nil
 	})
+	fmt.Println("111111111", tokenParsed, err)
 	if err != nil {
 		return ctx, jwt.MapClaims{}, ErrTokenParsing
 	}
@@ -467,6 +467,7 @@ func (a *Auth) generateRefreshAccessToken(
 // Info provides info about new users.
 func (a *Auth) Info(
 	ctx context.Context,
+	token string,
 ) (*domain.User, error) {
 	const op = "SERVICE LAYER: auth_service.Info"
 
@@ -479,6 +480,15 @@ func (a *Auth) Info(
 		slog.String("user-id", "user-id"),
 	)
 	log.Info("getting info from user")
+	ctx, mapClaims, err := a.validateToken(ctx, token)
+	if err != nil {
+		log.Error("failed validate token: ", "err", err.Error())
+		return nil, err
+	}
+
+	for _, item := range mapClaims {
+		fmt.Println("33333333333", item)
+	}
 
 	return &domain.User{
 		ID:       "1",

@@ -94,6 +94,8 @@ paths:
           description: info successful
           schema:
             $ref: '#/definitions/dto.UserResponse'
+      security:
+      - bearerAuth: []
       summary: Info
       tags:
       - Auth

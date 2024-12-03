@@ -4,10 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/AlexBlackNn/authloyalty/sso/internal/domain"
@@ -38,6 +38,7 @@ type authService interface {
 	) (userWithTokens *domain.UserWithTokens, err error)
 	Info(
 		ctx context.Context,
+		token string,
 	) (user *domain.User, err error)
 }
 
@@ -233,15 +234,16 @@ func (a *AuthHandlers) Refresh(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Success 200 {object} dto.UserResponse "info successful"
 // @Router /auth/info [get]
+// @Security bearerAuth
 func (a *AuthHandlers) Info(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := ctxWithTimeoutCause(r, a.cfg, "login timeout")
+	ctx, cancel := ctxWithTimeoutCause(r, a.cfg, "info timeout")
 	defer cancel()
 
-	for i, item := range r.Header {
-		fmt.Println(i, item)
-	}
+	tokenString := r.Header.Get("Authorization")
+	token := strings.TrimPrefix(tokenString, "Bearer")
+	token = strings.TrimSpace(token)
+	user, err := a.auth.Info(ctx, token)
 
-	user, err := a.auth.Info(ctx)
 	if err != nil {
 		if errors.Is(err, authservice.ErrInvalidCredentials) {
 			dto.ResponseErrorNotFound(w, "user not found")
