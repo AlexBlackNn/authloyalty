@@ -75,11 +75,18 @@ type tokenStorage interface {
 }
 
 type Auth struct {
-	log          *slog.Logger
-	userStorage  userStorage
-	tokenStorage tokenStorage
-	producer     getResponseChanSender
-	cfg          *config.Config
+	log           *slog.Logger
+	userStorage   userStorage
+	tokenStorage  tokenStorage
+	objectStorage objectStorage
+	producer      getResponseChanSender
+	cfg           *config.Config
+}
+
+type objectStorage interface {
+	UploadData(ctx context.Context, register *dto.Register) (string, error)
+	DownloadData(ctx context.Context, userInfo *dto.UserInfo) ([]byte, error)
+	RemoveObject(ctx context.Context, fileName string) error
 }
 
 // New returns a new instance of Auth service
@@ -89,6 +96,7 @@ func New(
 	userStorage userStorage,
 	tokenStorage tokenStorage,
 	producer getResponseChanSender,
+	objectStorage objectStorage,
 ) *Auth {
 	// Channel that is used by kafka to return sent message status.
 	brokerRespChan := producer.GetResponseChan()
@@ -129,11 +137,12 @@ func New(
 	}()
 
 	return &Auth{
-		log:          log,
-		userStorage:  userStorage,
-		tokenStorage: tokenStorage,
-		producer:     producer,
-		cfg:          cfg,
+		log:           log,
+		userStorage:   userStorage,
+		tokenStorage:  tokenStorage,
+		objectStorage: objectStorage,
+		producer:      producer,
+		cfg:           cfg,
 	}
 }
 
@@ -250,16 +259,30 @@ func (a *Auth) Register(
 		log.Error("failed to generate password hash", "err", err.Error())
 		return ctx, nil, fmt.Errorf("%s: %w", op, err)
 	}
+	// Try to save avatar to minio, if we can save User, if we failed save user but with warning
+	avatarName, err := a.objectStorage.UploadData(ctx, reqData)
+	if err != nil {
+		// if minio is not available then save without avatar. Mini client has already provided
+		// retry policy:
+		// https://github.com/minio/minio-go/blob/de1893f9cd38d67564fd9d04af6fcf0ea88f9035/api.go#L646
+		log.Error("failed to save avatar", "err", err.Error())
+	}
 	// TODO: move to dto and need to add name
 	uuid, err := a.userStorage.SaveUser(ctx, reqData.Email, passHash)
 	if err != nil {
+		// send span to jaeger
 		span.SetStatus(codes.Error, err.Error())
 		span.SetAttributes(attribute.Bool("error", true))
 		span.RecordError(fmt.Errorf("failed to save user: %w", err))
 		log.Error("failed to save user", "err", err.Error())
+
+		// registration failed, so need to delete the previously saved avatar from minio
+		err = a.objectStorage.RemoveObject(ctx, avatarName)
+		if err != nil {
+			log.Error("failed to remove user avatar", "err", err.Error())
+		}
 		return ctx, nil, fmt.Errorf("%s: %w", op, err)
 	}
-
 	span.AddEvent("user registered", trace.WithAttributes(attribute.String("user-id", uuid)))
 	log.Info("user registered")
 	registrationMsg := registrationv1.RegistrationMessage{
@@ -439,4 +462,28 @@ func (a *Auth) generateRefreshAccessToken(
 		return ctx, nil, fmt.Errorf("refreshToken generation failed: %w", err)
 	}
 	return ctx, &domain.UserWithTokens{User: user, AccessToken: accessToken, RefreshToken: refreshToken}, nil
+}
+
+// Info provides info about new users.
+func (a *Auth) Info(
+	ctx context.Context,
+) (*domain.User, error) {
+	const op = "SERVICE LAYER: auth_service.Info"
+
+	ctx, span := tracer.Start(ctx, "service layer: Info",
+		trace.WithAttributes(attribute.String("handler", "info")))
+	defer span.End()
+
+	log := a.log.With(
+		slog.String("trace-id", "trace-id"),
+		slog.String("user-id", "user-id"),
+	)
+	log.Info("getting info from user")
+
+	return &domain.User{
+		ID:       "1",
+		Email:    "test@test.com",
+		Avatar:   "avatar",
+		Birthday: "02-10-20",
+	}, nil
 }

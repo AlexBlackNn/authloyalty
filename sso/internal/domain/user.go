@@ -5,6 +5,9 @@ type User struct {
 	Email    string
 	PassHash []byte
 	IsAdmin  bool
+	Name     string
+	Birthday string
+	Avatar   string
 }
 
 type UserWithTokens struct {

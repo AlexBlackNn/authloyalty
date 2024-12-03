@@ -40,7 +40,7 @@ tasks:
       - migrate
     desc: "Make migrations"
     cmds:
-      - cd .. && go run ./cmd/migrator/postgres  --p ./migrations -d postgres://postgres:postgres@localhost:5000/postgres?sslmode=disable
+      -  go run ./migrator/postgres  --p ./migrations -d postgres://postgres:postgres@localhost:5000/postgres?sslmode=disable
   run-integration-tests:
     aliases:
       - integration-tests

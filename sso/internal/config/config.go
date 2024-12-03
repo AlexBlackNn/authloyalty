@@ -32,6 +32,14 @@ type KafkaConfig struct {
 	Topic             string `yaml:"topic" env-required:"true"`
 }
 
+type MinioConfig struct {
+	URL             string `yaml:"minioUrl" env-required:"true"`
+	AccessKeyID     string `yaml:"accessKeyID" env-required:"true"`
+	SecretAccessKey string `yaml:"secretAccessKey" env-required:"true"`
+	//Secure          bool   `yaml:"secure" env-required:"false"`
+	BucketName string `yaml:"bucketName" env-required:"true"`
+}
+
 type ServerTimeoutConfig struct {
 	ReadTimeout  int64 `yaml:"readTimeout" env-required:"true"`
 	WriteTimeout int64 `yaml:"writeTimeout" env-required:"true"`
@@ -60,6 +68,7 @@ type Config struct {
 	RedisSentinel          RedisSentinelConfig          `yaml:"redis_sentinel"`
 	StoragePatroni         StoragePatroniConfig         `yaml:"storage_patroni"`
 	Kafka                  KafkaConfig                  `yaml:"kafka"`
+	Minio                  MinioConfig                  `yaml:"minio"`
 	JaegerUrl              string                       `yaml:"jaeger_url"`
 	RateLimit              int                          `yaml:"rate_limit" `
 	Address                string                       `yaml:"address"`

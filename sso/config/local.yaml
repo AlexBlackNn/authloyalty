@@ -32,3 +32,9 @@ server_handlers_timeouts:
   logoutTimeoutMs: 300
   registerTimeoutMs: 5000
   refreshTimeoutMs: 300
+minio:
+  minioUrl: "localhost:9000"
+  accessKeyID: "minioadmin"
+  secretAccessKey: "minioadmin"
+  secure: false
+  bucketName: "avatars"

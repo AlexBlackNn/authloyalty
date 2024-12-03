@@ -40,6 +40,26 @@ const docTemplate = `{
                 }
             }
         },
+        "/auth/info": {
+            "get": {
+                "description": "Provides a user info.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Info",
+                "responses": {
+                    "200": {
+                        "description": "info successful",
+                        "schema": {
+                            "$ref": "#/definitions/dto.UserResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/login": {
             "post": {
                 "description": "Authenticates a user and returns access and refresh tokens.",
@@ -230,6 +250,9 @@ const docTemplate = `{
                 "password"
             ],
             "properties": {
+                "avatar": {
+                    "type": "string"
+                },
                 "birthday": {
                     "type": "string"
                 },
@@ -254,6 +277,32 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "refresh_token": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.UserResponse": {
+            "type": "object",
+            "properties": {
+                "avatar": {
+                    "type": "string"
+                },
+                "birthday": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "error": {
+                    "type": "string"
+                },
+                "name": {
                     "type": "string"
                 },
                 "status": {
