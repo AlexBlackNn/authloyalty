@@ -1,0 +1,3 @@
+env: "local" #demo, prod
+server_addr: ":8080"
+server_data_base_dsn: "postgresql://app:app123@127.0.0.1:5432/metric_db?sslmode=disable"
