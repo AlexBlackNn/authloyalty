@@ -16,7 +16,6 @@ import (
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/suite"
-	"golang.org/x/net/context"
 )
 
 type LoyaltyAddSuite struct {
@@ -42,7 +41,7 @@ func (ls *LoyaltyAddSuite) SetupSuite() {
 	loyaltyStorageMock := mocks.NewMockloyaltyStorage(ctrl)
 	loyaltyStorageMock.EXPECT().
 		GetLoyalty(gomock.Any(), gomock.Any()).
-		Return(context.Background(), userLoyalty, nil).
+		Return(userLoyalty, nil).
 		AnyTimes()
 
 	brokerMock := mocks.NewMockloyaltyBroker(ctrl)

@@ -25,12 +25,12 @@ type loyaltyStorage interface {
 	AddLoyalty(
 		ctx context.Context,
 		loyalty *domain.UserLoyalty,
-	) (context.Context, *domain.UserLoyalty, error)
+	) (*domain.UserLoyalty, error)
 	GetLoyalty(
 		ctx context.Context,
 		loyalty *domain.UserLoyalty,
-	) (context.Context, *domain.UserLoyalty, error)
-	HealthCheck(context.Context) (context.Context, error)
+	) (*domain.UserLoyalty, error)
+	HealthCheck(context.Context) error
 	Stop() error
 }
 
@@ -55,10 +55,10 @@ func New(
 	go func() {
 		for msg := range msgChan {
 
-			userLoyalty := &domain.UserLoyalty{UUID: msg.Msg.UUID, Balance: msg.Msg.Balance, Operation: "registration"}
+			userLoyalty := &domain.UserLoyalty{UUID: msg.Msg.UUID, Balance: msg.Msg.Balance, Operation: msg.Msg.Type, Comment: msg.Msg.Comment}
 			ctx, span := tracer.Start(msg.Ctx, "service layer: GetMessageChan",
 				trace.WithAttributes(attribute.String("handler", "GetMessageChan")))
-			ctx, userLoyalty, err := loyalStorage.AddLoyalty(ctx, userLoyalty)
+			userLoyalty, err := loyalStorage.AddLoyalty(ctx, userLoyalty)
 			if err != nil {
 				log.Error(err.Error(), "userLoyalty", userLoyalty)
 				tracing.SpanError(span, "failed to create loyalty for user", err)
@@ -69,7 +69,7 @@ func New(
 				"user loyalty extracted from broker message",
 				trace.WithAttributes(
 					attribute.String("user-id", userLoyalty.UUID),
-					attribute.Int("user-id", userLoyalty.Balance),
+					attribute.Int("balance", userLoyalty.Balance),
 				),
 			)
 			span.End()
@@ -84,7 +84,7 @@ func New(
 }
 
 // HealthCheck returns service health check.
-func (l *Loyalty) HealthCheck(ctx context.Context) (context.Context, error) {
+func (l *Loyalty) HealthCheck(ctx context.Context) error {
 	log := l.log.With(
 		slog.String("info", "SERVICE LAYER: HealthCheck"),
 	)
@@ -96,7 +96,7 @@ func (l *Loyalty) HealthCheck(ctx context.Context) (context.Context, error) {
 func (l *Loyalty) GetLoyalty(
 	ctx context.Context,
 	userLoyalty *domain.UserLoyalty,
-) (context.Context, *domain.UserLoyalty, error) {
+) (*domain.UserLoyalty, error) {
 	const op = "SERVICE LAYER: GetLoyalty"
 	ctx, span := tracer.Start(ctx, "service layer: GetLoyalty",
 		trace.WithAttributes(attribute.String("handler", "GetLoyalty")))
@@ -108,14 +108,14 @@ func (l *Loyalty) GetLoyalty(
 	)
 	log.Info("getting loyalty for user")
 
-	ctx, userLoyalty, err := l.loyalStorage.GetLoyalty(ctx, userLoyalty)
+	userLoyalty, err := l.loyalStorage.GetLoyalty(ctx, userLoyalty)
 	if err != nil {
 		if errors.Is(err, storage.ErrUserNotFound) {
-			return ctx, nil, ErrUserNotFound
+			return nil, ErrUserNotFound
 		}
 		tracing.SpanError(span, "failed to get loyalty", err)
 		log.Error("failed to get loyalty", "err", err.Error())
-		return ctx, nil, fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	span.AddEvent(
 		"user loyalty extracted",
@@ -123,13 +123,13 @@ func (l *Loyalty) GetLoyalty(
 			attribute.String("user-id", userLoyalty.UUID),
 			attribute.Int("user-id", userLoyalty.Balance),
 		))
-	return ctx, userLoyalty, nil
+	return userLoyalty, nil
 }
 
 func (l *Loyalty) AddLoyalty(
 	ctx context.Context,
 	userLoyalty *domain.UserLoyalty,
-) (context.Context, *domain.UserLoyalty, error) {
+) (*domain.UserLoyalty, error) {
 	const op = "SERVICE LAYER: AddLoyalty"
 	ctx, span := tracer.Start(ctx, "service layer: AddLoyalty",
 		trace.WithAttributes(attribute.String("handler", "AddLoyalty")))
@@ -141,21 +141,21 @@ func (l *Loyalty) AddLoyalty(
 	)
 	log.Info("add loyalty to user")
 
-	ctx, userLoyalty, err := l.loyalStorage.AddLoyalty(ctx, userLoyalty)
+	userLoyalty, err := l.loyalStorage.AddLoyalty(ctx, userLoyalty)
 	if err != nil {
 		if errors.Is(err, storage.ErrNegativeBalance) {
 			tracing.SpanError(span, "withdraw might lead to negative balance", err)
 			log.Error("withdraw might lead to negative balance", "err", err.Error())
-			return ctx, nil, ErrNegativeBalance
+			return nil, ErrNegativeBalance
 		}
 		if errors.Is(err, storage.ErrUserNotFound) {
 			tracing.SpanError(span, "withdraw might lead to negative balance", err)
 			log.Error("withdraw might lead to negative balance", "err", err.Error())
-			return ctx, nil, ErrUserNotFound
+			return nil, ErrUserNotFound
 		}
 		tracing.SpanError(span, "failed to get loyalty", err)
 		log.Error("failed to get loyalty", "err", err.Error())
-		return ctx, nil, fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	span.AddEvent(
 		"user loyalty extracted",
@@ -163,5 +163,5 @@ func (l *Loyalty) AddLoyalty(
 			attribute.String("user-id", userLoyalty.UUID),
 			attribute.Int("user-id", userLoyalty.Balance),
 		))
-	return ctx, userLoyalty, nil
+	return userLoyalty, nil
 }

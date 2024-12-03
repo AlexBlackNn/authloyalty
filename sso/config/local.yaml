@@ -22,6 +22,7 @@ address: ":8000"
 kafka:
   kafkaUrl: "localhost:9094"
   schemaRegistryURL: "http://localhost:8081"
+  topic: "registration"
 server_timeout:
   readTimeout: 10
   writeTimeout: 10
@@ -31,3 +32,9 @@ server_handlers_timeouts:
   logoutTimeoutMs: 300
   registerTimeoutMs: 5000
   refreshTimeoutMs: 300
+minio:
+  minioUrl: "localhost:9000"
+  accessKeyID: "minioadmin"
+  secretAccessKey: "minioadmin"
+  secure: false
+  bucketName: "avatars"

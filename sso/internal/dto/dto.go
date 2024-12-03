@@ -17,11 +17,16 @@ type Login struct {
 	Password string `json:"password"`
 }
 
+type UserInfo struct {
+	FileName string `json:"file_name"`
+}
+
 type Register struct {
 	Email    string `json:"email" validate:"email"`
 	Password string `json:"password" validate:"required"`
 	Name     string `json:"name"`
 	Birthday string `json:"birthday"`
+	Avatar   string `json:"avatar"`
 }
 
 type Refresh struct {
@@ -40,6 +45,16 @@ type Response struct {
 	UserID       string `json:"user_id,omitempty"`
 	AccessToken  string `json:"access_token,omitempty"`
 	RefreshToken string `json:"refresh_token,omitempty"`
+}
+
+type UserResponse struct {
+	Status string `json:"status"`
+	Error  string `json:"error,omitempty"`
+	UserID string `json:"user_id,omitempty"`
+	Name   string `json:"name,omitempty"`
+	Birth  string `json:"birthday,omitempty"`
+	Email  string `json:"email,omitempty"`
+	Avatar string `json:"avatar,omitempty"`
 }
 
 const StatusError = "Error"
@@ -134,7 +149,22 @@ func ResponseOKAccessRefresh(
 	sendJSON(w, http.StatusCreated, dataMarshal)
 }
 
-// Validation error.
+func UserResponseOk(
+	w http.ResponseWriter,
+	user *domain.User,
+) {
+	dataMarshal, _ := easyjson.Marshal(
+		UserResponse{
+			Status: StatusSuccess,
+			UserID: user.ID,
+			Email:  user.Email,
+			Name:   user.Name,
+			Birth:  user.Birthday,
+			Avatar: user.Avatar,
+		},
+	)
+	sendJSON(w, http.StatusOK, dataMarshal)
+}
 
 func ValidationError(errs validator.ValidationErrors) string {
 	var errMsgs []string

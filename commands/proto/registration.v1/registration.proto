@@ -6,6 +6,6 @@ option go_package = "./registration.v1";
 package Registration.v1;
 
 message RegistrationMessage {
-  string Email = 1;
-  string FullName = 2;
+  string uuid = 1;
+  string type = 2;
 }

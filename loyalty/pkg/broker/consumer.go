@@ -20,6 +20,7 @@ import (
 type Message struct {
 	UUID    string
 	Balance int
+	Type    string
 	Comment string
 }
 
@@ -112,15 +113,18 @@ func (b *Broker) Consume() {
 			ctx, span := tracer.Start(ctx, "kafka_message_processing")
 			defer span.End()
 
-			value, err := b.deserializer.Deserialize(*e.TopicPartition.Topic, e.Value)
+			var msg registrationv1.RegistrationMessage
+
+			err := b.deserializer.DeserializeInto(*e.TopicPartition.Topic, e.Value, &msg)
+
 			if err != nil {
 				log.Error("Failed to deserialize payload: %s\n", err)
+				continue
 			} else {
-				log.Error("%% Message on %s:\n%+v\n", e.TopicPartition, value)
+				log.Info("%% Message on %s:\n%+v\n", e.TopicPartition, msg)
 			}
-			if e.Headers != nil {
-				log.Error("%% Headers: %v\n", e.Headers)
 
+			if e.Headers != nil {
 				headers := propagation.MapCarrier{}
 
 				for _, recordHeader := range e.Headers {
@@ -140,8 +144,9 @@ func (b *Broker) Consume() {
 				)
 				defer span.End()
 			}
-			// TODO: Balance migt be transmitted from sso and extracted from protobuf, Err - take a look at docs to find out.
-			b.MessageChan <- &MessageReceived{Msg: Message{UUID: string(e.Key), Balance: 100, Comment: "registration"}, Ctx: ctx, Err: nil}
+
+			// TODO: Balance might be transmitted from sso and extracted from protobuf, Err - take a look at docs to find out.
+			b.MessageChan <- &MessageReceived{Msg: Message{UUID: string(e.Key), Balance: 100, Comment: msg.Type, Type: msg.Type}, Ctx: ctx, Err: nil}
 
 		case kafka.Error:
 			// Errors should generally be considered

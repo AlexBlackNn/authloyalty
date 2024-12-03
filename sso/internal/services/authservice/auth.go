@@ -30,7 +30,7 @@ type getResponseChanSender interface {
 		msg proto.Message,
 		topic string,
 		key string,
-	) (context.Context, error)
+	) error
 	GetResponseChan() chan *broker.Response
 }
 
@@ -39,23 +39,23 @@ type userStorage interface {
 		ctx context.Context,
 		email string,
 		passHash []byte,
-	) (context.Context, string, error)
+	) (string, error)
 	GetUser(
 		ctx context.Context,
 		uuid string,
-	) (context.Context, domain.User, error)
+	) (domain.User, error)
 	GetUserByEmail(
 		ctx context.Context,
 		email string,
-	) (context.Context, domain.User, error)
+	) (domain.User, error)
 	UpdateSendStatus(
 		ctx context.Context,
 		uuid string,
 		status string,
-	) (context.Context, error)
+	) error
 	HealthCheck(
 		ctx context.Context,
-	) (context.Context, error)
+	) error
 }
 
 type tokenStorage interface {
@@ -63,23 +63,30 @@ type tokenStorage interface {
 		ctx context.Context,
 		token string,
 		ttl time.Duration,
-	) (context.Context, error)
+	) error
 	GetToken(
 		ctx context.Context,
 		token string,
-	) (context.Context, string, error)
+	) (string, error)
 	CheckTokenExists(
 		ctx context.Context,
 		token string,
-	) (context.Context, int64, error)
+	) (int64, error)
 }
 
 type Auth struct {
-	log          *slog.Logger
-	userStorage  userStorage
-	tokenStorage tokenStorage
-	producer     getResponseChanSender
-	cfg          *config.Config
+	log           *slog.Logger
+	userStorage   userStorage
+	tokenStorage  tokenStorage
+	objectStorage objectStorage
+	producer      getResponseChanSender
+	cfg           *config.Config
+}
+
+type objectStorage interface {
+	UploadData(ctx context.Context, register *dto.Register) (string, error)
+	DownloadData(ctx context.Context, userInfo *dto.UserInfo) ([]byte, error)
+	RemoveObject(ctx context.Context, fileName string) error
 }
 
 // New returns a new instance of Auth service
@@ -89,6 +96,7 @@ func New(
 	userStorage userStorage,
 	tokenStorage tokenStorage,
 	producer getResponseChanSender,
+	objectStorage objectStorage,
 ) *Auth {
 	// Channel that is used by kafka to return sent message status.
 	brokerRespChan := producer.GetResponseChan()
@@ -105,7 +113,7 @@ func New(
 					"err", brokerResponse.Err,
 					"uuid", brokerResponse.UserUUID,
 				)
-				_, err := userStorage.UpdateSendStatus(
+				err := userStorage.UpdateSendStatus(
 					context.Background(), brokerResponse.UserUUID, "failed",
 				)
 				if err != nil {
@@ -117,7 +125,7 @@ func New(
 				}
 				continue
 			}
-			_, err := userStorage.UpdateSendStatus(
+			err := userStorage.UpdateSendStatus(
 				context.Background(),
 				brokerResponse.UserUUID,
 				"successful",
@@ -129,22 +137,24 @@ func New(
 	}()
 
 	return &Auth{
-		log:          log,
-		userStorage:  userStorage,
-		tokenStorage: tokenStorage,
-		producer:     producer,
-		cfg:          cfg,
+		log:           log,
+		userStorage:   userStorage,
+		tokenStorage:  tokenStorage,
+		objectStorage: objectStorage,
+		producer:      producer,
+		cfg:           cfg,
 	}
 }
 
 const (
-	TokenRevoked = 1
+	TokenRevoked     = 1
+	RegistrationType = "registration"
 )
 
 var tracer = otel.Tracer("sso service")
 
 // HealthCheck returns service health check.
-func (a *Auth) HealthCheck(ctx context.Context) (context.Context, error) {
+func (a *Auth) HealthCheck(ctx context.Context) error {
 	log := a.log.With(
 		slog.String("info", "SERVICE LAYER: HealthCheck"),
 	)
@@ -214,7 +224,7 @@ func (a *Auth) Refresh(
 		return nil, err
 	}
 	a.log.Info("saving refresh token to redis")
-	ctx, err = a.tokenStorage.SaveToken(ctx, reqData.Token, ttl)
+	err = a.tokenStorage.SaveToken(ctx, reqData.Token, ttl)
 	if err != nil {
 		a.log.Error("failed to save token", "err", err.Error())
 		return nil, err
@@ -249,24 +259,38 @@ func (a *Auth) Register(
 		log.Error("failed to generate password hash", "err", err.Error())
 		return ctx, nil, fmt.Errorf("%s: %w", op, err)
 	}
-	// TODO: move to dto and need to add name
-	ctx, uuid, err := a.userStorage.SaveUser(ctx, reqData.Email, passHash)
+	// Try to save avatar to minio, if we can save User, if we failed save user but with warning
+	avatarName, err := a.objectStorage.UploadData(ctx, reqData)
 	if err != nil {
+		// if minio is not available then save without avatar. Mini client has already provided
+		// retry policy:
+		// https://github.com/minio/minio-go/blob/de1893f9cd38d67564fd9d04af6fcf0ea88f9035/api.go#L646
+		log.Error("failed to save avatar", "err", err.Error())
+	}
+	// TODO: move to dto and need to add name
+	uuid, err := a.userStorage.SaveUser(ctx, reqData.Email, passHash)
+	if err != nil {
+		// send span to jaeger
 		span.SetStatus(codes.Error, err.Error())
 		span.SetAttributes(attribute.Bool("error", true))
 		span.RecordError(fmt.Errorf("failed to save user: %w", err))
 		log.Error("failed to save user", "err", err.Error())
+
+		// registration failed, so need to delete the previously saved avatar from minio
+		err = a.objectStorage.RemoveObject(ctx, avatarName)
+		if err != nil {
+			log.Error("failed to remove user avatar", "err", err.Error())
+		}
 		return ctx, nil, fmt.Errorf("%s: %w", op, err)
 	}
-
 	span.AddEvent("user registered", trace.WithAttributes(attribute.String("user-id", uuid)))
 	log.Info("user registered")
 	registrationMsg := registrationv1.RegistrationMessage{
-		Email:    reqData.Email,
-		FullName: reqData.Name,
+		Uuid: uuid,
+		Type: RegistrationType,
 	}
-	//TODO: registration should be got from config
-	ctx, err = a.producer.Send(ctx, &registrationMsg, "registration", uuid)
+
+	err = a.producer.Send(ctx, &registrationMsg, a.cfg.Kafka.Topic, uuid)
 	if err != nil {
 		// TODO: determine the err can be faced
 		// No return here with err!!!, we do continue working (so-called soft degradation)
@@ -275,7 +299,7 @@ func (a *Auth) Register(
 		span.SetAttributes(attribute.Bool("error", true))
 		span.RecordError(fmt.Errorf("sending message to broker failed %w", err))
 		log.Error("sending message to broker failed", "err", err.Error())
-		ctx, err = a.userStorage.UpdateSendStatus(
+		err = a.userStorage.UpdateSendStatus(
 			ctx, uuid, "failed",
 		)
 		if err != nil {
@@ -321,7 +345,7 @@ func (a *Auth) IsAdmin(
 	)
 
 	log.Info("getting user from database")
-	ctx, user, err := a.userStorage.GetUser(ctx, userID)
+	user, err := a.userStorage.GetUser(ctx, userID)
 	if err != nil {
 		log.Error("failed to extract user", "err", err.Error())
 		return false, fmt.Errorf("%s: %w", op, err)
@@ -353,7 +377,7 @@ func (a *Auth) Logout(
 	log.Info("validate token successfully")
 	log.Info("saving token to redis")
 
-	ctx, err = a.tokenStorage.SaveToken(ctx, reqData.Token, ttl)
+	err = a.tokenStorage.SaveToken(ctx, reqData.Token, ttl)
 	if err != nil {
 		log.Error("failed to save token", "err", err.Error())
 		return false, err
@@ -384,10 +408,10 @@ func (a *Auth) Validate(
 }
 
 func (a *Auth) validateToken(ctx context.Context, token string) (context.Context, jwt.MapClaims, error) {
-
 	tokenParsed, err := jwt.Parse(token, func(token *jwt.Token) (any, error) {
 		return []byte(a.cfg.ServiceSecret), nil
 	})
+	fmt.Println("111111111", tokenParsed, err)
 	if err != nil {
 		return ctx, jwt.MapClaims{}, ErrTokenParsing
 	}
@@ -406,7 +430,7 @@ func (a *Auth) validateToken(ctx context.Context, token string) (context.Context
 	}
 	// check if token exists in redis
 
-	ctx, value, err := a.tokenStorage.CheckTokenExists(ctx, token)
+	value, err := a.tokenStorage.CheckTokenExists(ctx, token)
 	if err != nil {
 		return ctx, jwt.MapClaims{}, fmt.Errorf("validateToken: %w", err)
 	}
@@ -421,7 +445,7 @@ func (a *Auth) generateRefreshAccessToken(
 	email string,
 ) (context.Context, *domain.UserWithTokens, error) {
 
-	ctx, user, err := a.userStorage.GetUserByEmail(ctx, email)
+	user, err := a.userStorage.GetUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, storage.ErrUserNotFound) {
 			return ctx, nil, ErrInvalidCredentials
@@ -438,4 +462,37 @@ func (a *Auth) generateRefreshAccessToken(
 		return ctx, nil, fmt.Errorf("refreshToken generation failed: %w", err)
 	}
 	return ctx, &domain.UserWithTokens{User: user, AccessToken: accessToken, RefreshToken: refreshToken}, nil
+}
+
+// Info provides info about new users.
+func (a *Auth) Info(
+	ctx context.Context,
+	token string,
+) (*domain.User, error) {
+	const op = "SERVICE LAYER: auth_service.Info"
+
+	ctx, span := tracer.Start(ctx, "service layer: Info",
+		trace.WithAttributes(attribute.String("handler", "info")))
+	defer span.End()
+
+	log := a.log.With(
+		slog.String("trace-id", "trace-id"),
+		slog.String("user-id", "user-id"),
+	)
+	log.Info("getting info from user")
+	ctx, mapClaims, err := a.validateToken(ctx, token)
+	if err != nil {
+		log.Error("failed validate token: ", "err", err.Error())
+		return nil, err
+	}
+	uuid, ok := (mapClaims["uid"]).(string)
+	if !ok {
+		return nil, ErrInvalidCredentials
+	}
+
+	user, err := a.userStorage.GetUser(ctx, uuid)
+	if err != nil {
+		return nil, ErrUserNotFound
+	}
+	return &user, nil
 }

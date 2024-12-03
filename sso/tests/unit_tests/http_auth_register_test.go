@@ -22,7 +22,6 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/crypto/bcrypt"
-	"golang.org/x/net/context"
 )
 
 type AuthSuite struct {
@@ -44,7 +43,7 @@ func (ms *AuthSuite) SetupSuite() {
 	userStorageMock := mocks.NewMockuserStorage(ctrl)
 	userStorageMock.EXPECT().
 		SaveUser(gomock.Any(), gomock.Any(), gomock.Any()).
-		Return(context.Background(), "79d3ac44-5857-4185-ba92-1a224fbacb51", nil).
+		Return("79d3ac44-5857-4185-ba92-1a224fbacb51", nil).
 		AnyTimes()
 
 	passHash, err := bcrypt.GenerateFromPassword(
@@ -59,19 +58,19 @@ func (ms *AuthSuite) SetupSuite() {
 	}
 	userStorageMock.EXPECT().
 		GetUserByEmail(gomock.Any(), gomock.Any()).
-		Return(context.Background(), user, nil).
+		Return(user, nil).
 		AnyTimes()
 
 	userStorageMock.EXPECT().
 		UpdateSendStatus(gomock.Any(), gomock.Any(), gomock.Any()).
-		Return(context.Background(), nil).
+		Return(nil).
 		AnyTimes()
 
 	brokerMock := mocks.NewMockgetResponseChanSender(ctrl)
 
 	brokerMock.EXPECT().
 		Send(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-		Return(context.Background(), nil).
+		Return(nil).
 		AnyTimes()
 
 	brokerMock.EXPECT().

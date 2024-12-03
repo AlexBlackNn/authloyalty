@@ -10,9 +10,11 @@ import (
 	"github.com/AlexBlackNn/authloyalty/sso/app/serverhttp"
 	"github.com/AlexBlackNn/authloyalty/sso/internal/config"
 	"github.com/AlexBlackNn/authloyalty/sso/internal/domain"
+	"github.com/AlexBlackNn/authloyalty/sso/internal/dto"
 	"github.com/AlexBlackNn/authloyalty/sso/internal/logger"
 	"github.com/AlexBlackNn/authloyalty/sso/internal/services/authservice"
 	"github.com/AlexBlackNn/authloyalty/sso/internal/storage"
+	"github.com/AlexBlackNn/authloyalty/sso/internal/storage/objectstorage"
 	"github.com/AlexBlackNn/authloyalty/sso/internal/storage/patroni"
 	"github.com/AlexBlackNn/authloyalty/sso/internal/storage/redissentinel"
 	"github.com/AlexBlackNn/authloyalty/sso/pkg/broker"
@@ -21,16 +23,22 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+type objectStorage interface {
+	UploadData(ctx context.Context, register *dto.Register) (string, error)
+	DownloadData(ctx context.Context, userInfo *dto.UserInfo) ([]byte, error)
+	RemoveObject(ctx context.Context, fileName string) error
+}
+
 type userStorage interface {
 	SaveUser(
 		ctx context.Context,
 		email string,
 		passHash []byte,
-	) (context.Context, string, error)
+	) (string, error)
 	GetUser(
 		ctx context.Context,
 		email string,
-	) (context.Context, domain.User, error)
+	) (domain.User, error)
 	Stop() error
 }
 
@@ -39,15 +47,15 @@ type tokenStorage interface {
 		ctx context.Context,
 		token string,
 		ttl time.Duration,
-	) (context.Context, error)
+	) error
 	GetToken(
 		ctx context.Context,
 		token string,
-	) (context.Context, string, error)
+	) (string, error)
 	CheckTokenExists(
 		ctx context.Context,
 		token string,
-	) (context.Context, int64, error)
+	) (int64, error)
 }
 
 type sendCloser interface {
@@ -56,7 +64,7 @@ type sendCloser interface {
 		msg proto.Message,
 		topic string,
 		key string,
-	) (context.Context, error)
+	) error
 	Close()
 }
 
@@ -67,6 +75,7 @@ type App struct {
 	ServerTokenStorage  tokenStorage
 	ServerProducer      sendCloser
 	ServerOpenTelemetry *trace.TracerProvider
+	ServerObjectStorage objectStorage
 }
 
 func New() (*App, error) {
@@ -80,6 +89,11 @@ func New() (*App, error) {
 			return nil, err
 		}
 		log.Warn(err.Error())
+	}
+
+	objStorage, err := objectstorage.New(cfg)
+	if err != nil {
+		return nil, err
 	}
 
 	tknStorage, err := redissentinel.New(cfg)
@@ -98,6 +112,7 @@ func New() (*App, error) {
 		usrStorage,
 		tknStorage,
 		producer,
+		objStorage,
 	)
 
 	// http server
@@ -125,6 +140,7 @@ func New() (*App, error) {
 		ServerTokenStorage:  tknStorage,
 		ServerProducer:      producer,
 		ServerOpenTelemetry: tp,
+		ServerObjectStorage: objStorage,
 	}, nil
 }
 

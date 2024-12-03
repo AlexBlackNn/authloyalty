@@ -7,6 +7,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/AlexBlackNn/authloyalty/sso/internal/domain"
@@ -35,6 +36,10 @@ type authService interface {
 		ctx context.Context,
 		reqData *dto.Refresh,
 	) (userWithTokens *domain.UserWithTokens, err error)
+	Info(
+		ctx context.Context,
+		token string,
+	) (user *domain.User, err error)
 }
 
 type AuthHandlers struct {
@@ -221,4 +226,31 @@ func (a *AuthHandlers) Refresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	dto.ResponseOKAccessRefresh(w, userWithTokens)
+}
+
+// @Summary Info
+// @Description Provides a user info.
+// @Tags Auth
+// @Produce json
+// @Success 200 {object} dto.UserResponse "info successful"
+// @Router /auth/info [get]
+// @Security bearerAuth
+func (a *AuthHandlers) Info(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := ctxWithTimeoutCause(r, a.cfg, "info timeout")
+	defer cancel()
+
+	tokenString := r.Header.Get("Authorization")
+	token := strings.TrimPrefix(tokenString, "Bearer")
+	token = strings.TrimSpace(token)
+	user, err := a.auth.Info(ctx, token)
+
+	if err != nil {
+		if errors.Is(err, authservice.ErrInvalidCredentials) {
+			dto.ResponseErrorNotFound(w, "user not found")
+			return
+		}
+		dto.ResponseErrorInternal(w, "internal server error")
+		return
+	}
+	dto.UserResponseOk(w, user)
 }

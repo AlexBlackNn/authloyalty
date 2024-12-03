@@ -11,7 +11,7 @@ tasks:
       - protoc -I proto proto/sso/sso.proto --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative
       - mv sso/* proto/sso/gen
       - rm -r sso
-  kafka-data-v1:
+  kafka-data:
     aliases:
       - proto
     desc: "Generate code from proto files for kafka"
@@ -40,7 +40,7 @@ tasks:
       - migrate
     desc: "Make migrations"
     cmds:
-      - cd .. && go run ./cmd/migrator/postgres  --p ./migrations -d postgres://postgres:postgres@localhost:5000/postgres?sslmode=disable
+      -  go run ./migrator/postgres  --p ./migrations -d postgres://postgres:postgres@localhost:5000/postgres?sslmode=disable
   run-integration-tests:
     aliases:
       - integration-tests

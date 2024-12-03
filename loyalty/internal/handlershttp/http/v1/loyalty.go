@@ -22,11 +22,11 @@ type loyaltyService interface {
 	AddLoyalty(
 		ctx context.Context,
 		reqData *domain.UserLoyalty,
-	) (context.Context, *domain.UserLoyalty, error)
+	) (*domain.UserLoyalty, error)
 	GetLoyalty(
 		ctx context.Context,
 		reqData *domain.UserLoyalty,
-	) (context.Context, *domain.UserLoyalty, error)
+	) (*domain.UserLoyalty, error)
 }
 
 type LoyaltyHandlers struct {
@@ -123,7 +123,7 @@ func (l *LoyaltyHandlers) AddLoyalty(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	ctx, loyalty, err := l.loyalty.AddLoyalty(ctx, userLoyalty)
+	loyalty, err := l.loyalty.AddLoyalty(ctx, userLoyalty)
 
 	if err != nil {
 		if errors.Is(err, loyaltyservice.ErrNegativeBalance) {
@@ -153,7 +153,7 @@ func (l *LoyaltyHandlers) GetLoyalty(w http.ResponseWriter, r *http.Request) {
 	userLoyalty, err := handleGetLoyaltyBadRequest(w, r)
 	ctx, cancel := ctxWithTimeoutCause(r, l.cfg, "login timeout")
 	defer cancel()
-	ctx, loyalty, err := l.loyalty.GetLoyalty(ctx, userLoyalty)
+	loyalty, err := l.loyalty.GetLoyalty(ctx, userLoyalty)
 
 	if err != nil {
 		if errors.Is(err, loyaltyservice.ErrUserNotFound) {

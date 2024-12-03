@@ -45,6 +45,7 @@ func NewChiRouter(
 		r.Post("/logout", authHandlerV1.Logout)
 		r.Post("/registration", authHandlerV1.Register)
 		r.Post("/refresh", authHandlerV1.Refresh)
+		r.Get("/info", authHandlerV1.Info)
 	})
 	router.Route("/", func(r chi.Router) {
 		r.Get("/swagger/*", httpSwagger.Handler(

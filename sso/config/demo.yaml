@@ -20,6 +20,7 @@ address: ":8000"
 kafka:
   kafkaUrl: "kafka-0:9092"
   schemaRegistryURL: "http://schema-registry:8081"
+  topic: "registration"
 server_timeout:
   readTimeout: 10
   writeTimeout: 10
